@@ -145,15 +145,19 @@ fun schemeFor(theme: AppTheme): ColorScheme = when (theme) {
  */
 val LocalAppBackground = staticCompositionLocalOf { AppBackground.FIRE_SOLID }
 
+/** Zdjęcie dnia (D-51): ścieżka jak ilustracji ćwiczeń albo null, gdy tło nie jest zdjęciem albo baza go nie ma. */
+val LocalBackgroundPhoto = staticCompositionLocalOf<String?> { null }
+
 @Composable
 fun TrainingsTheme(
     theme: AppTheme = AppTheme.FIRE,
     background: AppBackground = AppBackground.of(theme).first(),
+    photo: String? = null,
     content: @Composable () -> Unit,
 ) {
     // Tło innego motywu nie trzyma kontrastu z tym schematem, więc w takim wypadku zostaje jednolite.
     val own = if (background.theme == theme) background else AppBackground.of(theme).first()
-    CompositionLocalProvider(LocalAppBackground provides own) {
+    CompositionLocalProvider(LocalAppBackground provides own, LocalBackgroundPhoto provides photo?.takeIf { own.photo }) {
         MaterialTheme(
             colorScheme = schemeFor(theme),
             typography = AppTypography,

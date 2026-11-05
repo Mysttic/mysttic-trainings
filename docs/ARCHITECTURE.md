@@ -96,7 +96,9 @@ a `ui/common/exerciseImageModel` zamienia je na plik zamiast assetu.
 DataStore Preferences: `difficulty`, `ownedEquipment`, `countdownSec`, `soundEnabled`, `ttsEnabled`, `vibrationEnabled`,
 `keepScreenOn`, `seedVersion`, `volumeKeyDone`, `reminderEnabled`/`reminderHour`/`reminderMinute`, `healthConnectEnabled`,
 `updateChecks`/`lastUpdateCheck`, `libraryTiles` (kafelki albo lista w bibliotece), `themeId` i `backgrounds`
-(motyw i tło każdego motywu, D-39, D-50). Zmiana poziomu z dowolnego ekranu
+(motyw i tło każdego motywu, D-39, D-50), `photoPeople` (osoby na zdjęciu dnia, D-51). Zdjęcie dnia wybiera
+`data/background/BackgroundPhotoRepository`: zdjęcia z `tla.json` wczytanej bazy i temat z następnego treningu planu,
+regułą z `domain/background/PhotoPicker`. Zmiana poziomu z dowolnego ekranu
 (player, Ustawienia) zapisuje to samo pole.
 
 ## UI (`ui/`)

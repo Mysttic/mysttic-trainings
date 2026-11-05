@@ -41,7 +41,8 @@ data class BackupFile(
     companion object {
         /**
          * 2: doszły cykle treningowe i pełne ustawienia. 3 (D-42): źródło, autor i opis planu, plan w sesji,
-         * imię autora w ustawieniach. 4 (D-44): notatki do ćwiczeń w planach. 5 (D-50): tło w każdym motywie.
+         * imię autora w ustawieniach. 4 (D-44): notatki do ćwiczeń w planach. 5 (D-50, D-51): tło w każdym motywie
+         * i osoby na zdjęciu dnia.
          * Starsze kopie wczytują się dalej (same pola domyślne).
          */
         const val VERSION = 5
@@ -53,7 +54,10 @@ data class BackupFile(
         /** Imię autora (D-42) jest w kopii od wersji 3; starsza kopia go nie ma i nie może skasować ustawionego. */
         const val AUTHOR_NAME_SINCE = 3
 
-        /** Tła motywów (D-50) są w kopii od wersji 5; starsza kopia ich nie ma i nie może zgasić wybranego gradientu. */
+        /**
+         * Tła motywów (D-50) i osoby na zdjęciu dnia (D-51) są w kopii od wersji 5; starsza kopia ich nie ma i nie może
+         * zgasić wybranego tła.
+         */
         const val BACKGROUNDS_SINCE = 5
 
         /**
@@ -168,6 +172,8 @@ data class BackupSettings(
     val authorName: String = "",
     /** Tło w każdym motywie, id motywu → id tła (D-50); od wersji 5. */
     val backgrounds: Map<String, String> = emptyMap(),
+    /** Kogo pokazywać na zdjęciu dnia (D-51); od wersji 5. */
+    val photoPeople: String = "oboje",
 )
 
 @Serializable

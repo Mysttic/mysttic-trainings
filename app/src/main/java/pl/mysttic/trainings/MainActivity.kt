@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.IntentCompat
@@ -20,8 +21,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import pl.mysttic.trainings.data.background.BackgroundPhotoRepository
 import pl.mysttic.trainings.data.settings.SettingsRepository
 import pl.mysttic.trainings.data.share.PlanShareRepository
 import pl.mysttic.trainings.data.settings.UserSettings
@@ -43,6 +46,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var planShare: PlanShareRepository
 
+    @Inject lateinit var backgroundPhotos: BackgroundPhotoRepository
+
     /** Id treningu z powiadomienia (zimny start i onNewIntent przy singleTask); CONFLATED = ostatnie żądanie czeka na NavHost. */
     private val openPlayerRequests = Channel<String>(Channel.CONFLATED)
 
@@ -63,6 +68,9 @@ class MainActivity : ComponentActivity() {
             val theme = AppTheme.fromId(settings.themeId)
             // Tło tego motywu (D-50): każdy motyw pamięta swoje, więc zmiana motywu przywraca jego wybór.
             val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
+            // Zdjęcie dnia (D-51) liczymy tylko wtedy, gdy jest wybrane: dobór czyta plan, treningi i bazę ćwiczeń.
+            val photos = remember(background.photo) { if (background.photo) backgroundPhotos.today() else flowOf(null) }
+            val photo by photos.collectAsStateWithLifecycle(initialValue = null)
             val view = LocalView.current
             LaunchedEffect(theme, background) {
                 // Wygląd nie idzie za systemem, więc ikony pasków i tło okna muszą iść za wyborem.
@@ -72,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     isAppearanceLightNavigationBars = !theme.dark
                 }
             }
-            TrainingsTheme(theme = theme, background = background) {
+            TrainingsTheme(theme = theme, background = background, photo = photo) {
                 TrainingsRoot(openPlayer = openPlayerRequests.receiveAsFlow(), openPlanFile = planShare.incoming)
             }
         }

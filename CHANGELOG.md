@@ -17,6 +17,18 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
 
 ## [Niewydane]
 
+## [Baza 11]
+
+Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która jako pierwsza je pokazuje.
+
+### Dodane
+- **35 zdjęć tła**: brzuch, nogi, góra ciała, całe ciało, kardio i joga, każdy temat z kobietą i z mężczyzną.
+  Zdjęcia są rozmyte i w skali szarości, a kolor nadaje im motyw aplikacji. Ćwiczenia bez zmian.
+
+### Zmienione
+- **Baza wymaga aplikacji 1.2.0.** Wersja 1.1.0 nie zna zdjęć tła, więc zamiast pobierać bazę pokaże
+  „najpierw zaktualizuj aplikację”.
+
 ## [1.2.0]
 
 ### Dodane
@@ -25,6 +37,11 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
   Głębia i Zmrok. Gradient leży pod wszystkimi ekranami i stoi w miejscu przy przewijaniu, a karty, przyciski
   i napisy zostają takie same i równie czytelne. Każdy motyw pamięta swoje tło, więc po powrocie do motywu wraca
   też jego gradient. Domyślnie tło jest jednolite, jak dotąd.
+- **Zdjęcie dnia w tle.** Ostatnia opcja w Ustawienia → Wygląd → Tło: rozmyte zdjęcie dobrane do dzisiejszego
+  treningu z planu, czyli brzuch, nogi, góra ciała, kardio, joga albo całe ciało, z osobami wybranymi w „Na zdjęciach”
+  (kobieta, mężczyzna albo oboje). Zdjęcie zmienia się raz dziennie i z kolejnym treningiem, a nie z ekranu na ekran.
+  Karty są przy nim szklane, żeby zdjęcie prześwitywało, a napisy i obrysy przycisków trzymają ten sam kontrast co
+  zawsze. Zdjęcia przychodzą z bazą ćwiczeń 11.
 - **Kopia treningu w edytorze planu.** „×2” przy treningu planu dokłada jego kopię, więc drugi trening układasz
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
   „(kopia 2)”, „(kopia 3)”. Tak samo nazywa się trening skopiowany z innego planu, gdy plan ma już trening
@@ -42,8 +59,8 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
   (nowy, skopiowany albo „×2”), Wstecz pyta „Porzucić zmiany?”: „Porzuć” go zabiera, a „Zapisz plan” zostawia.
   Wcześniej przy niezmienionych dniach Wstecz wychodził bez pytania, a niepotrzebnego treningu nie dało się
   potem usunąć.
-- **Kopia zapasowa w wersji 5 niesie tło każdego motywu.** Starsze kopie wczytują się jak dotąd i nie zmieniają
-  wybranego tła; kopii z 1.2.0 nie wczyta wersja 1.1.0, więc na nowym telefonie najpierw zaktualizuj aplikację.
+- **Kopia zapasowa w wersji 5 niesie tło każdego motywu i wybór osób na zdjęciu dnia.** Starsze kopie wczytują się
+  jak dotąd i nie zmieniają wybranego tła; kopii z 1.2.0 nie wczyta wersja 1.1.0, więc na nowym telefonie najpierw zaktualizuj aplikację.
 - **Niewybrane pigułki filtrów i „−”/„+” w playerze są bez wypełnienia**, z samą obwódką, jak pozostałe przyciski
   drugorzędne. Na tle jednolitym wyglądają jak dotąd, na kartach i w oknach biorą kolor karty.
 - **Kod jest publiczny.** Repozytorium zaczyna od stanu 1.1.0, bez wcześniejszej historii (D-48). Kod jest
@@ -447,6 +464,8 @@ przez trening i zapamiętuje, co zrobiłeś.
   w domenie publicznej, uzupełnione ilustracjami z wger na CC-BY-SA 4.0).
 
 [Niewydane]: https://github.com/Mysttic/mysttic-trainings/compare/v1.2.0...HEAD
+[Baza 11]: https://github.com/Mysttic/mysttic-trainings/releases/tag/baza-v11
 [1.2.0]: https://github.com/Mysttic/mysttic-trainings/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Mysttic/mysttic-trainings/releases/tag/v1.1.0
+[Baza 11]: https://github.com/Mysttic/mysttic-trainings/releases/tag/baza-v11
 [Baza 10]: https://github.com/Mysttic/mysttic-trainings/releases/tag/baza-v10

@@ -1,7 +1,7 @@
 {
-  "version": 10,
+  "version": 11,
   "format": 1,
-  "minApp": "1.1.0",
+  "minApp": "1.2.0",
   "exercises": [
     {
       "id": "pushups",

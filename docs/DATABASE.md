@@ -330,13 +330,14 @@ Plik `settings.preferences_pb`, klucze z `SettingsRepository.Keys`:
 | `author_name` | String | pusty | imię na planach wysyłanych innym i na raportach (D-42) |
 | `theme_id` | String | `fire` | wybrany motyw (D-39) |
 | `backgrounds` | Set<String> | pusty | tło każdego motywu jako wpisy `motyw=tło`, np. `fire=zar`; brak wpisu = tło jednolite (D-50) |
+| `photo_people` | String | `oboje` | kogo pokazywać na zdjęciu dnia: `kobieta`, `mezczyzna` albo `oboje` (D-51) |
 
 ## Kopia zapasowa (D-18)
 
 `BackupRepository` eksportuje JSON przez SAF (plik w wersji 5). **Co wchodzi:** ćwiczenia własne (`isCustom = 1`),
 treningi użytkownika (`isBuiltIn = 0`), wszystkie sesje i serie (z `programId`), pamięć trenera, plany z dniami (od v2),
 notatki do ćwiczeń w planach (od v4, D-44) i komplet ustawień, z tłem każdego motywu (od v5, D-50; kopia sprzed v5
-nie zmienia wybranych teł). **Czego nie ma:** ćwiczeń wbudowanych (odtwarza je seed), wbudowanych treningów (od seedu v7 seed ich
+nie zmienia wybranych teł ani wyboru osób na zdjęciu dnia, D-51). **Czego nie ma:** ćwiczeń wbudowanych (odtwarza je seed), wbudowanych treningów (od seedu v7 seed ich
 nie wozi), checkpointów i zdjęć.
 Import jest addytywny i idzie w jednej transakcji: sesje i plany o znanych `id` pomija razem z ich treningami
 i notatkami, ćwiczenie o id wbudowanego pomija. Plan z pliku v1/v2 dostaje źródło z `profileJson` tą samą regułą co migracja 3 → 4. Plik planu (D-42) ma

@@ -1015,3 +1015,52 @@ i wpis w `AppBackground`, zielony skrypt i test. Nowy ekran z własnym Scaffolde
 `surface` pod treścią zasłoni gradient. `ThemeScreenshotTest` rysuje też każdy gradient. Zastrzeżenie z D-39 zostaje:
 pierwsza klatka po starcie bierze tło okna z `res/values(-night)/colors.xml`, zanim `MainActivity` ustawi gradient.
 Kopii z 1.2.0 nie wczyta wersja 1.1.0. Opis zmian: `docs/guide.md`, `docs/testing.md`, `docs/DATABASE.md`, `CHANGELOG.md`.
+
+## D-51 Zdjęcie dnia w tle i szklane karty (2026-11-05, wersja 1.2.0, baza 11)
+
+Kontekst: rozmowa przy issue #6, po gradientach z D-50. Właściciel chciał w tle rozmytych zdjęć w klimacie treningu,
+które nie psują czytelności: związanych z dzisiejszym planem (dzień na brzuch, to zdjęcie brzucha, joga, to joga),
+z osobą płci użytkownika i losowanych z osobnej bazy zdjęć, tak jak ćwiczenia. Makieta na prawdziwych komponentach
+pokazała dwa warianty: zdjęcie pod obecnymi, pełnymi kartami ginie jak znak wodny, a pod szklanymi widać je jak
+na przykładzie właściciela. Właściciel wybrał szklane.
+
+Decyzja:
+- „Zdjęcie dnia” to czwarta opcja w Ustawienia → Wygląd → Tło każdego motywu, obok jednolitego i gradientów
+  (`AppBackground` z `PhotoBand`). Rysuje ją korzeń nawigacji pod wszystkim, tak jak gradient (D-50).
+- Temat zdjęcia wynika z następnego treningu w kolejce aktywnego planu (`PhotoPicker.topicOf`, `domain/background`):
+  rozciąganie i oddech to joga, kardio i plyometria to kardio, siła idzie za przeważającą partią główną (brzuch,
+  nogi, góra ciała), a remis albo `FULL_BODY` to całe ciało. Dzień bez treningu dostaje całe ciało. Jogi nie ma
+  w bazie jako kategorii ani ćwiczenia, więc stoi za nią rozciąganie i oddech.
+- Losowanie jest stałe przez dzień i trening (ziarno: dzień i id treningu), więc zdjęcie nie zmienia się z ekranu
+  na ekran, a nowe przychodzi następnego dnia albo z kolejnym treningiem.
+- Aplikacja nie zna płci użytkownika i nie zgaduje jej. Ustawienie „Na zdjęciach: Kobieta / Mężczyzna / Oboje”
+  (`photo_people`, domyślnie oboje) pojawia się przy wybranym zdjęciu dnia i jedzie w kopii zapasowej v5.
+- Zdjęcia jadą w bazie ćwiczeń (D-47), nie w osobnej bazie: `baza/tla.json` (id, temat, płeć) i `baza/tla/<id>.jpg`,
+  ten sam numer, ta sama paczka z SHA-256, to samo pobieranie w Ustawieniach. Osobna baza to drugi workflow, drugi
+  manifest i drugie pobieranie dla tych samych tematów. `python tools/baza.py tlo` kadruje zdjęcie pod telefon
+  (360×780), zamienia na skalę szarości, rozciąga jasność i rozmywa; telefon niczego nie rozmywa, bo `Modifier.blur`
+  działa dopiero od Androida 12. Każdy temat ma zdjęcie dla obu płci (`tools/baza.py sprawdz`, `SeedIntegrityTest`).
+  Aplikacja sprzed D-51 odrzuca paczkę z `tla/` jako obcy plik, więc baza ze zdjęciami ma `minApp` 1.2.0
+  i starsza wersja dostaje „najpierw zaktualizuj aplikację”.
+- Kolory daje filtr motywu: jasność piksela wybiera punkt na odcinku między dwoma kolorami pasma (`PhotoBand.low`,
+  `high`), więc każdy piksel zdjęcia leży w paśmie, a jasność zdjęcia nie zależy od generatora. Karty na tle ekranu
+  są nad zdjęciem szkłem: `onSurface` z alfą motywu przez `cardColor()`. Paski, menu, okna i miniatury zostają pełne,
+  bo pod nimi przewija się treść albo inny ekran. Pasmo i alfa są policzone razem tak, żeby w każdym punkcie pasma
+  tekst na tle i na szklanej karcie trzymał progi z D-17, a karta odróżniała się od zdjęcia na 1,12:1. Najciaśniej
+  jest w „Ogniu i Krwi”: obrys przycisku na szklanej karcie (`#8A6660`, 3:1) trzyma zdjęcie najniżej, do `#1A1110`.
+- Pierwszy komplet zdjęć (35: po trzy na temat i płeć, a dla góry ciała kobiety dwa) powstał lokalnie otwartym
+  modelem SD-Turbo, bo generator z D-36 działa tylko w aplikacji Notion. Każde zdjęcie przeszło przegląd: odpadły kadry
+  z typowymi wpadkami modelu (dodatkowe ręce, zdublowana postać). Rozmycie chowa drobne. Zdjęcia z generatora
+  z D-36 albo własne wchodzą tą samą drogą (`tools/baza.py tlo`).
+
+Odrzucone: rozmywanie w telefonie (Android 12+, a `minSdk` to 26); zdjęcie pod pełnymi kartami (ginie, makieta);
+szklane wszystkie powierzchnie przez podmianę `surfaceContainer` w schemacie (menu, okna i paski robiłyby się
+przezroczyste nad treścią); rozpoznawanie płci z profilu (kreator jej nie zbiera i nie powinien); zdjęcia stockowe
+(repozytorium jest publiczne, baza na CC BY 4.0); osobna baza zdjęć z własnym numerem.
+
+Konsekwencje: `ThemeContractTest` i `tools/check_contrast.py` sprawdzają pasmo każdego zdjęcia dnia razem ze szklanymi
+kartami, w 8 bitach na kanał, tak jak trzyma kolory `Color` z Compose i ekran (skrypt dotąd liczył bez zaokrągleń).
+Nowa karta na tle ekranu bierze `cardColor()`, a nie `surfaceContainer`. `DatabaseArchive` wpuszcza `tla.json`
+i `tla/<id>.jpg`, `ExerciseDatabaseCheck` sprawdza zdjęcia jak ilustracje, a manifest wydania bazy niesie ich liczbę.
+Baza rośnie o około pół megabajta. W wydanym 1.1.0 nic się nie zmienia. Opis zmian: `docs/SEED.md`, `docs/guide.md`,
+`docs/testing.md`, `docs/DATABASE.md`, `CHANGELOG.md`.

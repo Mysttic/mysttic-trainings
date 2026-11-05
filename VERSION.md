@@ -4,7 +4,7 @@
 
 # Wersja bazy ćwiczeń
 
-10
+11
 
 ---
 

@@ -15,13 +15,15 @@ bez Robolectrica, bez zegara systemowego. To tam mieszkają reguły, które da s
 | `domain/reminder` | najbliższy termin przypomnienia i warunek „czy w ogóle przypominać” |
 | `domain/update` | porównanie numerów wersji, decyzja o wydaniu, parsowanie odpowiedzi GitHuba |
 | `domain/health` | co kwalifikuje się do zapisu w Health Connect |
+| `domain/background` | zdjęcie dnia (D-51): temat z ćwiczeń treningu (brzuch, joga, kardio…), remisy, osoby z Ustawień, losowanie stałe przez dzień, zastępstwa przy brakach w bazie |
 | `service` | treść powiadomienia (`NotificationContent`) i zbocze zgody na powiadomienia (`NotificationGate`, D-43), oba czysty Kotlin |
-| `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39); każde tło motywu w każdym punkcie gradientu (pary na `surface` i `background`, jasność zgodna z `dark`), warianty i ich identyfikatory (D-50) |
+| `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39); każde tło motywu w każdym punkcie gradientu (pary na `surface` i `background`, jasność zgodna z `dark`), warianty i ich identyfikatory (D-50); pasmo zdjęcia dnia ze szklanymi kartami w 8 bitach na kanał (D-51) |
 | `ui/player` | saver opinii z podsumowania — czy przeżywają obrót ekranu |
 | `data/backup` | format pliku kopii: stara wersja wczytuje się z domyślnymi wartościami, dzisiejsza wraca w całości |
 | `data/settings` | tło każdego motywu w DataStore (`BackgroundChoices`, D-50): wybór wraca z zapisu, śmieć z kopii nie wywraca odczytu |
 | `data/db` | sprzątanie treningów w SQL na Room w pamięci (Robolectric): `ProgramRepository.delete` i dwa zapytania, które `SeedImporter` woła po aktualizacji (sieroty planów sprzed 0.9.1, wbudowane spoza seedu v7), D-43 |
-| `data/seed` | integralność seedu: unikalne id, obraz przy każdym ćwiczeniu, warianty istnieją i trzymają rodzaj celu, id zgodne z plikiem planu, seed bez szablonów treningów (D-43) |
+| `data/seed` | integralność seedu: unikalne id, obraz przy każdym ćwiczeniu, warianty istnieją i trzymają rodzaj celu, id zgodne z plikiem planu, seed bez szablonów treningów (D-43); zdjęcia tła z plikiem, kadrem 360×780 i kompletem tematów dla obu płci (D-51) |
+| `data/update`, `domain/update` | paczka pobranej bazy: limity, obce pliki, zdjęcia tła w `tla/` (D-51); wroga kontrola bazy, także zdjęć |
 
 ```
 gradlew.bat testDebugUnitTest                       # całość
@@ -73,6 +75,10 @@ sprawdzane ręcznie na emulatorze albo telefonie. Lista rzeczy, które warto prz
    z panelem filtrów, szczegóły treningu, player z przerwą, edytory, Historia i szczegóły sesji), stoi w miejscu
    przy przewijaniu i przejściu między ekranami, nie układa się w pasy, a karty, pigułki i napisy są czytelne.
    Zmiana motywu i powrót do poprzedniego przywraca jego tło; tablet w poziomie ma gradient także pod szyną.
+10. Zdjęcie dnia (D-51): plan z dniem na brzuch, nogi, kardio i jogę (albo zmiana kolejnego treningu) daje zdjęcie
+    tego tematu, „Na zdjęciach” zmienia osoby, a zdjęcie nie zmienia się między ekranami. Karty na tle są szklane,
+    a menu planu, okna i paski kreatora pełne; napisy na kartach i obrysy przycisków czytelne nad jasnymi miejscami zdjęcia.
+    Bez planu jest zdjęcie całego ciała. Pobranie bazy 11 przez wersję 1.1.0 kończy się „najpierw zaktualizuj aplikację”.
 
 Na telefonie dochodzi to, czego emulator nie pokaże: słyszalność sygnałów, wibracja, zachowanie przy
 agresywnym oszczędzaniu baterii ([dontkillmyapp.com](https://dontkillmyapp.com)) i ikona na launcherze.

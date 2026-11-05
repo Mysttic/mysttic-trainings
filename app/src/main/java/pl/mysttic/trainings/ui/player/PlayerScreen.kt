@@ -82,6 +82,7 @@ import pl.mysttic.trainings.ui.adaptive.LocalAppLayout
 import pl.mysttic.trainings.ui.adaptive.centeredReadable
 import pl.mysttic.trainings.domain.engine.PlayerSnapshot
 import pl.mysttic.trainings.ui.common.formatKg
+import pl.mysttic.trainings.ui.common.cardColor
 import pl.mysttic.trainings.ui.theme.Dimens
 import pl.mysttic.trainings.ui.theme.PlayerCountdown
 import pl.mysttic.trainings.ui.theme.PlayerRest
@@ -303,7 +304,7 @@ private fun PlayerHeader(state: PlayerUiState, snapshot: PlayerSnapshot, viewMod
             Spacer(Modifier.height(14.dp))
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainer,
+                color = cardColor(),
                 shape = RoundedCornerShape(20.dp),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -451,7 +452,7 @@ private fun WorkStep(step: Step.Work, state: PlayerUiState, remainingSec: Int?, 
 private fun NextUpCard(next: Step.Work, state: PlayerUiState) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(22.dp),
     ) {
         Row(
@@ -615,7 +616,7 @@ private fun RowButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
         modifier = modifier.height(height),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = cardColor(),
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         contentPadding = PaddingValues(horizontal = 8.dp),

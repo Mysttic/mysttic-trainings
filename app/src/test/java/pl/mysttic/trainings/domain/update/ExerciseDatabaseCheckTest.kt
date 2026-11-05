@@ -29,7 +29,12 @@ class ExerciseDatabaseCheckTest {
         version: Int = 11,
         format: Int = 1,
         minApp: String? = "1.1.0",
-    ) = ExerciseDatabaseCheck.problems(version, format, minApp, exercises, imageFiles, installed, installedVersion = 10, appVersion = "1.1.0")
+        photoIds: List<String> = emptyList(),
+        photoFiles: Set<String> = emptySet(),
+    ) = ExerciseDatabaseCheck.problems(
+        version, format, minApp, exercises, imageFiles, installed, installedVersion = 10, appVersion = "1.1.0",
+        photoIds = photoIds, photoFiles = photoFiles,
+    )
 
     private fun replaced(id: String, change: (Exercise) -> Exercise) = baza.map { if (it.id == id) change(it) else it }
 
@@ -69,6 +74,18 @@ class ExerciseDatabaseCheckTest {
         assertRejected(problems(exercises = replaced("bird-dog") { it.copy(namePl = " ") }), "bird-dog: nazwa")
         assertRejected(problems(exercises = replaced("bird-dog") { it.copy(defaultReps = 999) }), "bird-dog: cel domyślny")
         assertRejected(problems(exercises = replaced("bird-dog") { it.copy(retiredAt = "28.10.2026") }), "bird-dog: data wycofania")
+    }
+
+    /** Zdjęcia tła (D-51): każde z plikiem, każdy plik ze zdjęciem, id jak u ćwiczeń. */
+    @Test
+    fun `zdjecia tla maja pliki i poprawne id`() {
+        val ids = listOf("brzuch-k-1", "joga-m-1")
+        val files = setOf("brzuch-k-1.jpg", "joga-m-1.jpg")
+        assertEquals(emptyList<String>(), problems(photoIds = ids, photoFiles = files))
+        assertRejected(problems(photoIds = ids, photoFiles = files - "joga-m-1.jpg"), "zdjęcie joga-m-1: brak pliku")
+        assertRejected(problems(photoIds = ids, photoFiles = files + "zbedne.jpg"), "pliki zdjęć bez wpisu")
+        assertRejected(problems(photoIds = ids + "brzuch-k-1", photoFiles = files), "zdjęcie brzuch-k-1: id powtórzone")
+        assertRejected(problems(photoIds = ids + "Zle Id", photoFiles = files), "id poza formatem")
     }
 
     @Test

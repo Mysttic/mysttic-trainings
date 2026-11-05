@@ -78,6 +78,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pl.mysttic.trainings.domain.model.Rpe
 import pl.mysttic.trainings.ui.theme.Dimens
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.Pill
 import pl.mysttic.trainings.ui.theme.StatValue
 import pl.mysttic.trainings.ui.theme.StepperValue
@@ -110,6 +111,17 @@ fun ScreenScaffold(
         contentColor = MaterialTheme.colorScheme.onSurface,
         content = content,
     )
+}
+
+/**
+ * Wypełnienie karty leżącej na tle ekranu: `surfaceContainer`, a nad zdjęciem dnia (D-51) szkło, czyli `onSurface`
+ * z alfą motywu, przez które zdjęcie prześwituje. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod
+ * nimi przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` dla całego pasma zdjęcia.
+ */
+@Composable
+fun cardColor(): Color {
+    val band = LocalAppBackground.current.band ?: return MaterialTheme.colorScheme.surfaceContainer
+    return MaterialTheme.colorScheme.onSurface.copy(alpha = band.glass)
 }
 
 /** Pasek tytułu nad tłem aplikacji (D-50): bez wypełnienia, jak `ScreenScaffold`, tytuł i ikony bez zmian. */
@@ -293,7 +305,7 @@ fun WorkoutCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(26.dp),
     ) {
         Column(
@@ -377,7 +389,7 @@ fun ProgressionCard(
     if (boxed) {
         Surface(
             modifier = modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = cardColor(),
             shape = RoundedCornerShape(20.dp),
         ) {
             Box(Modifier.padding(14.dp)) { body() }
@@ -639,7 +651,7 @@ fun SettingRow(
 fun InfoCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
@@ -695,7 +707,7 @@ fun ChoiceCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+        color = if (selected) MaterialTheme.colorScheme.primary else cardColor(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(

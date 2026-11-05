@@ -16,8 +16,8 @@ Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym com
 (D-48): kod na MIT, baza ćwiczeń na CC BY 4.0. Historia sprzed 1.1.0, dawne pull requesty i zamknięte issue
 nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
-Liczby: baza ćwiczeń v10 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów),
-434 testy jednostkowe w 49 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
+Liczby: baza ćwiczeń v11 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów,
+i 35 zdjęć tła, D-51), 446 testów jednostkowych w 50 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
 
 Weryfikacja stoi na emulatorze Pixel_9_Pro (API 37), dla dużych ekranów na AVD Pixel_Tablet_API_37 (D-42), i na skryptach
 `tools/przebieg*.py`. Decyzja właściciela z 2026-09-18: **telefon nie jest bramką wydania**, emulator wystarcza.
@@ -44,7 +44,9 @@ W 1.2.0 (niewydane, D-49, issue #1): nowy plan własny startuje dosłownie (prze
 „×2” przy treningu planu robi jego kopię w tym samym planie (`PlanEditing.copyName`, `PlanEditing.copyBlocks`),
 a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do tego tło z gradientem (D-50, issue #6):
 każdy motyw ma tło jednolite i trzy gradienty (`ui/theme/Backgrounds.kt`), wybór osobno dla każdego motywu
-w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie.
+w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie. Czwarta opcja to zdjęcie dnia (D-51): rozmyte zdjęcie
+z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) dobrane do następnego treningu i do wyboru „Na zdjęciach”,
+ze szklanymi kartami (`cardColor()`); baza 11 wymaga aplikacji 1.2.0.
 
 Zmiany idą do `CHANGELOG.md` pod wersją, do której wejdą; `docs/PLAN.md` nie prowadzimy (decyzja właściciela z 2026-10-28).
 
@@ -61,6 +63,7 @@ python tools/baza.py               # edytor bazy ćwiczeń w przeglądarce (127.
 python tools/baza.py sprawdz --wzgledem origin/master  # reguły bazy ćwiczeń i zgodność wstecz (D-47), obowiązkowo po zmianie w baza/
 python tools/baza.py podbij        # numer bazy +1 w exercises.json i VERSION.md, nagłówek [Baza N] w CHANGELOG.md (--min-app X.Y.Z, gdy baza wymaga nowszej aplikacji)
 python tools/baza.py partia <zip>  # ilustracje z generatora zdjęć (D-36): do baza/images/ albo do tools/szkice/
+python tools/baza.py tlo <zdjęcie> --temat CORE --plec FEMALE  # zdjęcie tła (D-51): kadr, szarość, rozmycie, do baza/tla/
 python tools/baza.py paczka build/wydanie-bazy --wzgledem baza-v10  # ZIP, manifest i opis wydania bazy (to samo robi baza.yml)
 python tools/przeglad.py           # kartoteka ćwiczeń: build/przeglad/index.html, od razu w przeglądarce (--osadz = jeden plik ze zdjęciami)
 python tools/build_beeps.py        # regeneracja próbek beep do res/raw (biblioteka standardowa)
@@ -73,7 +76,7 @@ python tools/przebieg_preset.py    # gotowe programy na emulatorze: Tabata z kat
 python tools/przebieg_biblioteka.py # biblioteka na emulatorze: kafelki i lista, panel filtrów, chipy, licznik, czyszczenie, szukanie; zrzuty w build/przebieg-biblioteka/
 ```
 
-Wymagania: JDK 17+ (lokalnie JBR 21 z Android Studio, D-14), Android SDK z platformą 37 (AGP dociąga automatycznie), Python 3 (+ Pillow do `tools/baza.py partia`).
+Wymagania: JDK 17+ (lokalnie JBR 21 z Android Studio, D-14), Android SDK z platformą 37 (AGP dociąga automatycznie), Python 3 (+ Pillow do `tools/baza.py partia` i `tlo`).
 
 ## Struktura
 
@@ -93,6 +96,7 @@ app/src/main/java/pl/mysttic/trainings/
   domain/coach/      ExerciseFeedback, ExerciseTuning, Coach — trener: opinie z podsumowania, korekta celu, wykluczenia (czysty Kotlin, D-35)
   domain/reminder/   ReminderSchedule — kiedy i o czym przypomnieć (czysty Kotlin, D-29)
   domain/health/     HealthExport — co i kiedy zapisujemy w Health Connect (czysty Kotlin, D-31)
+  domain/background/ PhotoTopic, PhotoPeople, PhotoPicker — zdjęcie dnia: temat z ćwiczeń treningu, osoby, losowanie stałe przez dzień (D-51)
   domain/update/     UpdateCheck, ReleaseParser: porównanie wersji i odpowiedź GitHuba (czysty Kotlin);
                      DatabaseUpdate (wydanie bazy, manifest, decyzja) i ExerciseDatabaseCheck (wroga kontrola pobranej bazy, D-47)
   data/db/           Room: encje, DAO, konwertery, AppDatabase (schemat → app/schemas/)
@@ -102,7 +106,8 @@ app/src/main/java/pl/mysttic/trainings/
   data/repo/ProgramRepository  cykle treningowe: zapis wygenerowanego planu, aktywny cykl (D-20)
   data/repo/CoachRepository    pamięć trenera: opinie, wykluczenie z podmianą w aktywnym cyklu, zerowanie (D-35)
   data/share/PlanShareRepository  plik planu: eksport do okna udostępniania i SAF, odbiór z intencji, podgląd, import (D-42)
-  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały, motyw i tło każdego motywu (`BackgroundChoices`, D-50)
+  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały, motyw i tło każdego motywu (`BackgroundChoices`, D-50), osoby na zdjęciu dnia (D-51)
+  data/background/   BackgroundPhotoRepository: zdjęcia tła z `tla.json` wczytanej bazy i zdjęcie dnia pod następny trening (D-51)
   data/repo/         repozytoria + mapowanie encja ↔ domena
   service/           PlayerController (stan silnika w procesie, D-16), WorkoutService (FGS: tick, wake lock, powiadomienie),
                      PlayerNotifications + NotificationContent (treść powiadomienia, czysty Kotlin), Cues (SoundPool/wibracja/TTS + audio focus), MonotonicClock
@@ -120,7 +125,7 @@ app/src/main/java/pl/mysttic/trainings/
                      Backgrounds.kt (warianty tła każdego motywu: `AppBackground`, `appBackground`, D-50)
 app/src/test/        testy JUnit4: domain, service, data (kopia, seed, sprzątanie treningów na Room w pamięci), ui (motyw, zrzuty D-40, układ, saver opinii)
 baza/                baza ćwiczeń (D-47): exercises.json + images/<id>.jpg, jedyne źródło prawdy; Gradle podpina katalog jako assety APK,
-                     więc leżą w nim wyłącznie dane
+                     więc leżą w nim wyłącznie dane; od bazy 11 też zdjęcia tła: tla.json + tla/<id>.jpg (D-51)
 tools/baza.py        edytor bazy (lokalny serwer + tools/przeglad.html w trybie edycji), sprawdzanie, numer, paczki z generatora zdjęć (D-36)
 tools/szkice/        ilustracje i definicje, które jeszcze nie weszły do bazy (nie jadą do aplikacji)
 tools/przeglad.py    kartoteka ćwiczeń z bazy jako strona HTML (przegląd ilustracji i opisów poza aplikacją)
@@ -133,8 +138,8 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
 
 - `domain/` nie importuje Androida. Silnik to czysta funkcja `WorkoutEngine.reduce(state, event) -> (state, effects)`;
   zdarzenia niosą własne `now` (ms, zegar monotoniczny). Przejścia liczone z timestampów, tick tylko sprawdza, czy faza minęła.
-- Każda zmiana w `domain/` (engine, equipment, stats, editor, library, plan, plan/preset, coach, reminder, health, update)
-  = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 434 w 49 klasach.
+- Każda zmiana w `domain/` (engine, equipment, stats, editor, library, plan, plan/preset, coach, reminder, health, update,
+  background) = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 446 w 50 klasach.
 - `PlanGenerator` musi zostać deterministyczny (bez losowania): te same dane wejściowe = ten sam plan, inaczej testy tracą sens.
 - Plan rozliczamy kolejką, nie datami (D-21): dzień jest odhaczony przez ukończoną sesję tego treningu, niezależnie kiedy.
 - Plany (D-42): aktywny jest najwyżej jeden, pozostałe czekają z postępem; przełączyć wolno w każdej chwili. Trening należy
@@ -223,6 +228,11 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   pod treścią wypełnienia `surface`. Gradient trzyma w każdym punkcie pary, w których tłem jest `surface` albo
   `background`: nowy wariant = kolory, wpis w `AppBackground` i zielony `check_contrast.py`, który próbkuje gradient
   tak samo jak `ThemeContractTest`.
+  Zdjęcie dnia (D-51): filtr kładzie każdy piksel zdjęcia na paśmie `PhotoBand` (dwa kolory motywu), a karty leżące
+  na tle ekranu są nad nim szkłem: wypełnienie karty bierze się z `cardColor()`, nigdy wprost z `surfaceContainer`.
+  Paski, menu, okna i miniatury zostają pełne. Pasmo i alfa szkła trzymają w każdym punkcie pary na tle i na karcie
+  (test i skrypt liczą w 8 bitach na kanał); zmiana któregokolwiek = zielony `check_contrast.py`. Temat zdjęcia liczy
+  tylko `PhotoPicker`, a zdjęcia dodaje `tools/baza.py tlo` (każdy temat dla obu płci, minApp jak przy nowym enumie).
 - Wspólne komponenty w `ui/common/`: `DesignSystem.kt` (WorkoutCard, ExerciseRow, StatRow, PrimaryAction, ProgressionCard,
   FilterPill, SettingRow, ValueStepper, ScreenScaffold…) i `Components.kt` (ExerciseTile, ExerciseImage, ExerciseThumbnail, EmptyState,
   EquipmentTags, formatDuration…). Nowy ekran składa się z nich, zamiast rysować własne karty i przyciski.

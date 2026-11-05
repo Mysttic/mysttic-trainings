@@ -63,10 +63,13 @@ class ThemeScreenshotTest {
         }
     }
 
-    /** Gradienty tła (D-50): te same komponenty na każdym wariancie, jednolite tło pokazuje test wyżej. */
+    /**
+     * Gradienty tła (D-50) i zdjęcie dnia (D-51): te same komponenty na każdym wariancie, jednolite tło pokazuje test
+     * wyżej. Zdjęcie przychodzi z bazy asynchronicznie, więc zrzut pokazuje dół jego pasma i szklane karty nad nim.
+     */
     @Test
-    fun `kazde tlo z gradientem`() {
-        AppBackground.entries.filter { it.gradient }.forEach { tlo ->
+    fun `kazde tlo z gradientem i zdjecie dnia`() {
+        AppBackground.entries.filter { it.gradient || it.photo }.forEach { tlo ->
             captureRoboImage(filePath = "src/test/screenshots/${tlo.theme.id}-${tlo.id}.png") {
                 TrainingsTheme(theme = tlo.theme, background = tlo) {
                     Sampler(tlo.theme.labelPl, "tło ${tlo.labelPl}")

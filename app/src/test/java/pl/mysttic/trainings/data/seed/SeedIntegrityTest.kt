@@ -5,12 +5,16 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.mysttic.trainings.data.background.PhotoFile
+import pl.mysttic.trainings.domain.background.PhotoSex
+import pl.mysttic.trainings.domain.background.PhotoTopic
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.ExerciseKind
 import pl.mysttic.trainings.domain.plan.share.PlanFileCodec
 import pl.mysttic.trainings.domain.update.UpdateCheck
 import java.io.File
 import java.time.LocalDate
+import javax.imageio.ImageIO
 
 /**
  * Integralność bazy ćwiczeń z `baza/` (D-47). Te same reguły sprawdza `tools/baza.py sprawdz` przed wydaniem bazy,
@@ -81,7 +85,9 @@ class SeedIntegrityTest {
     fun `katalog bazy wozi tylko dane`() {
         // Gradle podpina `baza/` w całości jako assety APK (D-47), więc każdy inny plik pojechałby do aplikacji.
         val entries = root.listFiles().orEmpty().map { it.name }.toSet()
-        assertEquals("zawartość baza/", setOf("exercises.json", "images"), entries)
+        // Zdjęcia tła (D-51) są opcjonalne, ale tylko w komplecie: tla.json razem z katalogiem tla/.
+        val expected = listOf(setOf("exercises.json", "images"), setOf("exercises.json", "images", "tla.json", "tla"))
+        assertTrue("zawartość baza/: $entries", entries in expected)
         val strays = File(root, "images").listFiles().orEmpty().filter { !it.isFile || !it.name.endsWith(".jpg") }
         assertEquals("w images/ tylko pliki .jpg", emptyList<File>(), strays)
     }
@@ -157,6 +163,33 @@ class SeedIntegrityTest {
         seed.exercises.filter { it.retiredAt == null }.forEach { exercise ->
             listOfNotNull(exercise.easierId, exercise.harderId).forEach { id ->
                 assertTrue("${exercise.id} → $id: wariant wycofany", byId[id]?.retiredAt == null)
+            }
+        }
+    }
+
+    /**
+     * Zdjęcia tła (D-51): wpis i plik razem, kadr 360×780 z `tools/baza.py tlo`, a każdy temat ma zdjęcie dla obu płci,
+     * bo tło obiecuje zdjęcie pod dzisiejszy trening i pod wybór z Ustawień. Odczyt przez `PhotoFile` sprawdza też
+     * tematy i płcie: wartość spoza enumów tej wersji go przewraca.
+     */
+    @Test
+    fun `zdjecia tla maja pliki, kadr i komplet tematow dla obu plci`() {
+        val file = File(root, "tla.json")
+        if (!file.isFile) return
+        val photos = Json.decodeFromString(PhotoFile.serializer(), file.readText()).photos
+        assertEquals("id zdjęć powtarzają się", photos.size, photos.map { it.id }.toSet().size)
+        photos.forEach { photo ->
+            assertTrue("${photo.id}: id poza formatem", Regex("[a-z0-9]+(-[a-z0-9]+)*").matches(photo.id))
+            val image = File(root, "tla/${photo.id}.jpg")
+            assertTrue("${photo.id}: brak pliku tla/${photo.id}.jpg", image.isFile)
+            val decoded = requireNotNull(ImageIO.read(image)) { "${photo.id}: to nie jest obraz" }
+            assertEquals("${photo.id}: kadr", 360 to 780, decoded.width to decoded.height)
+        }
+        val onDisk = File(root, "tla").listFiles().orEmpty().map { it.name }.toSet()
+        assertEquals("pliki bez wpisu w tla.json", emptySet<String>(), onDisk - photos.map { "${it.id}.jpg" }.toSet())
+        PhotoTopic.entries.forEach { topic ->
+            PhotoSex.entries.forEach { sex ->
+                assertTrue("brak zdjęcia $topic/$sex", photos.any { it.topic == topic && it.sex == sex })
             }
         }
     }

@@ -47,6 +47,7 @@ import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.ui.theme.Dimens
+import pl.mysttic.trainings.ui.theme.PhotoBand
 
 /*
  * Filtr zdjęć ćwiczeń (D-32). Biblioteka 81 pozycji jest niejednolita: różne siłownie, tła i światło.
@@ -126,6 +127,22 @@ fun exerciseImageModel(path: String): Any {
     return remember(path) {
         if (path.startsWith(DatabaseUpdate.IMAGE_PREFIX)) File(context.filesDir, path) else "file:///android_asset/$path"
     }
+}
+
+/**
+ * Zdjęcie dnia pod całą aplikacją (D-51). Jest rozmyte już w bazie (`python tools/baza.py tlo`), bo `Modifier.blur`
+ * działa dopiero od Androida 12, a filtr pasma motywu trzyma kontrast tekstu i szklanych kart nad każdym pikselem.
+ * Ścieżka idzie tą samą drogą co ilustracje ćwiczeń: asset bazy wbudowanej albo plik pobranej.
+ */
+@Composable
+fun PhotoBackdrop(path: String, band: PhotoBand, modifier: Modifier = Modifier) {
+    AsyncImage(
+        model = exerciseImageModel(path),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        colorFilter = remember(band) { band.colorFilter() },
+        modifier = modifier.fillMaxSize(),
+    )
 }
 
 /**

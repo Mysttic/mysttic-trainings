@@ -54,6 +54,11 @@ data class UserSettings(
      * Brak wpisu = tło jednolite. Też identyfikatory, z tego samego powodu co `themeId`; mapuje je `AppBackground.resolve`.
      */
     val backgrounds: Map<String, String> = emptyMap(),
+    /**
+     * Kogo pokazywać na zdjęciu dnia w tle (D-51): `kobieta`, `mezczyzna` albo `oboje`; mapuje to `PhotoPeople.fromId`.
+     * Aplikacja nie zna płci użytkownika, więc bez wyboru pokazuje oboje.
+     */
+    val photoPeople: String = "oboje",
     /** Imię na planach wysyłanych innym i na raportach (D-42); puste = bez podpisu. */
     val authorName: String = "",
 )
@@ -80,6 +85,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val libraryTiles = booleanPreferencesKey("library_tiles")
         val themeId = stringPreferencesKey("theme_id")
         val backgrounds = stringSetPreferencesKey("backgrounds")
+        val photoPeople = stringPreferencesKey("photo_people")
         val authorName = stringPreferencesKey("author_name")
     }
 
@@ -106,6 +112,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
             libraryTiles = p[Keys.libraryTiles] ?: true,
             themeId = p[Keys.themeId] ?: "fire",
             backgrounds = BackgroundChoices.decode(p[Keys.backgrounds].orEmpty()),
+            photoPeople = p[Keys.photoPeople] ?: "oboje",
             authorName = p[Keys.authorName] ?: "",
         )
     }
@@ -153,6 +160,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     /** Tła wszystkich motywów naraz, z kopii zapasowej. */
     suspend fun setBackgrounds(choices: Map<String, String>) = store.edit { it[Keys.backgrounds] = BackgroundChoices.encode(choices) }
+
+    /** Kto jest na zdjęciu dnia (D-51); id jak w `PhotoPeople`, przycięte, bo przychodzi też z kopii. */
+    suspend fun setPhotoPeople(id: String) = store.edit { it[Keys.photoPeople] = id.take(BackgroundChoices.MAX_ID_LENGTH) }
 
     suspend fun setAuthorName(name: String) = store.edit { it[Keys.authorName] = name.trim().take(60) }
 

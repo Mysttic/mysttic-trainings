@@ -6,6 +6,8 @@ wersji aplikacji. Jedynym źródłem prawdy jest katalog `baza/` w korzeniu repo
 ```
 baza/exercises.json      numer, format, minApp i lista ćwiczeń
 baza/images/<id>.jpg     jedna ilustracja na ćwiczenie (480 px szerokości, JPEG q72, od 4 do 30 kB)
+baza/tla.json            zdjęcia tła do „Zdjęcia dnia” (D-51): id, temat i płeć
+baza/tla/<id>.jpg        zdjęcie tła: 360×780, skala szarości, rozmyte, JPEG q80, kilkanaście kB
 ```
 
 Gradle podpina `baza/` jako assety APK (`app/build.gradle.kts`), więc aplikacja widzi `exercises.json`
@@ -13,7 +15,7 @@ i `images/<id>.jpg` w korzeniu assetów. W `baza/` leżą wyłącznie te dane, b
 (pilnuje tego `SeedIntegrityTest`). Szkice, czyli ilustracje i definicje, które jeszcze nie weszły do bazy, czekają
 w `tools/szkice/`.
 
-Stan: baza v10, 283 ćwiczenia (w tym 20 na ergometry, D-44), każde z ilustracją generowaną (D-36). Szablonów treningów
+Stan: baza v11, 283 ćwiczenia (w tym 20 na ergometry, D-44), każde z ilustracją generowaną (D-36), i 35 zdjęć tła do „Zdjęcia dnia” (D-51); baza 11 wymaga aplikacji 1.2.0. Szablonów treningów
 baza nie wozi od v7 (D-43): kolejkę układa kreator, gotowy program albo plan własny (D-42). Cztery ćwiczenia oddechowe
 (kategoria `BREATHING`, bez partii mięśniowych) żyją tylko w gotowych programach (D-37): kreator, zamienniki
 i wyszukiwarka edytora treningu ich nie biorą.
@@ -48,6 +50,27 @@ Pola ćwiczenia:
 
 Wartości enumów pochodzą z `domain/model/Enums.kt`. Nieznanego pola walidator nie przepuści, żeby literówka nie
 przeszła po cichu (aplikacja nieznane pola pomija).
+
+## Zdjęcia tła (D-51)
+
+`tla.json` to obiekt z jedną listą `photos`; każdy wpis ma trzy pola:
+
+| pole | znaczenie |
+|---|---|
+| `id` | kebab-case jak id ćwiczenia, plik leży w `tla/<id>.jpg`; domyślnie `<temat>-<k\|m>-<n>` |
+| `topic` | `PhotoTopic`: `CORE` (brzuch), `LEGS` (nogi), `UPPER` (góra ciała), `FULL_BODY` (całe ciało), `CARDIO`, `YOGA` |
+| `sex` | `PhotoSex`: `FEMALE` albo `MALE` |
+
+Aplikacja wybiera temat z następnego treningu w kolejce (rozciąganie i oddech to joga, kardio i plyometria to kardio,
+siła idzie za przeważającą partią) i losuje zdjęcie tego tematu z osobami wybranymi w Ustawieniach, stałe przez dzień.
+Każdy temat ma mieć zdjęcie dla obu płci; pilnują tego `sprawdz` i `SeedIntegrityTest`.
+
+Zdjęcie dodaje `python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE`: kadr ze środka pod telefon (360×780),
+skala szarości, rozciągnięcie jasności i rozmycie (promień 4). Kolory nadaje dopiero filtr motywu w aplikacji, który
+kładzie każdy piksel na paśmie dwóch kolorów motywu, więc jasność zdjęcia z generatora nie ma znaczenia dla kontrastu.
+Dobre zdjęcie tła to zbliżenie albo postać od pasa w górę na ciemnym tle: cała sylwetka z daleka po rozmyciu robi się
+plamą, a środek ekranu i tak zasłania karta. Zmiana zdjęć to zmiana treści bazy (wyższy numer), a pierwsza baza
+ze zdjęciami wymaga aplikacji 1.2.0, bo starsza odrzuca paczkę z `tla/`.
 
 ## Reguły zgodności (D-47)
 

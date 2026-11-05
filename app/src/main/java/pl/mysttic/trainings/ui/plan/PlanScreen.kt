@@ -61,6 +61,7 @@ import pl.mysttic.trainings.ui.common.Overline
 import pl.mysttic.trainings.ui.common.PrimaryAction
 import pl.mysttic.trainings.ui.common.ProgressTrack
 import pl.mysttic.trainings.ui.common.SecondaryAction
+import pl.mysttic.trainings.ui.common.cardColor
 import pl.mysttic.trainings.ui.theme.Dimens
 import java.time.Instant
 import java.time.LocalDate
@@ -413,7 +414,7 @@ private fun DayRow(day: PlanDayRow, weekday: String, canStart: Boolean, onStart:
 private fun NextDayCard(day: PlanDayRow, weekday: String, onStart: ((String) -> Unit)?, onOpen: (String) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(22.dp),
         onClick = { day.workoutId?.let(onOpen) },
     ) {

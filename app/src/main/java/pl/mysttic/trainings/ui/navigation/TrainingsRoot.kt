@@ -52,6 +52,7 @@ import pl.mysttic.trainings.data.share.IncomingPlanFile
 import pl.mysttic.trainings.ui.adaptive.AppLayout
 import pl.mysttic.trainings.ui.adaptive.LocalAppLayout
 import pl.mysttic.trainings.ui.common.Hairline
+import pl.mysttic.trainings.ui.common.PhotoBackdrop
 import pl.mysttic.trainings.ui.plans.PlansScreen
 import pl.mysttic.trainings.ui.planeditor.PlanEditorScreen
 import pl.mysttic.trainings.ui.share.PlanImportScreen
@@ -68,6 +69,7 @@ import pl.mysttic.trainings.ui.player.PlayerScreen
 import pl.mysttic.trainings.ui.presets.PresetsScreen
 import pl.mysttic.trainings.ui.settings.SettingsScreen
 import pl.mysttic.trainings.ui.theme.LocalAppBackground
+import pl.mysttic.trainings.ui.theme.LocalBackgroundPhoto
 import pl.mysttic.trainings.ui.theme.appBackground
 import pl.mysttic.trainings.ui.today.TodayScreen
 import pl.mysttic.trainings.ui.workout.WorkoutDetailScreen
@@ -232,7 +234,11 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
     // Tło ekranów (D-50) maluje tylko ten wiersz, pod szyną, paskami systemu i treścią; wszystko nad nim
     // jest przezroczyste, więc gradient nie przesuwa się przy przewijaniu ani przy przejściu między ekranami.
     val background = LocalAppBackground.current
-    Row(modifier = Modifier.fillMaxSize().appBackground(background, MaterialTheme.colorScheme.surface)) {
+    val photo = LocalBackgroundPhoto.current
+    Box(modifier = Modifier.fillMaxSize().appBackground(background, MaterialTheme.colorScheme.surface)) {
+    // Zdjęcie dnia (D-51) leży tu, pod wszystkim, tak jak gradient: ekrany i paski nad nim są przezroczyste.
+    background.band?.let { band -> photo?.let { PhotoBackdrop(it, band) } }
+    Row(modifier = Modifier.fillMaxSize()) {
     if (rail) NavRail(currentDestination, navController)
     // Wcięcie od strony szyny już wzięła szyna: treść obok niej nie dolicza go drugi raz (Scaffold i paski ekranów).
     val railSide = if (rail) Modifier.consumeWindowInsets(railInsets.only(WindowInsetsSides.Start)) else Modifier
@@ -375,6 +381,7 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
                 SessionDetailScreen(onBack = { navController.popBackStack() })
             }
         }
+    }
     }
     }
 }

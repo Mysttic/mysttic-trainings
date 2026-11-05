@@ -136,7 +136,8 @@ class ThemeContractTest {
     fun `kazde tlo trzyma progi kontrastu swojego motywu`() {
         val doTla = pary.filter { it.bg == "surface" || it.bg == "background" }
         val bledy = mutableListOf<String>()
-        AppBackground.entries.forEach { tlo ->
+        // Zdjęcie dnia ma szklane karty zamiast pełnych, więc jego pasmo sprawdza osobny test niżej.
+        AppBackground.entries.filterNot { it.photo }.forEach { tlo ->
             val scheme = schemeFor(tlo.theme)
             probki(tlo).forEach { punkt ->
                 val naTle = scheme.copy(surface = punkt, background = punkt)
@@ -152,26 +153,64 @@ class ThemeContractTest {
         assertTrue(bledy.distinct().joinToString("\n"), bledy.isEmpty())
     }
 
-    /** Ikony pasków systemu idą za `AppTheme.dark`, więc gradient nie może przejść na drugą stronę jasności. */
+    /**
+     * Zdjęcie dnia (D-51): po filtrze każdy piksel zdjęcia leży na odcinku pasma, a karty nad nim są szkłem, czyli
+     * `onSurface` z alfą motywu. W każdym punkcie pasma tekst bezpośrednio na tle i tekst na szklanej karcie trzymają
+     * te same progi co zawsze, a karta odróżnia się od tła jak karta pełna (1,12:1). Mieszanie liczymy w sRGB, jak Android.
+     */
+    @Test
+    fun `zdjecie dnia i szklane karty trzymaja progi w calym pasmie`() {
+        val bledy = mutableListOf<String>()
+        AppBackground.entries.filter { it.photo }.forEach { tlo ->
+            val pasmo = requireNotNull(tlo.band)
+            val scheme = schemeFor(tlo.theme)
+            odcinek(pasmo.low, pasmo.high).forEach { punkt ->
+                val szklo = mieszaj(punkt, scheme.onSurface, pasmo.glass)
+                pary.forEach { para ->
+                    val (fg, bg, gdzie) = when {
+                        para.bg in TLO && para.fg !in KARTA -> Triple(rola(scheme.copy(surface = punkt, background = punkt), para.fg), punkt, "tle")
+                        para.bg in KARTA && para.fg !in KARTA + TLO -> Triple(rola(scheme, para.fg), szklo, "szkle")
+                        else -> return@forEach
+                    }
+                    val ratio = kontrast(fg, bg)
+                    if (ratio < para.prog) {
+                        bledy += "${tlo.theme.id}/${tlo.id}: ${para.fg} na $gdzie ${hex(bg)} = %.3f:1 (min %.2f) — %s"
+                            .format(ratio, para.prog, para.opis)
+                    }
+                }
+                val oddzielenie = kontrast(szklo, punkt)
+                if (oddzielenie < SZKLO_OD_TLA) {
+                    bledy += "${tlo.theme.id}/${tlo.id}: szklana karta ${hex(szklo)} na ${hex(punkt)} = %.3f:1 (min %.2f)"
+                        .format(oddzielenie, SZKLO_OD_TLA)
+                }
+            }
+        }
+        assertTrue(bledy.distinct().joinToString("\n"), bledy.isEmpty())
+    }
+
+    /** Ikony pasków systemu idą za `AppTheme.dark`, więc gradient ani zdjęcie nie mogą przejść na drugą stronę jasności. */
     @Test
     fun `tlo nie przechodzi na druga strone jasnosci motywu`() {
         AppBackground.entries.forEach { tlo ->
-            probki(tlo).forEach { punkt ->
+            val punkty = tlo.band?.let { odcinek(it.low, it.high) } ?: probki(tlo)
+            punkty.forEach { punkt ->
                 assertEquals("${tlo.theme.id}/${tlo.id}: ${hex(punkt)} kłamie o jasności", tlo.theme.dark, luminancja(punkt) < 0.2)
             }
         }
     }
 
-    /** Issue #6: każdy motyw ma kilka wariantów tła; pierwszy jest jednolity, bo to wygląd sprzed D-50. */
+    /** Issue #6: każdy motyw ma kilka wariantów tła; pierwszy jest jednolity, bo to wygląd sprzed D-50, a zdjęcie dnia jedno (D-51). */
     @Test
     fun `kazdy motyw ma tlo jednolite i kilka gradientow`() {
         AppTheme.entries.forEach { theme ->
             val tla = AppBackground.of(theme)
-            assertTrue("${theme.id}: pierwsze tło ma być jednolite", !tla.first().gradient)
-            assertEquals("${theme.id}: jedno tło jednolite", 1, tla.count { !it.gradient })
-            assertTrue("${theme.id}: za mało gradientów (${tla.count { it.gradient }})", tla.count { it.gradient } >= 3)
+            val gradienty = tla.filter { it.gradient }
+            assertTrue("${theme.id}: pierwsze tło ma być jednolite", !tla.first().gradient && !tla.first().photo)
+            assertEquals("${theme.id}: jedno tło jednolite", 1, tla.count { !it.gradient && !it.photo })
+            assertEquals("${theme.id}: jedno zdjęcie dnia", 1, tla.count { it.photo })
+            assertTrue("${theme.id}: za mało gradientów (${gradienty.size})", gradienty.size >= 3)
             assertEquals("${theme.id}: identyfikatory tła powtarzają się", tla.size, tla.map { it.id }.toSet().size)
-            assertEquals("${theme.id}: dwa gradienty o tych samych kolorach", tla.size, tla.map { it.stops }.toSet().size)
+            assertEquals("${theme.id}: dwa gradienty o tych samych kolorach", gradienty.size, gradienty.map { it.stops }.toSet().size)
             tla.filter { it.gradient }.forEach { tlo ->
                 assertTrue("${theme.id}/${tlo.id}: gradient bez przejścia", tlo.stops.toSet().size > 1)
             }
@@ -230,6 +269,19 @@ class ThemeContractTest {
         }
     }
 
+    /** Odcinek pasma zdjęcia: tyle samo punktów co na odcinku gradientu. */
+    private fun odcinek(a: Color, b: Color, punkty: Int = 64): List<Color> = (0..punkty).map { i ->
+        val t = i / punkty.toFloat()
+        Color(red = a.red + (b.red - a.red) * t, green = a.green + (b.green - a.green) * t, blue = a.blue + (b.blue - a.blue) * t)
+    }
+
+    /** Kolor [nad] z alfą [alfa] położony na [pod], zmieszany w sRGB tak jak rysuje Android. */
+    private fun mieszaj(pod: Color, nad: Color, alfa: Float): Color = Color(
+        red = pod.red + (nad.red - pod.red) * alfa,
+        green = pod.green + (nad.green - pod.green) * alfa,
+        blue = pod.blue + (nad.blue - pod.blue) * alfa,
+    )
+
     private fun hex(c: Color): String =
         "#%02X%02X%02X".format((c.red * 255).roundToInt(), (c.green * 255).roundToInt(), (c.blue * 255).roundToInt())
 
@@ -280,6 +332,13 @@ class ThemeContractTest {
     }
 
     private companion object {
+        /** Role, które zastępuje tło ekranu, i role kart, które nad zdjęciem dnia są szkłem (D-51). */
+        val TLO = setOf("surface", "background")
+        val KARTA = setOf("surfaceContainer", "surfaceContainerHighest", "surfaceVariant")
+
+        /** Szklana karta odróżnia się od zdjęcia tak jak pełna karta od tła („karta odróżniona od tła”). */
+        const val SZKLO_OD_TLA = 1.12
+
         /** Komplet 35 ról schematu — ta sama lista, co jawnie wypisana w Theme.kt. */
         val ROLE: Map<String, (ColorScheme) -> Color> = mapOf(
             "primary" to { s: ColorScheme -> s.primary },

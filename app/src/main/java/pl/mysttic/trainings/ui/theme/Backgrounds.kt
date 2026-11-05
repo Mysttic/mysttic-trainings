@@ -6,6 +6,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.LinearGradientShader
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -46,30 +48,71 @@ val SteelDeepBottom = Color(0xFF062220)
 val SteelDuskTop = Color(0xFF0D1217)          // Zmrok: grafit gaśnie w fiolecie
 val SteelDuskBottom = Color(0xFF1A1430)
 
+/*
+ * Zdjęcie dnia (D-51): rozmyte zdjęcie z bazy ćwiczeń, sprowadzone filtrem do pasma między dwoma kolorami motywu.
+ * Karty leżą na nim jako szkło: `onSurface` z alfą motywu (`cardColor()` w DesignSystem.kt), więc zdjęcie przez nie
+ * prześwituje. Pasmo i alfa są policzone razem: w każdym punkcie pasma tekst na tle i na szklanej karcie trzyma progi,
+ * a karta odróżnia się od tła (`ThemeContractTest`, `python tools/check_contrast.py`, oba w 8 bitach na kanał, jak ekran). Najciaśniej jest w „Ogniu
+ * i Krwi”: obrys przycisku na szklanej karcie, dlatego tam zdjęcie jest najciemniejsze.
+ */
+val FirePhotoLow = Color(0xFF050303)
+val FirePhotoHigh = Color(0xFF1A1110)
+val PaperPhotoLow = Color(0xFFDFD3CA)
+val PaperPhotoHigh = Color(0xFFFFFFFF)
+val SteelPhotoLow = Color(0xFF060809)
+val SteelPhotoHigh = Color(0xFF2D363F)
+
+/** Pasmo zdjęcia tła: najciemniejszy i najjaśniejszy kolor po filtrze oraz alfa szklanych kart nad nim. */
+data class PhotoBand(val low: Color, val high: Color, val glass: Float) {
+    /** Jasność piksela (wagi WCAG) wybiera punkt na odcinku low–high, więc każdy piksel zdjęcia leży w paśmie. */
+    fun colorFilter(): ColorFilter {
+        fun row(l: Float, h: Float) = floatArrayOf((h - l) * 0.2126f, (h - l) * 0.7152f, (h - l) * 0.0722f, 0f, l * 255f)
+        return ColorFilter.colorMatrix(
+            ColorMatrix(row(low.red, high.red) + row(low.green, high.green) + row(low.blue, high.blue) + floatArrayOf(0f, 0f, 0f, 1f, 0f)),
+        )
+    }
+}
+
 /**
  * Wariant tła. `id` idzie do DataStore i do kopii zapasowej razem z id motywu, więc istniejących nie zmieniamy;
  * jest unikalny w obrębie motywu. `stops` to kolory gradientu od góry do dołu, rozłożone równo (tak samo rysuje
- * je tło okna w `MainActivity`); pusta lista = jednolite `surface` motywu. Pierwszy wariant motywu jest domyślny.
+ * je tło okna w `MainActivity`); pusta lista = jednolite `surface` motywu. `band` ma tylko zdjęcie dnia (D-51).
+ * Pierwszy wariant motywu jest domyślny.
  */
-enum class AppBackground(val theme: AppTheme, val id: String, val labelPl: String, val stops: List<Color>) {
+enum class AppBackground(
+    val theme: AppTheme,
+    val id: String,
+    val labelPl: String,
+    val stops: List<Color>,
+    val band: PhotoBand? = null,
+) {
     FIRE_SOLID(AppTheme.FIRE, "jednolite", "Jednolite", emptyList()),
     FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberMid, FireEmberBottom)),
     FIRE_GLOW(AppTheme.FIRE, "luna", "Łuna", listOf(FireGlowTop, FireGlowMid, FireGlowBottom)),
     FIRE_WINE(AppTheme.FIRE, "wino", "Wino", listOf(FireWineTop, FireWineBottom)),
+    FIRE_PHOTO(AppTheme.FIRE, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(FirePhotoLow, FirePhotoHigh, glass = 0.08f)),
     PAPER_SOLID(AppTheme.PAPER, "jednolite", "Jednolite", emptyList()),
     PAPER_DAWN(AppTheme.PAPER, "swit", "Świt", listOf(PaperDawnTop, PaperDawnBottom)),
     PAPER_ROSE(AppTheme.PAPER, "roza", "Róża", listOf(PaperRoseTop, PaperRoseBottom)),
     PAPER_PARCHMENT(AppTheme.PAPER, "pergamin", "Pergamin", listOf(PaperParchmentTop, PaperParchmentBottom)),
+    PAPER_PHOTO(AppTheme.PAPER, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(PaperPhotoLow, PaperPhotoHigh, glass = 0.065f)),
     STEEL_SOLID(AppTheme.STEEL, "jednolite", "Jednolite", emptyList()),
     STEEL_NAVY(AppTheme.STEEL, "granat", "Granat", listOf(SteelNavyTop, SteelNavyBottom)),
     STEEL_DEEP(AppTheme.STEEL, "glebia", "Głębia", listOf(SteelDeepTop, SteelDeepBottom)),
     STEEL_DUSK(AppTheme.STEEL, "zmrok", "Zmrok", listOf(SteelDuskTop, SteelDuskBottom)),
+    STEEL_PHOTO(AppTheme.STEEL, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(SteelPhotoLow, SteelPhotoHigh, glass = 0.075f)),
     ;
 
     val gradient: Boolean get() = stops.size >= 2
 
-    /** Kolory tła od góry do dołu; dla tła jednolitego jeden: `surface` schematu. */
-    fun colors(scheme: ColorScheme): List<Color> = stops.ifEmpty { listOf(scheme.surface) }
+    /** Zdjęcie dnia (D-51): pod nim karty są szklane. */
+    val photo: Boolean get() = band != null
+
+    /**
+     * Kolory tła od góry do dołu: dla jednolitego `surface` schematu, dla zdjęcia dolny kolor jego pasma —
+     * to widać, zanim zdjęcie się wczyta, i wtedy, gdy baza nie ma zdjęć.
+     */
+    fun colors(scheme: ColorScheme): List<Color> = band?.let { listOf(it.low) } ?: stops.ifEmpty { listOf(scheme.surface) }
 
     companion object {
         /** Warianty motywu w kolejności z Ustawień; pierwszy jest jednolity i domyślny. */
@@ -87,7 +130,8 @@ enum class AppBackground(val theme: AppTheme, val id: String, val labelPl: Strin
  */
 fun Modifier.appBackground(background: AppBackground, surface: Color): Modifier =
     if (!background.gradient) {
-        background(surface)
+        // Zdjęcie dnia rysuje się nad tym kolorem osobno (`PhotoBackdrop`): pod nim jest dół pasma, nie `surface`.
+        background(background.band?.low ?: surface)
     } else {
         drawWithCache {
             val paint = Paint().apply {

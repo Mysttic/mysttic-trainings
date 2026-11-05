@@ -235,6 +235,10 @@ Historia pokazuje wszystkie treningi razem, ze wszystkich planów. Przebieg jedn
   i Wino w „Ogniu i Krwi”, Świt, Róża i Pergamin w „Papierze i Ogniu”, Granat, Głębia i Zmrok w „Stali
   i Bursztynie”. Gradient leży pod wszystkimi ekranami, a karty i napisy zostają tak samo czytelne. Każdy motyw
   pamięta swoje tło, więc po powrocie do motywu wraca też jego gradient.
+  Ostatnia opcja tła to **Zdjęcie dnia**: rozmyte zdjęcie dobrane do dzisiejszego treningu z planu (brzuch, nogi,
+  góra ciała, kardio, joga albo całe ciało, gdy trening jest mieszany albo planu nie ma). W **Na zdjęciach** wybierasz,
+  kogo pokazywać: kobietę, mężczyznę albo oboje. Zdjęcie zmienia się raz dziennie i z kolejnym treningiem, a karty
+  są przy nim szklane, żeby prześwitywało.
 - **Odliczanie przed startem** — 0, 3, 5 albo 10 sekund.
 - **Sygnały** — dźwięk, głos (TTS), wibracja, „nie gaś ekranu w trakcie treningu”.
 - **Przycisk głośności potwierdza serię** — opisany wyżej skrót; da się wyłączyć.

@@ -7,6 +7,9 @@ nowy motyw nie wjedzie bez kontroli kompletu 35 ról.
 Od D-50 każdy motyw ma też warianty tła (Backgrounds.kt). Gradient leży pod tymi samymi kartami i napisami
 co `surface`, więc w każdym swoim punkcie musi trzymać pary, w których tłem jest `surface` albo `background`.
 Punkty liczymy jak Android: liniowo w sRGB między równo rozłożonymi kolorami (tak samo ThemeContractTest).
+Od D-51 jest też zdjęcie dnia: filtr kładzie każdy piksel zdjęcia na odcinku pasma (`PhotoBand`), a karty nad nim są
+szkłem, czyli `onSurface` z alfą motywu. W każdym punkcie pasma tekst na tle i na szklanej karcie trzyma progi,
+a karta odróżnia się od tła na 1,12:1.
 Kod wyjścia 1, jeśli któraś para nie spełnia progu — do wpięcia w CI, gdyby motyw zaczął się psuć.
 
 Progi: 4.5:1 dla tekstu, 3:1 dla elementów interfejsu (obrysy, ikony).
@@ -26,6 +29,9 @@ PALETTE_FILES = (THEME_DIR / "Color.kt", THEME_DIR / "Themes.kt", BACKGROUNDS)
 BACKDROP_ROLES = ("surface", "background")
 # Punktów na odcinek między dwoma kolorami gradientu; tyle samo bierze ThemeContractTest.
 POINTS_PER_SEGMENT = 64
+# Role kart, które nad zdjęciem dnia są szkłem (D-51), i próg odróżnienia szklanej karty od zdjęcia.
+CARD_ROLES = ("surfaceContainer", "surfaceContainerHighest", "surfaceVariant")
+GLASS_SEPARATION = 1.12
 
 # (tekst, tło, próg, opis)
 PAIRS = [
@@ -110,6 +116,16 @@ def parse_backgrounds(text, palette):
     ]
 
 
+def parse_photo_bands(text, palette):
+    """[(motyw, id, '#low', '#high', alfa)] z wpisów zdjęcia dnia: `…, emptyList(), PhotoBand(Low, High, glass = 0.08f))`."""
+    entries = re.findall(
+        r"\w+\(\s*AppTheme\.(\w+),\s*\"([^\"]+)\",\s*\"[^\"]*\",\s*emptyList\(\),\s*"
+        r"PhotoBand\(\s*(\w+),\s*(\w+),\s*glass\s*=\s*([0-9.]+)f\s*\)\s*\)",
+        text,
+    )
+    return [(theme, bid, palette[low], palette[high], float(alpha)) for theme, bid, low, high, alpha in entries]
+
+
 def parse_scheme_for(text):
     """Które schematy należą do których motywów: gałęzie `AppTheme.FIRE -> FireScheme` w `schemeFor`."""
     return dict(re.findall(r"AppTheme\.(\w+)\s*->\s*(\w+)", text))
@@ -128,11 +144,16 @@ def luminance(color):
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
+def quantize(color):
+    """8 bitów na kanał: tyle ma ekran i tyle trzyma `Color` z Compose w sRGB, więc tak samo liczy ThemeContractTest."""
+    return tuple(round(c * 255) / 255 for c in color)
+
+
 def gradient_points(stops):
     """Punkty gradientu tak, jak rysuje go Android: liniowo w sRGB między równo rozłożonymi kolorami."""
     colors = [rgb(stop) for stop in stops]
     return [
-        tuple(a[k] + (b[k] - a[k]) * i / POINTS_PER_SEGMENT for k in range(3))
+        quantize(tuple(a[k] + (b[k] - a[k]) * i / POINTS_PER_SEGMENT for k in range(3)))
         for a, b in zip(colors, colors[1:])
         for i in range(POINTS_PER_SEGMENT + 1)
     ]
@@ -140,6 +161,11 @@ def gradient_points(stops):
 
 def as_hex(color):
     return "#" + "".join(f"{round(c * 255):02X}" for c in color)
+
+
+def mix(under, over, alpha):
+    """Kolor `over` z alfą położony na `under`, zmieszany w sRGB tak jak rysuje Android."""
+    return quantize(tuple(u + (o - u) * alpha for u, o in zip(under, over)))
 
 
 def contrast(a, b):
@@ -185,6 +211,44 @@ def check_backgrounds(theme_text, palette_text, schemes):
     return failures
 
 
+def check_photo_bands(theme_text, palette_text, schemes):
+    """Pasmo każdego zdjęcia dnia razem ze szklanymi kartami; zwraca liczbę złamanych par."""
+    if not BACKGROUNDS.exists():
+        return 0
+    bands = parse_photo_bands(BACKGROUNDS.read_text(encoding="utf-8"), parse_palette(palette_text))
+    owner = parse_scheme_for(theme_text)
+    by_name = dict(schemes)
+    failures = 0
+    print("\n=== Zdjęcie dnia (D-51): pasmo zdjęcia i szklane karty w każdym punkcie")
+    for theme, background_id, low, high, alpha in bands:
+        scheme = by_name.get(owner.get(theme))
+        if scheme is None:
+            print(f"  BRAK SCHEMATU  {theme}/{background_id}")
+            failures += 1
+            continue
+        on_surface = rgb(scheme["onSurface"])
+        worst = None
+        for point in gradient_points([low, high]):
+            glass = mix(point, on_surface, alpha)
+            checks = []
+            for fg, bg, threshold, label in PAIRS:
+                if bg in BACKDROP_ROLES and fg not in CARD_ROLES:
+                    checks.append((contrast(scheme[fg], point), threshold, f"{fg} na tle {as_hex(point)}", label))
+                elif bg in CARD_ROLES and fg not in CARD_ROLES + BACKDROP_ROLES:
+                    checks.append((contrast(scheme[fg], glass), threshold, f"{fg} na szkle {as_hex(glass)}", label))
+            checks.append((contrast(glass, point), GLASS_SEPARATION, f"szkło {as_hex(glass)} na {as_hex(point)}", "karta odróżniona od zdjęcia"))
+            for ratio, threshold, where, label in checks:
+                if ratio < threshold:
+                    failures += 1
+                    print(f"  BŁĄD {ratio:5.2f}:1 (min {threshold})  {theme.lower()}/{background_id}: {where} — {label}")
+                if worst is None or ratio / threshold < worst[0] / worst[1]:
+                    worst = (ratio, threshold, where)
+        ratio, threshold, where = worst
+        print(f"  {'ok  ' if ratio >= threshold else 'BŁĄD'} {theme.lower()}/{background_id} ({low} → {high}, szkło {alpha:g}): "
+              f"najciaśniej {where} {ratio:.3f}:1 (min {threshold})")
+    return failures
+
+
 def main():
     palette_text = "\n".join(path.read_text(encoding="utf-8") for path in PALETTE_FILES if path.exists())
     theme_text = THEME.read_text(encoding="utf-8")
@@ -205,6 +269,7 @@ def main():
             failures += not ok
             print(f"  {'ok  ' if ok else 'BŁĄD'} {ratio:5.2f}:1 (min {threshold})  {fg} na {bg} — {label}")
     failures += check_backgrounds(theme_text, palette_text, schemes)
+    failures += check_photo_bands(theme_text, palette_text, schemes)
     print(f"\nSchematów: {len(schemes)}, problemów: {failures}")
     return 1 if failures else 0
 

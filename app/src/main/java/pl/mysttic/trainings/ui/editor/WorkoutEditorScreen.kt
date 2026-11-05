@@ -90,6 +90,7 @@ import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.TextInput
 import pl.mysttic.trainings.ui.common.formatDuration
 import pl.mysttic.trainings.ui.common.ScreenScaffold
+import pl.mysttic.trainings.ui.common.cardColor
 import pl.mysttic.trainings.ui.theme.Dimens
 import kotlinx.serialization.json.Json
 
@@ -308,7 +309,7 @@ private fun BlockCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

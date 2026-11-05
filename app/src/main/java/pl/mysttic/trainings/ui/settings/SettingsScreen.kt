@@ -38,6 +38,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.mysttic.trainings.BuildConfig
+import pl.mysttic.trainings.domain.background.PhotoPeople
 import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.reminder.ReminderSchedule
 import pl.mysttic.trainings.domain.update.DatabaseOffer
@@ -166,8 +167,28 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
         }
+        if (background.photo) {
+            // Zdjęcie dnia (D-51): aplikacja nie zna płci użytkownika, więc pyta, kogo pokazywać.
+            Text(
+                text = "Na zdjęciach",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+            )
+            val people = PhotoPeople.fromId(settings.photoPeople)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PhotoPeople.entries.forEach { option ->
+                    FilterPill(text = option.labelPl, selected = option == people, onClick = { viewModel.setPhotoPeople(option.id) })
+                }
+            }
+        }
         Text(
-            text = "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło.",
+            text = if (background.photo) {
+                "Zdjęcie pasuje do dzisiejszego treningu (brzuch, nogi, góra ciała, kardio, joga) i zmienia się raz dziennie. " +
+                    "Karty są wtedy szklane, żeby prześwitywało."
+            } else {
+                "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),

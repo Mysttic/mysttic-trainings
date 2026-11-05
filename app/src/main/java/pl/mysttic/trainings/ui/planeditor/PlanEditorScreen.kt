@@ -58,6 +58,7 @@ import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.TextInput
 import pl.mysttic.trainings.ui.common.ScreenScaffold
+import pl.mysttic.trainings.ui.common.cardColor
 import pl.mysttic.trainings.ui.theme.Dimens
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -300,7 +301,7 @@ private fun WorkoutRow(workout: Workout, onEdit: () -> Unit, onDuplicate: () -> 
     Surface(
         onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(18.dp),
     ) {
         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {

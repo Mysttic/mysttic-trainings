@@ -13,7 +13,7 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/** Rozpakowanie paczki bazy (D-47): tylko `exercises.json` i `images/<id>.jpg`, w limitach, bez wyjścia z katalogu. */
+/** Rozpakowanie paczki bazy (D-47): tylko `exercises.json`, `images/<id>.jpg` i zdjęcia tła (D-51), w limitach, bez wyjścia z katalogu. */
 class DatabaseArchiveTest {
 
     @get:Rule
@@ -77,6 +77,25 @@ class DatabaseArchiveTest {
         rejected(twice, "powtórzony")
         val big = ByteArray((DatabaseArchive.MAX_IMAGE_BYTES + 1).toInt())
         rejected(zip("exercises.json" to "{}".toByteArray(), "images/pushups.jpg" to big), "za duży")
+    }
+
+    /** Zdjęcia tła (D-51) jadą w tej samej paczce: `tla.json` i `tla/<id>.jpg`, w tych samych limitach. */
+    @Test
+    fun `zdjecia tla przechodza, obce pliki w ich katalogu nie`() {
+        val archive = zip(
+            "exercises.json" to "{}".toByteArray(),
+            "tla.json" to "{\"photos\":[]}".toByteArray(),
+            "tla/" to ByteArray(0),
+            "tla/brzuch-k-1.jpg" to byteArrayOf(1, 2),
+        )
+        DatabaseArchive.extract(ByteArrayInputStream(archive), target())
+        assertEquals(2L, File(target(), "tla/brzuch-k-1.jpg").length())
+        assertTrue(File(target(), "tla.json").isFile)
+
+        rejected(zip("exercises.json" to "{}".toByteArray(), "tla/Brzuch K.jpg" to byteArrayOf(1)), "nieoczekiwany plik")
+        rejected(zip("exercises.json" to "{}".toByteArray(), "tla/podkatalog/" to ByteArray(0)), "nieoczekiwany katalog")
+        val big = ByteArray((DatabaseArchive.MAX_IMAGE_BYTES + 1).toInt())
+        rejected(zip("exercises.json" to "{}".toByteArray(), "tla/brzuch-k-1.jpg" to big), "za duży")
     }
 
     @Test
