@@ -1,0 +1,157 @@
+name: Baza
+
+# Wydanie bazy ćwiczeń (D-47), niezależne od wydania aplikacji. Rusza, gdy do `master` trafia zmiana
+# w `baza/`. Numer bazy to `version` w `baza/exercises.json`, ten sam co pod „# Wersja bazy ćwiczeń”
+# w VERSION.md (oba podbija `python tools/baza.py podbij`, zgodność sprawdzają reguły), a opis wydania
+# to sekcja `## [Baza <numer>]` w CHANGELOG.md: bez niej reguły i paczka zatrzymują bieg.
+#
+# Nowy numer: reguły względem poprzedniego wydania bazy, paczka (ZIP i manifest z `tools/baza.py paczka`),
+# wydanie `mysttic-trainings-baza-v<numer>` w publicznym `Mysttic/Mysttic` bez znacznika „Latest”, tag
+# `baza-v<numer>` w tym repozytorium i sprzątanie starszych wydań bazy na stronie. Numer już wydany: ta sama
+# treść kończy bieg bez wydania, inna treść to czerwony bieg, bo telefon z tym numerem by jej nie wczytał.
+#
+# Ręczne uruchomienie dokańcza przewrócone wydanie; poza `master` robi tylko próbę (reguły i paczka).
+# Prefiks `mysttic-trainings-baza-v` nie zaczyna się od `mysttic-trainings-v`, więc wydań bazy nie biorą
+# za swoje `UpdateCheck` (aktualizacja APK), skrypt strony ani sprzątanie w `wydanie.yml`. Tag i nazwy
+# plików to umowa z aplikacją: zmiana tutaj = zmiana w aplikacji.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'baza/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: baza
+  cancel-in-progress: false
+
+jobs:
+  baza:
+    name: Reguły, paczka i wydanie bazy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HUB: Mysttic/Mysttic
+    steps:
+      # Pełna historia z tagami: bramka porównuje z `baza-v<numer>`, reguły z poprzednim wydaniem.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: numer
+        name: Numer bazy i bramka na tagu
+        run: |
+          set -euo pipefail
+          numer=$(python3 -c "import json; print(json.load(open('baza/exercises.json', encoding='utf-8'))['version'])")
+          tag="baza-v$numer"
+          # Zmiany liczymy względem poprzedniego wydania bazy, a przed pierwszym względem ostatniego wydania
+          # aplikacji, bo to ono wiozło bazę w APK.
+          poprzedni=$(git tag -l 'baza-v*' | { grep -vxF "$tag" || true; } | sort -V | tail -1)
+          if [ -z "$poprzedni" ]; then
+            poprzedni=$(git tag -l 'v*' | { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -1)
+          fi
+          echo "numer=$numer" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "poprzedni=$poprzedni" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            if git diff --quiet "$tag" HEAD -- baza/; then
+              echo "Baza v$numer już wydana z tą samą treścią, nie wydajemy drugi raz." >> "$GITHUB_STEP_SUMMARY"
+              echo "wydajemy=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error file=baza/exercises.json::Treść bazy różni się od wydanej v$numer, a numer został ten sam: python tools/baza.py podbij"
+            exit 1
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            echo "Wydanie bazy v$numer (zmiany względem ${poprzedni:-początku})" >> "$GITHUB_STEP_SUMMARY"
+            echo "wydajemy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Poza master: tylko reguły i paczka, bez wydania." >> "$GITHUB_STEP_SUMMARY"
+            echo "wydajemy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reguły bazy względem poprzedniego wydania
+        env:
+          POPRZEDNI: ${{ steps.numer.outputs.poprzedni }}
+        run: |
+          set -euo pipefail
+          if [ -n "$POPRZEDNI" ]; then
+            python3 tools/baza.py sprawdz --wzgledem "$POPRZEDNI"
+          else
+            python3 tools/baza.py sprawdz
+          fi
+
+      - name: Paczka i manifest
+        env:
+          POPRZEDNI: ${{ steps.numer.outputs.poprzedni }}
+        run: |
+          set -euo pipefail
+          if [ -n "$POPRZEDNI" ]; then
+            python3 tools/baza.py paczka wydanie-bazy --wzgledem "$POPRZEDNI"
+          else
+            python3 tools/baza.py paczka wydanie-bazy
+          fi
+          ls -la wydanie-bazy
+          { echo; cat wydanie-bazy/opis.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Poświadczenie do repozytorium strony
+        if: steps.numer.outputs.wydajemy == 'true'
+        env:
+          HUB_TOKEN: ${{ secrets.HUB_TOKEN }}
+        run: |
+          if [ -z "${HUB_TOKEN:-}" ]; then
+            echo "::error::Brak sekretu HUB_TOKEN: bez niego baza nie trafi do $HUB (docs/RELEASE.md)."
+            exit 1
+          fi
+
+      # Najpierw wydanie na stronie, dopiero potem tag u nas: tag znaczy „wydane”, więc po przewróconym wydaniu
+      # ponowny bieg nie może go jeszcze widzieć. Wydanie o tym samym tagu z przerwanego biegu idzie od nowa.
+      - name: Wydanie bazy na stronie
+        if: steps.numer.outputs.wydajemy == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.HUB_TOKEN }}
+          NUMER: ${{ steps.numer.outputs.numer }}
+        run: |
+          set -euo pipefail
+          tag_strony="mysttic-trainings-baza-v$NUMER"
+          if gh release view "$tag_strony" --repo "$HUB" >/dev/null 2>&1; then
+            gh release delete "$tag_strony" --repo "$HUB" --cleanup-tag --yes
+          fi
+          gh release create "$tag_strony" \
+            "wydanie-bazy/mysttic-trainings-baza-$NUMER.zip" \
+            "wydanie-bazy/mysttic-trainings-baza-$NUMER.json" \
+            --repo "$HUB" \
+            --title "Baza ćwiczeń $NUMER" \
+            --notes-file wydanie-bazy/opis.md \
+            --target master \
+            --latest=false
+
+      - name: Tag bazy w repozytorium kodu
+        if: steps.numer.outputs.wydajemy == 'true'
+        env:
+          TAG: ${{ steps.numer.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      # Najpierw nowe wydanie, potem kasowanie starszych: na stronie zawsze stoi jakaś baza. Filtr po prefiksie
+      # bazy nie rusza wydań aplikacji ani innych projektów.
+      - name: Na stronie zostaje jedna baza
+        if: steps.numer.outputs.wydajemy == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.HUB_TOKEN }}
+          NUMER: ${{ steps.numer.outputs.numer }}
+        run: |
+          set -euo pipefail
+          gh release list --repo "$HUB" --limit 100 --json tagName -q '.[].tagName' \
+            | { grep -E '^mysttic-trainings-baza-v[0-9]' || true; } \
+            | { grep -vxF "mysttic-trainings-baza-v$NUMER" || true; } \
+            | while read -r stary; do
+                echo "Kasuję $stary"
+                gh release delete "$stary" --repo "$HUB" --cleanup-tag --yes
+              done
+          echo "Na stronie stoi baza v$NUMER" >> "$GITHUB_STEP_SUMMARY"

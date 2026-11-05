@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mała ikona powiadomień: ten sam hantel, biały na przezroczystym (system sam koloruje). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3.82,8.55 H3.82 A1.82,1.82 0 0 1 5.64,10.36 V13.64 A1.82,1.82 0 0 1 3.82,15.45 H3.82 A1.82,1.82 0 0 1 2,13.64 V10.36 A1.82,1.82 0 0 1 3.82,8.55 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,6 H8 A1.64,1.64 0 0 1 9.64,7.64 V16.36 A1.64,1.64 0 0 1 8,18 H8 A1.64,1.64 0 0 1 6.36,16.36 V7.64 A1.64,1.64 0 0 1 8,6 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9.64,10.36 H14.36 V13.64 H9.64 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,6 H16 A1.64,1.64 0 0 1 17.64,7.64 V16.36 A1.64,1.64 0 0 1 16,18 H16 A1.64,1.64 0 0 1 14.36,16.36 V7.64 A1.64,1.64 0 0 1 16,6 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20.18,8.55 H20.18 A1.82,1.82 0 0 1 22,10.36 V13.64 A1.82,1.82 0 0 1 20.18,15.45 H20.18 A1.82,1.82 0 0 1 18.36,13.64 V10.36 A1.82,1.82 0 0 1 20.18,8.55 Z" />
+</vector>

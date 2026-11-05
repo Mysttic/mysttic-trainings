@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- M2: player w foreground service (D-16). Typ mediaPlayback, bo serwis gra sygnały i TTS. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- częściowy wake lock w trakcie pracy: tick i sygnały 3-2-1 przy zgaszonym ekranie -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- M6: przypomnienie o treningu przeżywa restart telefonu (alarm ustawiany na nowo) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Alarm dokładny: „przypomnij o 18:00” bez godzinnego okna systemu. USE_EXACT_ALARM jest przyznawane
+         przy instalacji (Android 13+), SCHEDULE_EXACT_ALARM obsługuje starsze wersje. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <!-- M6: opcjonalny zapis ukończonego treningu do Health Connect (tylko zapis, nic nie czytamy) -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <!-- M7: jedyne wyjście poza urządzenie — pytanie do GitHuba o nowsze wydanie i pobranie APK.
+         Dzieje się wyłącznie na życzenie użytkownika (przełącznik albo przycisk w Ustawieniach). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Widoczność pakietów (targetSdk >= 30): bez tego TextToSpeech nie znajdzie silnika użytkownika
+         i zamilknie. Na emulatorze działało tylko dlatego, że Google TTS jest tam forceQueryable. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".TrainingsApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Trainings">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Trainings">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+              Plik planu od kogoś (D-42): „Otwórz za pomocą” z Plików, Gmaila i komunikatorów. Tylko content://,
+              bo file:// od Androida 7 i tak nie przejdzie. SEND bez scheme: intencja udostępniania nie ma URI
+              w data, więc zadeklarowany scheme dałby NO_MATCH_DATA. Walidację robi aplikacja, nie filtr.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+            <!-- Health Connect pokazuje ten ekran, gdy użytkownik pyta „po co wam to uprawnienie” -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.WorkoutService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Pobrany APK oddajemy systemowemu instalatorowi przez content://, nie przez file:// -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
+
+        <receiver
+            android:name=".service.ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

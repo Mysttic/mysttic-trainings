@@ -1,0 +1,42 @@
+{
+  "format": "mysttic-trainings-plan",
+  "formatVersion": 1,
+  "appVersion": "0.11.0",
+  "seedVersion": 6,
+  "exportedAt": 1790000000000,
+  "plan": {
+    "uid": "wzor-0001",
+    "name": "Plan wzorcowy",
+    "author": "Autor",
+    "description": "Plik zamraża nazwy pól formatu v1.",
+    "level": "INTERMEDIATE",
+    "days": [
+      { "day": 1, "workout": "w1" },
+      { "day": 2, "workout": null },
+      { "day": 3, "workout": "w1" }
+    ],
+    "workouts": [
+      {
+        "key": "w1",
+        "name": "Całość",
+        "note": "",
+        "blocks": [
+          {
+            "kind": "SETS",
+            "rounds": 1,
+            "restBetweenRoundsSec": 60,
+            "restAfterSec": null,
+            "label": "",
+            "items": [
+              { "exercise": "pushups", "target": "REPS", "value": 10, "sets": 3, "restAfterSetSec": 45, "restAfterItemSec": 60, "weightKg": 12.5, "openEnded": false, "cadenceSec": null, "note": "wolno w dół" },
+              { "exercise": "plank", "target": "SECONDS", "value": 30, "sets": 2 }
+            ]
+          }
+        ]
+      }
+    ],
+    "exercises": [
+      { "id": "pushups", "namePl": "Pompki", "nameEn": "Push-ups", "kind": "REPS", "level": "INTERMEDIATE", "category": "STRENGTH", "equipment": [], "primaryMuscles": ["CHEST"], "secondaryMuscles": [], "instructionsPl": [], "defaultReps": 12, "defaultSeconds": 30 }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider dla pobranego APK (systemowy instalator czyta plik przez content://) oraz dla plików
+  wysyłanych innym: plan (shared/) i raport PDF (reports/) z cache, sprzątane po dobie (D-42).
+-->
+<paths>
+    <files-path name="updates" path="updates/" />
+    <cache-path name="shared" path="shared/" />
+    <cache-path name="reports" path="reports/" />
+</paths>

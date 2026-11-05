@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 i starsze: Auto Backup obejmuje bazę Room i DataStore (domyślnie cały katalog danych aplikacji). -->
+<full-backup-content>
+    <exclude domain="database" path="trainings.db-wal" />
+    <exclude domain="database" path="trainings.db-shm" />
+</full-backup-content>

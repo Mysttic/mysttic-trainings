@@ -1,0 +1,172 @@
+name: Testy
+
+# Bramka przed wpuszczeniem zmian do `master`: testy jednostkowe i build debugowego
+# APK. Odpala się wyłącznie przy pull requeście z `develop` do `master`; zwykłe
+# pchnięcia na gałęzie robocze (`develop`, `trener`, `zdjecia`) nie uruchamiają niczego.
+#
+# Świadoma konsekwencja zawężenia do `develop`: pull request do `master` z innej
+# gałęzi (hotfix, `trener`, `zdjecia`) nie odpali żadnego joba, a GitHub zaraportuje
+# taki przebieg jako zielony — pominięty job liczy się jako sukces. Nie ma tu joba
+# zaporowego, który zamieniałby to w czerwony wynik: przyjęte jest, że każda zmiana
+# idzie przez `develop`. Jeśli testy mają być twardą bramą przed scaleniem, potrzebna
+# jest ochrona gałęzi `master` z wymaganym statusem z joba `testy` — sam workflow
+# tego nie załatwi. Przy takiej ochronie trzeba pamiętać o filtrze `paths` niżej:
+# działa on na poziomie WYZWALACZA, więc PR ruszający wyłącznie pominięte pliki nie
+# tworzy żadnego biegu — nie ma pominiętego joba ani statusu, jest „Expected — waiting
+# for status to be reported”, a takiego PR-a nie da się scalić. Trzeba by wtedy albo
+# wyjąć PR-y czysto dokumentacyjne z wymogu, albo przenieść filtr ścieżek z wyzwalacza
+# na poziom joba, żeby bieg powstawał i raportował sukces.
+#
+# `types` to domyślna trójka (opened, reopened, synchronize) świadomie zachowana —
+# dopóki PR jest otwarty, dorzucone commity przechodzą testy jeszcze raz; bez tego
+# dałoby się scalić PR na podstawie wyniku sprzed poprawek — plus `ready_for_review`.
+# Ten czwarty jest konieczny wraz z pomijaniem draftów: push do roboczego draftu
+# nie ma palić pełnego builda, ale wyjście z draftu musi testy uruchomić. Bez niego
+# PR założony jako draft i przestawiony na gotowy nie miałby żadnego biegu aż do
+# następnego pchnięcia.
+#
+# Bieg nie zostawia po sobie żadnego artefaktu: raport z padniętego testu czyta się
+# w logu kroku i w podsumowaniu biegu, a wspólny dla całego konta limit magazynu
+# Actions zostaje nietknięty. Nie zapisuje też nic do cache'u — `setup-gradle` poza
+# gałęzią domyślną z zasady tylko czyta. Cache Gradle'a, gdy jest, oszczędza minuty,
+# ma własny limit 10 GB na repozytorium i GitHub sprząta go sam (LRU, wpisy nieużywane
+# od 7 dni).
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review]
+    # Sama dokumentacja nie zmienia tego, co się kompiluje — ale trzy pliki .md są
+    # wejściem kroków tego workflow i muszą bieg wyzwalać: `VERSION.md` i `CHANGELOG.md`
+    # czyta krok „Czy ten PR wyda wersję”, a `docs/DATABASE.md` porównuje ze schematem
+    # Room `tools/check_schema.py` w kroku „Kontrola schematu bazy i kontrastu palet”.
+    # Hurtowe `docs/**` w `paths-ignore` przepuściłoby rozjazd dokumentacji bazy bez
+    # żadnego biegu, a wywróciłby się dopiero następny, niewinny PR. Stąd `paths:`
+    # z negacją zamiast `paths-ignore`: `!` działa wyłącznie w `paths`, w wariancie
+    # `-ignore` GitHub go nie honoruje. Liczy się ostatni pasujący wzorzec, więc
+    # `docs/DATABASE.md` na końcu wraca do gry.
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!README.md'
+      - 'docs/DATABASE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testy:
+    name: Testy jednostkowe, debug APK i numer wersji
+    # `branches:` w `on:` filtruje gałąź DOCELOWĄ (base), nie źródłową, a GitHub nie
+    # umie zawęzić wyzwalacza po gałęzi źródłowej — stąd warunek na jobie. Przy
+    # `workflow_dispatch` `github.head_ref` jest puste, więc ręczne uruchomienie
+    # przepuszczamy osobnym członem, inaczej sam warunek head_ref by je zablokował.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.head_ref == 'develop' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    # 30 na testy i build, +5 na krok z numerem wersji przeniesiony z dawnego joba `wersja`.
+    timeout-minutes: 35
+    steps:
+      # Krok z numerem wersji potrzebuje obu rodziców commita scalającego
+      # (`git diff BAZA GLOWA`, `git show BAZA:VERSION.md`) i tagów
+      # (`refs/tags/v<numer>`) — `fetch-depth: 2` razem z `fetch-tags` daje dokładnie
+      # tyle. Pełne klonowanie ciągnęłoby przy każdym biegu testów i builda całą
+      # historię ze zrzutami z `docs/screenshots`, zjadając zysk ze scalenia jobów.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          fetch-tags: true
+
+      # Dawny job `wersja`, teraz krok tutaj: osobny runner na kilka poleceń gita
+      # kosztował naliczoną minutę przy każdym biegu, choć zwykle kończy się zdaniem
+      # „Numer aplikacji bez zmian”. Idzie przed buildem, bo jest tani (git i python),
+      # a błędny numer wersji zatrzymuje bieg, zanim wystartuje Gradle.
+      # Wydanie powstaje tylko z podniesionego numeru, więc tutaj sprawdzamy,
+      # czy ten PR w ogóle je uruchomi i czy ma z czego zbudować opis wydania.
+      - name: Czy ten PR wyda wersję
+        env:
+          BAZA: ${{ github.event.pull_request.base.sha }}
+          GLOWA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BAZA:-}" ]; then
+            echo "Uruchomienie ręczne — pomijam porównanie z gałęzią docelową." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # VERSION.md niesie też numer bazy ćwiczeń (D-47), więc o wydaniu aplikacji decyduje numer aplikacji,
+          # a nie sama zmiana pliku: podbicie bazy bez podbicia aplikacji niczego tu nie wydaje.
+          wersja=$(grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+$' VERSION.md || true)
+          if [ -z "$wersja" ]; then
+            echo "::error file=VERSION.md::Brak linii z samym numerem wersji (format 1.2.3)"
+            exit 1
+          fi
+          poprzednia=$(git show "$BAZA:VERSION.md" | grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+$' || echo "0.0.0")
+          if [ "$poprzednia" = "$wersja" ]; then
+            echo "Numer aplikacji bez zmian ($wersja): scalenie tego PR nie wyda aplikacji." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$(printf '%s\n%s\n' "$poprzednia" "$wersja" | sort -V | tail -1)" != "$wersja" ]; then
+            echo "::error file=VERSION.md::$wersja nie jest wyższe niż $poprzednia z gałęzi docelowej"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$wersja" >/dev/null; then
+            echo "::error::Tag v$wersja już istnieje: podnieś numer"
+            exit 1
+          fi
+          python tools/release_notes.py "$wersja" > /tmp/opis.md
+          {
+            echo "## Ten PR wyda **v$wersja** (poprzednio $poprzednia)"
+            echo
+            echo "Opis, który trafi do wydania:"
+            echo
+            cat /tmp/opis.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Baza ćwiczeń (D-47): reguły danych i zgodność wstecz względem gałęzi docelowej, czyli ostatniego stanu,
+      # z którego mogło wyjść wydanie. Sam Python, sekundy, więc przed Gradle'em: baza, która gubi id, zmienia
+      # rodzaj celu wydanego ćwiczenia albo zmienia treść bez nowego numeru, zatrzymuje bieg od razu.
+      - name: Reguły bazy ćwiczeń
+        env:
+          BAZA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BAZA:-}" ]; then
+            python3 tools/baza.py sprawdz --wzgledem "$BAZA"
+          else
+            python3 tools/baza.py sprawdz
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Bez `cache-read-only: false`: domyślnie `setup-gradle` poza gałęzią domyślną
+      # cache tylko czyta, i tak ma zostać. Zapis dokładałby na końcu każdego biegu
+      # krok „Post Setup Gradle” wypychający setki MB (30–60 s, a minuty naliczają się
+      # w górę do pełnej), a wpis z pull requesta jest przypięty do `refs/pull/N/merge`
+      # — przy typowym jednym pchnięciu na PR nikt by go już nigdy nie odczytał.
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: chmod +x gradlew
+
+      # Bez --stacktrace: przy padniętym teście sto linii stosu Gradle'a zasłania jedną linię,
+      # o którą chodzi. Kto potrzebuje stosu, odpala lokalnie.
+      - name: Testy jednostkowe (domain, silnik, plan, seed)
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      # Dwa skrypty, które CLAUDE.md nazywa obowiązkowymi po zmianie encji i po zmianie motywu.
+      # Kosztują sekundy, a łapią rozjazd dokumentacji bazy i złamany próg kontrastu w którymkolwiek schemacie.
+      - name: Kontrola schematu bazy i kontrastu palet
+        run: |
+          python3 tools/check_schema.py
+          python3 tools/check_contrast.py
+
+      - name: Debug APK
+        run: ./gradlew assembleDebug --no-daemon

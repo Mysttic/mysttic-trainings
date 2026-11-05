@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hantel z systemu „Ogień i Krew” (D-32): ciemny tusz na ogniu (#FF6A21 z ic_launcher_background).
+     Obszar bezpieczny adaptive icon to środkowe 66 dp ze 108, glif ma 62 dp i mieści się w nim. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#2A0B00"
+        android:pathData="M28.64,43.29 H28.64 A5.64,5.64 0 0 1 34.27,48.93 V59.07 A5.64,5.64 0 0 1 28.64,64.71 H28.64 A5.64,5.64 0 0 1 23,59.07 V48.93 A5.64,5.64 0 0 1 28.64,43.29 Z" />
+    <path
+        android:fillColor="#2A0B00"
+        android:pathData="M41.6,35.4 H41.6 A5.07,5.07 0 0 1 46.67,40.47 V67.53 A5.07,5.07 0 0 1 41.6,72.6 H41.6 A5.07,5.07 0 0 1 36.53,67.53 V40.47 A5.07,5.07 0 0 1 41.6,35.4 Z" />
+    <path
+        android:fillColor="#2A0B00"
+        android:pathData="M46.67,48.93 H61.33 V59.07 H46.67 Z" />
+    <path
+        android:fillColor="#2A0B00"
+        android:pathData="M66.4,35.4 H66.4 A5.07,5.07 0 0 1 71.47,40.47 V67.53 A5.07,5.07 0 0 1 66.4,72.6 H66.4 A5.07,5.07 0 0 1 61.33,67.53 V40.47 A5.07,5.07 0 0 1 66.4,35.4 Z" />
+    <path
+        android:fillColor="#2A0B00"
+        android:pathData="M79.36,43.29 H79.36 A5.64,5.64 0 0 1 85,48.93 V59.07 A5.64,5.64 0 0 1 79.36,64.71 H79.36 A5.64,5.64 0 0 1 73.73,59.07 V48.93 A5.64,5.64 0 0 1 79.36,43.29 Z" />
+</vector>

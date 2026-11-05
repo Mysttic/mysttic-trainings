@@ -1,0 +1,998 @@
+<title>Kartoteka ćwiczeń Mysttic</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Paleta „Ogień i Krew" (D-32): te same wartości co ui/theme/Color.kt. Domyślny motyw ciemny, jak w aplikacji. */
+  :root {
+    --bg: #120809;
+    --surface: #23100F;
+    --surface-low: #1A0C0B;
+    --surface-high: #2E1614;
+    --ink: #FBEDE8;
+    --muted: #BAADAA;
+    --fire: #FF6A21;
+    --on-fire: #2A0B00;
+    --ember: #FFC24A;
+    --line: #4A1A18;
+    --outline: #8A6660;
+    --photo: grayscale(0.6) sepia(0.25) saturate(1.3) brightness(0.82);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #FDF5F1;
+      --surface: #F7E4DB;
+      --surface-low: #FAEDE7;
+      --surface-high: #F1DBD1;
+      --ink: #1E0C0A;
+      --muted: #6B4C45;
+      --fire: #B4230F;
+      --on-fire: #FDF5F1;
+      --ember: #8A5A0B;
+      --line: #E3C6BA;
+      --outline: #8C6A5E;
+      --photo: grayscale(0.55) sepia(0.18) saturate(1.2);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #FDF5F1;
+    --surface: #F7E4DB;
+    --surface-low: #FAEDE7;
+    --surface-high: #F1DBD1;
+    --ink: #1E0C0A;
+    --muted: #6B4C45;
+    --fire: #B4230F;
+    --on-fire: #FDF5F1;
+    --ember: #8A5A0B;
+    --line: #E3C6BA;
+    --outline: #8C6A5E;
+    --photo: grayscale(0.55) sepia(0.18) saturate(1.2);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Sora, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  img { max-width: 100%; display: block; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--fire); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding-inline: 20px; }
+
+  /* ---- nagłówek ---- */
+  .masthead { padding-block: 34px 20px; }
+  .eyebrow {
+    margin: 0 0 10px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ember);
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 5vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  .lede { margin: 8px 0 0; max-width: 70ch; color: var(--muted); }
+  .tally { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .tally button {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 8px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .tally b { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .tally span { color: var(--muted); font-size: 12.5px; }
+  .tally button:hover { border-color: var(--outline); }
+
+  /* ---- pasek edytora (tylko z serwera tools/baza.py) ---- */
+  .editbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+  .primary {
+    padding: 9px 16px;
+    border: 1px solid var(--fire);
+    border-radius: 10px;
+    background: var(--fire);
+    color: var(--on-fire);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .primary:disabled { opacity: 0.5; cursor: progress; }
+  .state {
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ember);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .state.bad { border-color: var(--fire); color: var(--fire); font-weight: 600; }
+  .note { margin: 0; color: var(--muted); font-size: 12.5px; }
+
+  /* ---- pasek narzędzi ---- */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .toolbar .wrap { display: flex; flex-direction: column; gap: 10px; padding-block: 12px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .row > .grow { flex: 1 1 200px; min-width: 0; }
+  input[type="search"], select {
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-low);
+    width: 100%;
+  }
+  select { width: auto; cursor: pointer; }
+  .glabel {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin-right: 2px;
+  }
+  .chip {
+    padding: 6px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--outline); color: var(--ink); }
+  .chip[aria-pressed="true"] { background: var(--fire); border-color: var(--fire); color: var(--on-fire); font-weight: 600; }
+  .chip:disabled { cursor: not-allowed; opacity: 0.55; }
+  .count {
+    margin: 0 0 0 auto;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .ghost {
+    display: inline-block;
+    padding: 6px 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .ghost:hover { color: var(--ink); border-color: var(--outline); }
+
+  /* ---- siatka ---- */
+  main { padding-block: 22px 60px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 16px; }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 0 0 11px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .card:hover { border-color: var(--outline); }
+  .card[aria-current="true"] { border-color: var(--fire); }
+  .card.retired { opacity: 0.55; }
+  .frame { position: relative; aspect-ratio: 3 / 2; background: var(--surface-low); }
+  .frame img { width: 100%; height: 100%; object-fit: cover; filter: var(--photo); }
+  body.raw .frame img, body.raw .shot img { filter: none; }
+  .tag {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+  .tag.new { background: var(--fire); color: var(--on-fire); }
+  .cname { padding-inline: 11px; font-weight: 600; line-height: 1.25; }
+  .cmeta { padding-inline: 11px; font-size: 11.5px; color: var(--muted); }
+  .nothing { padding: 60px 0; text-align: center; color: var(--muted); }
+
+  /* ---- panel ---- */
+  .scrim { position: fixed; inset: 0; z-index: 8; background: color-mix(in srgb, var(--bg) 86%, transparent); }
+  .panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 9;
+    width: min(440px, 100%);
+    height: 100dvh;
+    overflow-y: auto;
+    background: var(--surface-low);
+    border-left: 1px solid var(--line);
+    padding: 20px 22px 40px;
+  }
+  .panel.wide { width: min(580px, 100%); }
+  .phead { display: flex; align-items: flex-start; gap: 12px; }
+  .phead h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  .pid { margin: 4px 0 0; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11.5px; color: var(--muted); }
+  .close { margin-left: auto; padding: 4px 10px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+  .shots { display: flex; gap: 10px; margin-top: 16px; }
+  .shot { flex: 1 1 0; }
+  .shot img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 12px; filter: var(--photo); border: 1px solid var(--line); }
+  .cap { margin: 5px 0 0; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .sect { margin-top: 22px; }
+  .sect > h3 {
+    margin: 0 0 8px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ember);
+  }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; margin: 0; }
+  .facts dt { color: var(--muted); font-size: 12.5px; }
+  .facts dd { margin: 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mtag { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; }
+  .mtag.lead { border-color: var(--fire); color: var(--fire); }
+  ol.steps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
+  ol.steps li { position: relative; padding-left: 28px; margin-bottom: 10px; counter-increment: step; }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--ember);
+    display: grid;
+    place-items: center;
+  }
+  .jump { display: flex; flex-wrap: wrap; gap: 8px; }
+  .jump button {
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    cursor: pointer;
+    text-align: left;
+  }
+  .jump button small { display: block; font-size: 10.5px; color: var(--muted); }
+  .jump button:hover { border-color: var(--outline); }
+  .hint { margin-top: 24px; font-size: 11.5px; color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+
+  /* ---- formularz ---- */
+  .form .f { display: block; margin-top: 16px; font-size: 12.5px; color: var(--muted); }
+  .form .f > span { display: block; }
+  .form input[type="text"], .form input[type="number"], .form textarea, .form select {
+    display: block;
+    width: 100%;
+    margin-top: 5px;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .form input[readonly] { color: var(--muted); }
+  .idline { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .idline code { font-family: "JetBrains Mono", ui-monospace, monospace; color: var(--ink); }
+  .link { padding: 0; border: none; background: none; color: var(--fire); font-size: inherit; text-decoration: underline; cursor: pointer; }
+  .form textarea { min-height: 120px; resize: vertical; line-height: 1.45; }
+  .form small.note { display: block; margin-top: 5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .errors {
+    margin: 14px 0 0;
+    padding: 10px 12px 10px 28px;
+    border: 1px solid var(--fire);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--fire) 12%, transparent);
+    color: var(--ink);
+  }
+  .drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin-top: 16px;
+    aspect-ratio: 3 / 2;
+    padding: 16px;
+    border: 1px dashed var(--outline);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+    text-align: center;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .drop.over { border-color: var(--fire); color: var(--ink); }
+  .drop .swap {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    color: var(--ink);
+    font-size: 11.5px;
+  }
+  .draft { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .draft img, .draft .ph { flex: 0 0 96px; width: 96px; aspect-ratio: 3 / 2; border-radius: 8px; object-fit: cover; background: #fff; }
+  .draft .ph { display: grid; place-items: center; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-size: 11px; text-align: center; }
+  .draft .grow { flex: 1 1 auto; min-width: 0; }
+
+  @media (max-width: 720px) {
+    .panel, .panel.wide { width: 100%; border-left: none; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
+    .count { margin-left: 0; }
+    /* Na telefonie filtry jadą w poziomie zamiast rosnąć w dół, inaczej przyklejony pasek zjada cały ekran. */
+    .toolbar .row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .toolbar .row::-webkit-scrollbar { display: none; }
+    .toolbar .row > * { flex: 0 0 auto; }
+    .toolbar .row > .grow { flex: 1 0 55%; }
+    .two { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .chip, .tally button { transition: border-color 120ms ease, background 120ms ease, color 120ms ease; }
+  }
+</style>
+
+<header class="masthead wrap">
+  <p class="eyebrow" id="stamp">mysttic-trainings</p>
+  <h1 id="title">Kartoteka ćwiczeń</h1>
+  <p class="lede" id="lede">Wszystko, co <code>SeedImporter</code> wkłada do bazy przy starcie: ilustracje, opisy, kategorie,
+    cele i warianty. Strona powstaje z tego samego pliku co aplikacja, <code>baza/exercises.json</code>
+    (<code>tools/przeglad.py</code>).</p>
+  <div class="tally" id="tally"></div>
+  <div class="editbar" id="editbar" hidden></div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap">
+    <div class="row">
+      <div class="grow"><input type="search" id="q" placeholder="Szukaj: nazwa polska, angielska, id" autocomplete="off"></div>
+      <select id="sort" aria-label="Sortowanie">
+        <option value="pl">Alfabetycznie</option>
+        <option value="category">Kategoriami</option>
+        <option value="level">Poziomem</option>
+        <option value="muscle">Partią główną</option>
+      </select>
+      <select id="eq" aria-label="Sprzęt"></select>
+      <select id="mus" aria-label="Partia mięśniowa"></select>
+      <button class="ghost" id="look" type="button">Zdjęcia jak w aplikacji</button>
+    </div>
+    <div class="row" id="filters"></div>
+    <div class="row">
+      <button class="ghost" id="reset" type="button">Wyczyść filtry</button>
+      <p class="count" id="count"></p>
+    </div>
+  </div>
+</div>
+
+<main class="wrap"><div class="grid" id="grid"></div></main>
+
+<script>
+  const DATA = /*__DANE__*/null;
+  const L = DATA.labels;
+  // Tryb edycji: dane przyszły z serwera `python tools/baza.py` (D-47). Statyczna kartoteka z przeglad.py go nie ma.
+  const EDIT = DATA.edit || null;
+  const STATUS_PL = { aktywne: "W użyciu", nowe: "Nowe", wycofane: "Wycofane" };
+  for (const e of DATA.exercises) {
+    e.status = e.retired ? "wycofane" : (EDIT && !(e.id in EDIT.wydane) ? "nowe" : "aktywne");
+  }
+  const byId = Object.fromEntries(DATA.exercises.map(e => [e.id, e]));
+  const state = { q: "", category: new Set(), level: new Set(), kind: new Set(), status: new Set(), eq: "", mus: "", sort: "pl" };
+  let shown = [];
+
+  const el = (tag, props = {}, kids = []) => {
+    const n = Object.assign(document.createElement(tag), props);
+    for (const k of [].concat(kids)) n.append(k);
+    return n;
+  };
+  const count = (key, val) => DATA.exercises.filter(e => e[key] === val).length;
+  const eqLabel = e => e.equipment.length ? e.equipment.map(x => L.equipment[x]).join(" + ") : "bez sprzętu";
+  const target = e => e.kind === "TIME" ? `${e.seconds} s` : `${e.reps} powt.`;
+  const plDate = iso => iso ? iso.split("-").reverse().join(".") : "";
+
+  // ---- nagłówek: liczby, które są zarazem filtrami ----
+  const stamp = document.getElementById("stamp");
+  stamp.textContent = EDIT
+    ? `mysttic-trainings · baza v${EDIT.wersja} · format ${EDIT.format} · minApp ${EDIT.minApp} · aplikacja ${EDIT.aplikacja}`
+    : `mysttic-trainings · baza v${DATA.version} · złożone ${DATA.built}`;
+  if (EDIT) {
+    document.getElementById("title").textContent = "Baza ćwiczeń";
+    document.getElementById("lede").textContent = "Edytor bazy (D-47). Zmiany zapisują się od razu w baza/ i tools/szkice/, " +
+      "a każdy zapis przechodzi te same reguły co python tools/baza.py sprawdz. Commit, PR do master i wydanie bazy robisz sam.";
+  }
+
+  const tally = document.getElementById("tally");
+  [
+    [DATA.exercises.length, "ćwiczeń w bazie", () => reset()],
+    EDIT && [count("status", "nowe"), `nowych od ${EDIT.ref}`, () => only("status", "nowe")],
+    [count("status", "wycofane"), "wycofanych", () => only("status", "wycofane")],
+    EDIT && [EDIT.szkice.length, "szkiców", () => openDrafts()],
+  ].filter(Boolean).forEach(([n, label, fn]) => {
+    const b = el("button", { type: "button" }, [el("b", { textContent: String(n) }), el("span", { textContent: label })]);
+    b.onclick = fn;
+    tally.append(b);
+  });
+
+  // ---- filtry ----
+  const groups = [
+    ["Kategoria", "category", Object.keys(L.category), v => L.category[v]],
+    ["Poziom", "level", Object.keys(L.level), v => L.level[v]],
+    ["Cel", "kind", Object.keys(L.kind), v => L.kind[v]],
+    ["Stan", "status", ["aktywne", "nowe", "wycofane"], v => STATUS_PL[v]],
+  ];
+  const filters = document.getElementById("filters");
+  for (const [title, key, values, label] of groups) {
+    const present = values.filter(v => count(key, v));
+    if (key === "status" && present.length < 2) continue;
+    filters.append(el("span", { className: "glabel", textContent: title }));
+    for (const v of present) {
+      const chip = el("button", { className: "chip", type: "button", textContent: `${label(v)} ${count(key, v)}` });
+      chip.setAttribute("aria-pressed", "false");
+      chip.dataset.key = key;
+      chip.dataset.value = v;
+      chip.onclick = () => { state[key].has(v) ? state[key].delete(v) : state[key].add(v); sync(); };
+      filters.append(chip);
+    }
+  }
+
+  const fill = (sel, head, values, label) => {
+    sel.append(el("option", { value: "", textContent: head }));
+    for (const v of values) sel.append(el("option", { value: v, textContent: label(v) }));
+  };
+  const eqSel = document.getElementById("eq");
+  const usedEq = Object.keys(L.equipment).filter(k => DATA.exercises.some(e => e.equipment.includes(k)));
+  fill(eqSel, "Sprzęt: dowolny", ["NONE", ...usedEq], v => v === "NONE" ? "Bez sprzętu" : L.equipment[v]);
+  const musSel = document.getElementById("mus");
+  const usedMus = Object.keys(L.muscle).filter(k => DATA.exercises.some(e => e.primary.includes(k)));
+  fill(musSel, "Partia: dowolna", usedMus, v => L.muscle[v]);
+
+  eqSel.onchange = () => { state.eq = eqSel.value; sync(); };
+  musSel.onchange = () => { state.mus = musSel.value; sync(); };
+  document.getElementById("q").oninput = e => { state.q = e.target.value.trim().toLowerCase(); sync(); };
+  document.getElementById("sort").onchange = e => { state.sort = e.target.value; sync(); };
+  document.getElementById("reset").onclick = () => reset();
+  const look = document.getElementById("look");
+  look.onclick = () => {
+    document.body.classList.toggle("raw");
+    look.textContent = document.body.classList.contains("raw") ? "Zdjęcia oryginalne" : "Zdjęcia jak w aplikacji";
+  };
+
+  function only(key, value) { state[key] = new Set([value]); sync(); }
+  function reset() {
+    state.q = ""; state.eq = ""; state.mus = "";
+    for (const k of ["category", "level", "kind", "status"]) state[k].clear();
+    document.getElementById("q").value = ""; eqSel.value = ""; musSel.value = "";
+    sync();
+  }
+
+  // ---- lista ----
+  const order = { level: ["BEGINNER", "INTERMEDIATE", "ADVANCED"] };
+  function sync() {
+    for (const chip of filters.querySelectorAll(".chip")) {
+      chip.setAttribute("aria-pressed", String(state[chip.dataset.key].has(chip.dataset.value)));
+    }
+    let list = DATA.exercises.filter(e =>
+      (!state.category.size || state.category.has(e.category)) &&
+      (!state.level.size || state.level.has(e.level)) &&
+      (!state.kind.size || state.kind.has(e.kind)) &&
+      (!state.status.size || state.status.has(e.status)) &&
+      (!state.eq || (state.eq === "NONE" ? !e.equipment.length : e.equipment.includes(state.eq))) &&
+      (!state.mus || e.primary.includes(state.mus)) &&
+      (!state.q || (e.pl + " " + e.en + " " + e.id).toLowerCase().includes(state.q)));
+
+    const key = state.sort;
+    list = [...list].sort((a, b) => {
+      if (key === "pl") return a.pl.localeCompare(b.pl, "pl");
+      if (key === "muscle") return (L.muscle[a.primary[0]] || "").localeCompare(L.muscle[b.primary[0]] || "", "pl") || a.pl.localeCompare(b.pl, "pl");
+      const rank = x => order[key] ? order[key].indexOf(x[key]) : x[key];
+      const ra = rank(a), rb = rank(b);
+      return (ra > rb ? 1 : ra < rb ? -1 : 0) || a.pl.localeCompare(b.pl, "pl");
+    });
+    render(list);
+  }
+
+  const grid = document.getElementById("grid");
+  function render(list) {
+    shown = list;
+    document.getElementById("count").textContent = `${list.length} z ${DATA.exercises.length} ćwiczeń`;
+    grid.replaceChildren();
+    if (!list.length) {
+      grid.append(el("p", { className: "nothing", textContent: "Nic nie pasuje do tych filtrów." }));
+      return;
+    }
+    for (const e of list) {
+      const frame = el("span", { className: "frame" });
+      if (e.images.length) {
+        frame.append(el("img", { src: e.images[e.images.length - 1], alt: e.pl, loading: "lazy", decoding: "async" }));
+      }
+      if (e.status === "wycofane") frame.append(el("span", { className: "tag", textContent: `wycofane ${plDate(e.retired)}` }));
+      if (e.status === "nowe") frame.append(el("span", { className: "tag new", textContent: "nowe" }));
+      const card = el("button", { className: "card" + (e.retired ? " retired" : ""), type: "button" }, [
+        frame,
+        el("span", { className: "cname", textContent: e.pl }),
+        el("span", { className: "cmeta", textContent: `${L.category[e.category]} · ${L.level[e.level]} · ${target(e)}` }),
+      ]);
+      card.dataset.id = e.id;
+      card.onclick = () => open(e.id);
+      grid.append(card);
+    }
+  }
+
+  // ---- panel ----
+  let openId = null;
+
+  /** Pusty panel z nagłówkiem: szczegół ćwiczenia, formularz, szkice, stan reguł. */
+  function shell(title, subtitle, wide) {
+    close();
+    const scrim = el("div", { className: "scrim", id: "scrim" });
+    scrim.onclick = () => { if (!document.querySelector("#panel .form")) close(); };
+    const panel = el("aside", { className: "panel" + (wide ? " wide" : ""), id: "panel" });
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", title);
+    const closeBtn = el("button", { className: "close", type: "button", textContent: "Zamknij" });
+    closeBtn.onclick = close;
+    panel.append(el("div", { className: "phead" }, [
+      el("div", {}, [el("h2", { textContent: title }), subtitle ? el("p", { className: "pid", textContent: subtitle }) : ""]),
+      closeBtn,
+    ]));
+    document.body.append(scrim, panel);
+    return panel;
+  }
+
+  function open(id) {
+    const e = byId[id];
+    const panel = shell(e.pl, `${e.en} · ${e.id}`);
+    openId = id;
+
+    if (EDIT) {
+      const editBtn = el("button", { type: "button", className: "primary", textContent: "Edytuj" });
+      editBtn.onclick = () => openForm(e.raw, { edit: true, imageUrl: e.images[e.images.length - 1] });
+      const retireBtn = el("button", { type: "button", className: "ghost", textContent: e.retired ? "Przywróć" : "Wycofaj" });
+      retireBtn.onclick = () => retire(e.id, !e.retired);
+      panel.append(el("div", { className: "actions" }, [editBtn, retireBtn]));
+    }
+
+    if (e.images.length) {
+      const shots = el("div", { className: "shots" });
+      const caps = e.images.length >= 2 ? ["Start", "Koniec"] : ["Ilustracja ruchu"];
+      e.images.forEach((src, i) => {
+        shots.append(el("div", { className: "shot" }, [
+          el("img", { src, alt: `${e.pl}: ${caps[i] || ""}` }),
+          el("p", { className: "cap", textContent: caps[i] || "" }),
+        ]));
+      });
+      panel.append(shots);
+    }
+
+    const facts = el("dl", { className: "facts" });
+    const rows = [
+      ["Kategoria", L.category[e.category]],
+      ["Poziom", L.level[e.level]],
+      ["Cel", `${L.kind[e.kind]}, domyślnie ${target(e)}`],
+      ["Sprzęt", eqLabel(e)],
+    ];
+    if (e.sourceId) rows.push(["Dane", `free-exercise-db: ${e.sourceId}`]);
+    if (e.retired) rows.push(["Wycofane", `${plDate(e.retired)}: zostaje w historii i planach, nie ma go w bibliotece, kreatorze ani zamiennikach`]);
+    if (EDIT && EDIT.programy.includes(e.id)) rows.push(["Programy", "używa go gotowy program"]);
+    for (const [k, v] of rows) facts.append(el("dt", { textContent: k }), el("dd", { textContent: v }));
+    panel.append(el("section", { className: "sect" }, [el("h3", { textContent: "Dane" }), facts]));
+
+    const tags = el("div", { className: "tags" });
+    e.primary.forEach(m => tags.append(el("span", { className: "mtag lead", textContent: L.muscle[m] })));
+    e.secondary.forEach(m => tags.append(el("span", { className: "mtag", textContent: L.muscle[m] })));
+    panel.append(el("section", { className: "sect" }, [el("h3", { textContent: "Mięśnie" }), tags]));
+
+    const steps = el("ol", { className: "steps" });
+    e.instr.forEach(s => steps.append(el("li", { textContent: s })));
+    panel.append(el("section", { className: "sect" }, [el("h3", { textContent: "Opis" }), steps]));
+
+    const links = [["Łatwiej", e.easier], ["Trudniej", e.harder]].filter(([, id]) => id && byId[id]);
+    if (links.length) {
+      const jump = el("div", { className: "jump" });
+      for (const [label, id] of links) {
+        const b = el("button", { type: "button" }, [
+          el("small", { textContent: label }),
+          document.createTextNode(byId[id].pl),
+        ]);
+        b.onclick = () => open(id);
+        jump.append(b);
+      }
+      panel.append(el("section", { className: "sect" }, [el("h3", { textContent: "Warianty" }), jump]));
+    }
+
+    panel.append(el("p", { className: "hint", textContent: "Strzałki ← → przechodzą po liście, Esc zamyka." }));
+    const card = grid.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (card) {
+      card.setAttribute("aria-current", "true");
+      card.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function close() {
+    document.getElementById("scrim")?.remove();
+    document.getElementById("panel")?.remove();
+    grid.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
+    openId = null;
+  }
+
+  function step(delta) {
+    if (!openId) return;
+    const i = shown.findIndex(e => e.id === openId);
+    const next = shown[i + delta];
+    if (next) open(next.id);
+  }
+
+  document.addEventListener("keydown", ev => {
+    if (ev.target.matches("input, select, textarea")) return;
+    if (ev.key === "Escape" && !document.querySelector("#panel .form")) close();
+    if (ev.key === "ArrowRight") step(1);
+    if (ev.key === "ArrowLeft") step(-1);
+  });
+
+  // ---- edytor (tylko z serwera tools/baza.py) ----
+  async function api(path, body) {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Baza": "1" },
+      body: JSON.stringify(body || {}),
+    });
+    const out = await res.json().catch(() => ({ bledy: [`Serwer odpowiedział ${res.status}`] }));
+    if (!res.ok) throw out;
+    return out;
+  }
+  const problems = err => (err && err.bledy) || [String((err && err.message) || err)];
+  function reloadAt(where) {
+    location.hash = where ? encodeURIComponent(where) : "";
+    location.reload();
+  }
+  const readAsDataUrl = file => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(file);
+  });
+  const slug = s => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/\p{M}+/gu, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64).replace(/-+$/g, "");
+
+  function renderEditBar() {
+    const bar = document.getElementById("editbar");
+    bar.hidden = false;
+    const add = el("button", { type: "button", className: "primary", textContent: "Dodaj ćwiczenie" });
+    add.onclick = () => openForm(null);
+    const drafts = el("button", { type: "button", className: "ghost", textContent: `Szkice (${EDIT.szkice.length})` });
+    drafts.onclick = () => openDrafts();
+    const bump = el("button", {
+      type: "button",
+      className: "ghost",
+      textContent: pending() ? `v${EDIT.wersja} czeka na wydanie` : `Podbij numer: v${EDIT.wersja} → v${EDIT.wersja + 1}`,
+    });
+    bump.onclick = () => bumpVersion();
+    const st = el("button", {
+      type: "button",
+      className: "state" + (EDIT.bledy.length ? " bad" : ""),
+      textContent: EDIT.bledy.length ? `Błędy: ${EDIT.bledy.length}` : "Reguły bazy: bez błędów",
+    });
+    st.onclick = () => openStatus();
+    bar.append(add, drafts, bump, st, ...EDIT.uwagi.map(u => el("p", { className: "note", textContent: u })));
+  }
+
+  function openStatus() {
+    const panel = shell(EDIT.bledy.length ? `Błędy: ${EDIT.bledy.length}` : "Bez błędów", `względem ${EDIT.ref}`, true);
+    if (EDIT.bledy.length) panel.append(el("ul", { className: "errors" }, EDIT.bledy.map(b => el("li", { textContent: b }))));
+    EDIT.uwagi.forEach(u => panel.append(el("p", { className: "note", style: "margin-top:14px", textContent: u })));
+    panel.append(el("p", { className: "hint", textContent: `To samo sprawdza w terminalu: python tools/baza.py sprawdz --wzgledem ${EDIT.ref}` }));
+  }
+
+  // Numer wyższy niż w gałęzi wydań jeszcze nie wyszedł: kolejne zmiany wchodzą do niego bez podbijania.
+  const pending = () => EDIT.wydana != null && EDIT.wersja > EDIT.wydana;
+
+  async function bumpVersion() {
+    const minApp = prompt(
+      (pending()
+        ? `Numer v${EDIT.wersja} jeszcze nie wyszedł (${EDIT.ref} ma v${EDIT.wydana}), więc zostaje.\n`
+        : `Numer bazy v${EDIT.wersja} → v${EDIT.wersja + 1}, też w VERSION.md, z nagłówkiem [Baza ${EDIT.wersja + 1}] ` +
+          `w CHANGELOG.md na opis wydania.\n`) +
+      `Najniższa wersja aplikacji, która przyjmie bazę (minApp, najwyżej ${EDIT.aplikacja}):`, EDIT.minApp);
+    if (minApp === null) return;
+    try { await api("/api/podbij", { minApp }); reloadAt(""); } catch (err) { alert(problems(err).join("\n")); }
+  }
+
+  async function retire(id, on) {
+    const e = byId[id];
+    if (on && !confirm(`Wycofać „${e.pl}”?\n\nZostanie w historii i zapisanych planach, ale zniknie z biblioteki, kreatora i zamienników. Data wycofania: dziś.`)) return;
+    try { await api("/api/wycofaj", { id, wycofane: on }); reloadAt(id); } catch (err) { alert(problems(err).join("\n")); }
+  }
+
+  function openDrafts() {
+    const panel = shell("Szkice", "tools/szkice/", true);
+    panel.append(el("p", { className: "note", style: "margin-top:12px", textContent:
+      "Ilustracje bez definicji (np. z paczki generatora) i definicje bez ilustracji. Do bazy wchodzi dopiero komplet, a szkice nie jadą do aplikacji." }));
+    const zip = el("input", { type: "file", accept: ".zip,application/zip", hidden: true });
+    const zipBtn = el("label", { className: "ghost" }, [document.createTextNode("Wczytaj paczkę z generatora (ZIP)"), zip]);
+    zip.onchange = async () => {
+      const file = zip.files[0];
+      if (!file) return;
+      try {
+        const out = await api("/api/partia", { zip: await readAsDataUrl(file) });
+        alert(`Nowe ilustracje w bazie: ${out.podmienione.length}\nDo szkiców: ${out.doSzkicow.length}` +
+          (out.pominiete.length ? `\nPominięte: ${out.pominiete.join(", ")}` : ""));
+        reloadAt("szkice");
+      } catch (err) { alert(problems(err).join("\n")); }
+    };
+    const add = el("button", { type: "button", className: "primary", textContent: "Nowe ćwiczenie" });
+    add.onclick = () => openForm(null);
+    panel.append(el("div", { className: "actions" }, [add, zipBtn]));
+    if (!EDIT.szkice.length) panel.append(el("p", { className: "hint", textContent: "Brak szkiców." }));
+    for (const s of EDIT.szkice) {
+      const thumb = s.obraz ? el("img", { src: s.obraz, alt: "" }) : el("span", { className: "ph", textContent: "bez ilustracji" });
+      const name = (s.cwiczenie && s.cwiczenie.namePl) || "bez definicji";
+      const ready = s.cwiczenie && s.obraz;
+      const fillBtn = el("button", { type: "button", className: ready ? "primary" : "ghost", textContent: ready ? "Sprawdź i dodaj" : "Uzupełnij" });
+      fillBtn.onclick = () => openForm(Object.assign({ id: s.id }, s.cwiczenie || {}), { draftId: s.id, imageUrl: s.obraz });
+      const del = el("button", { type: "button", className: "ghost", textContent: "Usuń" });
+      del.onclick = async () => {
+        if (!confirm(`Usunąć szkic ${s.id}? Ilustracja i definicja ze szkiców znikną.`)) return;
+        try { await api("/api/szkic/usun", { id: s.id }); reloadAt("szkice"); } catch (err) { alert(problems(err).join("\n")); }
+      };
+      panel.append(el("div", { className: "draft" }, [
+        thumb,
+        el("div", { className: "grow" }, [el("b", { textContent: name }), el("p", { className: "pid", textContent: s.id + (s.wBazie ? " · już jest w bazie" : "") })]),
+        fillBtn,
+        del,
+      ]));
+    }
+  }
+
+  /** Formularz nowego ćwiczenia, szkicu albo edycji. `rec` w układzie exercises.json. */
+  function openForm(rec, opts = {}) {
+    const edit = !!opts.edit;
+    const r = Object.assign({
+      id: "", sourceId: null, nameEn: "", namePl: "", kind: "REPS", level: "BEGINNER", category: "STRENGTH",
+      equipment: [], primaryMuscles: [], secondaryMuscles: [], instructionsPl: [], easierId: null, harderId: null,
+      defaultReps: 12, defaultSeconds: 30,
+    }, JSON.parse(JSON.stringify(rec || {})));
+    const released = edit && r.id in EDIT.wydane;
+    let image = null;
+    let idTouched = !!r.id;
+
+    const title = edit ? "Edycja ćwiczenia" : opts.draftId ? "Szkic do bazy" : "Nowe ćwiczenie";
+    const panel = shell(title, edit ? r.id : "zapis od razu w baza/", true);
+    const form = el("form", { className: "form", noValidate: true });
+    const errors = el("ul", { className: "errors", hidden: true });
+    form.append(errors);
+    const showErrors = list => {
+      errors.replaceChildren(...list.map(b => el("li", { textContent: b })));
+      errors.hidden = false;
+      errors.scrollIntoView({ block: "nearest" });
+    };
+
+    // ilustracja: przeciągnij albo kliknij
+    const fileIn = el("input", { type: "file", accept: "image/*", hidden: true });
+    const preview = el("img", { alt: "" });
+    const dropText = el("span", { textContent: "Przeciągnij tu ilustrację albo kliknij, żeby wybrać plik. JPEG z generatora (480 px) wchodzi bez zmian, inny obraz zostanie przeskalowany." });
+    const swap = el("span", { className: "swap", textContent: "Zmień ilustrację" });
+    const drop = el("label", { className: "drop" }, [preview, dropText, swap, fileIn]);
+    const showImage = src => { preview.src = src; preview.hidden = false; dropText.hidden = true; swap.hidden = false; };
+    if (opts.imageUrl) showImage(opts.imageUrl); else { preview.hidden = true; swap.hidden = true; }
+    const useFile = async file => {
+      if (!file || !file.type.startsWith("image/")) return;
+      image = await readAsDataUrl(file);
+      showImage(image);
+    };
+    fileIn.onchange = () => useFile(fileIn.files[0]);
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add("over"); };
+    drop.ondragleave = () => drop.classList.remove("over");
+    drop.ondrop = ev => { ev.preventDefault(); drop.classList.remove("over"); useFile(ev.dataTransfer.files[0]); };
+    form.append(drop);
+    if (!EDIT.pillow) form.append(el("small", { className: "note", textContent: "Bez Pillow (pip install pillow) przejdzie tylko JPEG do 480 px szerokości." }));
+
+    const text = (label, value, attrs = {}) => {
+      const input = el("input", Object.assign({ type: "text", value: value == null ? "" : value, spellcheck: false }, attrs));
+      form.append(el("label", { className: "f" }, [el("span", { textContent: label }), input]));
+      return input;
+    };
+    const namePl = text("Nazwa polska", r.namePl, { maxLength: 80, spellcheck: true });
+    const nameEn = text("Nazwa angielska (pusta = jak polska)", r.nameEn, { maxLength: 80 });
+    // Id układa się samo z nazwy, więc pole jest schowane; „zmień” pokazuje je przed pierwszym zapisem.
+    const idIn = el("input", { type: "text", value: r.id || "", maxLength: 64, spellcheck: false, hidden: true });
+    idIn.setAttribute("aria-label", "Id ćwiczenia");
+    const idValue = el("code", { textContent: r.id || "…" });
+    const idEdit = el("button", { type: "button", className: "link", textContent: "zmień", hidden: edit });
+    const showIdInput = () => { idIn.hidden = false; idEdit.hidden = true; };
+    idEdit.onclick = () => { showIdInput(); idIn.focus(); };
+    form.append(el("div", { className: "idline" }, [
+      el("span", {}, [document.createTextNode("Id: "), idValue, document.createTextNode(edit ? " (stałe)" : " · "), idEdit]),
+      el("small", { className: "note", textContent: edit
+        ? "Po id aplikacja łączy historię, plany i warianty, więc się nie zmienia."
+        : "Układa się samo z nazwy. Po zapisie się nie zmienia, bo po nim aplikacja łączy historię, plany i warianty." }),
+      idIn,
+    ]));
+    const autoId = () => {
+      if (idTouched || edit) return;
+      idIn.value = slug(nameEn.value || namePl.value);
+      idValue.textContent = idIn.value || "…";
+    };
+    namePl.addEventListener("input", autoId);
+    nameEn.addEventListener("input", autoId);
+    idIn.addEventListener("input", () => { idTouched = true; idValue.textContent = idIn.value || "…"; });
+
+    const box = (label, content, hint) => {
+      const b = el("div", { className: "f" }, [el("span", { textContent: label }), content]);
+      if (hint) b.append(el("small", { className: "note", textContent: hint }));
+      form.append(b);
+      return b;
+    };
+    const choice = (label, values, labelOf, current, extra = {}) => {
+      let value = current;
+      const wrap = el("div", { className: "chips" });
+      const buttons = values.map(v => {
+        const b = el("button", { type: "button", className: "chip", textContent: labelOf(v), disabled: !!extra.disabled });
+        b.setAttribute("aria-pressed", String(v === value));
+        b.onclick = () => {
+          value = v;
+          buttons.forEach((x, i) => x.setAttribute("aria-pressed", String(values[i] === v)));
+          if (extra.onChange) extra.onChange(v);
+        };
+        return b;
+      });
+      wrap.append(...buttons);
+      box(label, wrap, extra.hint);
+      return () => value;
+    };
+    // Kolejność wyboru zostaje: pierwsza partia główna to ta, po której aplikacja sortuje i dobiera role.
+    const multi = (label, values, labelOf, current, hint) => {
+      const chosen = [...(current || [])];
+      const wrap = el("div", { className: "chips" });
+      for (const v of values) {
+        const b = el("button", { type: "button", className: "chip", textContent: labelOf(v) });
+        b.setAttribute("aria-pressed", String(chosen.includes(v)));
+        b.onclick = () => {
+          const i = chosen.indexOf(v);
+          if (i >= 0) chosen.splice(i, 1); else chosen.push(v);
+          b.setAttribute("aria-pressed", String(i < 0));
+        };
+        wrap.append(b);
+      }
+      box(label, wrap, hint);
+      return () => [...chosen];
+    };
+
+    const getKind = choice("Rodzaj celu", Object.keys(L.kind), v => L.kind[v], r.kind, {
+      disabled: released,
+      hint: released ? "Rodzaj celu wydanego ćwiczenia się nie zmienia: zapisane plany trzymają cel w powtórzeniach albo sekundach." : "",
+      onChange: () => refreshVariants(),
+    });
+    const two = el("div", { className: "two" });
+    const num = (label, value, min, max) => {
+      const input = el("input", { type: "number", min, max, step: 1, value });
+      two.append(el("label", { className: "f" }, [el("span", { textContent: label }), input]));
+      return input;
+    };
+    const reps = num("Cel domyślny: powtórzenia (1 do 30)", r.defaultReps, 1, 30);
+    const secs = num("Cel domyślny: sekundy (5 do 900)", r.defaultSeconds, 5, 900);
+    form.append(two);
+    const getLevel = choice("Poziom", Object.keys(L.level), v => L.level[v], r.level);
+    const getCategory = choice("Kategoria", Object.keys(L.category), v => L.category[v], r.category);
+    const getEquipment = multi("Sprzęt (wymagany w całości; nic = bez sprzętu)", Object.keys(L.equipment), v => L.equipment[v], r.equipment);
+    const getPrimary = multi("Mięśnie główne (pierwszy = partia główna)", Object.keys(L.muscle), v => L.muscle[v], r.primaryMuscles);
+    const getSecondary = multi("Mięśnie dodatkowe", Object.keys(L.muscle), v => L.muscle[v], r.secondaryMuscles);
+
+    const steps = el("textarea", { value: (r.instructionsPl || []).join("\n"), placeholder: "Jeden krok w linii, 2 do 4 kroki po polsku." });
+    form.append(el("label", { className: "f" }, [el("span", { textContent: "Kroki (jeden w linii)" }), steps]));
+
+    const easier = el("select");
+    const harder = el("select");
+    const variants = el("div", { className: "two" }, [
+      el("label", { className: "f" }, [el("span", { textContent: "Łatwiejszy wariant" }), easier]),
+      el("label", { className: "f" }, [el("span", { textContent: "Trudniejszy wariant" }), harder]),
+    ]);
+    form.append(variants);
+    form.append(el("small", { className: "note", textContent: "Wariant ma ten sam rodzaj celu; wycofanych nie ma na liście." }));
+    function refreshVariants() {
+      const kind = getKind();
+      for (const [sel, current] of [[easier, easier.value || r.easierId], [harder, harder.value || r.harderId]]) {
+        sel.replaceChildren(el("option", { value: "", textContent: "brak" }));
+        DATA.exercises
+          .filter(x => x.kind === kind && x.id !== r.id && !x.retired)
+          .sort((a, b) => a.pl.localeCompare(b.pl, "pl"))
+          .forEach(x => sel.append(el("option", { value: x.id, textContent: `${x.pl} (${L.level[x.level]})` })));
+        sel.value = [...sel.options].some(o => o.value === current) ? current : "";
+      }
+    }
+    refreshVariants();
+
+    const source = text("Id w free-exercise-db (opcjonalnie)", r.sourceId);
+
+    const save = el("button", { type: "submit", className: "primary", textContent: edit ? "Zapisz zmiany" : "Dodaj do bazy" });
+    const actions = el("div", { className: "actions" }, [save]);
+    if (!edit) {
+      const draftBtn = el("button", { type: "button", className: "ghost", textContent: "Zapisz jako szkic" });
+      draftBtn.onclick = () => submit(true);
+      actions.append(draftBtn);
+    }
+    const cancel = el("button", { type: "button", className: "ghost", textContent: "Anuluj" });
+    cancel.onclick = () => (edit ? open(r.id) : close());
+    actions.append(cancel);
+    form.append(actions);
+    form.onsubmit = ev => { ev.preventDefault(); submit(false); };
+    panel.append(form);
+    namePl.focus();
+
+    function collect() {
+      return Object.assign({}, r, {
+        id: idIn.value.trim(),
+        namePl: namePl.value.trim(),
+        nameEn: nameEn.value.trim() || namePl.value.trim(),
+        sourceId: source.value.trim() || null,
+        kind: getKind(),
+        level: getLevel(),
+        category: getCategory(),
+        equipment: getEquipment(),
+        primaryMuscles: getPrimary(),
+        secondaryMuscles: getSecondary(),
+        instructionsPl: steps.value.split("\n").map(s => s.trim()).filter(Boolean),
+        easierId: easier.value || null,
+        harderId: harder.value || null,
+        defaultReps: Number(reps.value),
+        defaultSeconds: Number(secs.value),
+      });
+    }
+    async function submit(asDraft) {
+      save.disabled = true;
+      try {
+        const out = await api(asDraft ? "/api/szkic" : "/api/zapisz", {
+          cwiczenie: collect(),
+          obraz: image,
+          oryginal: edit ? r.id : null,
+          zSzkicu: opts.draftId || null,
+        });
+        reloadAt(asDraft ? "szkice" : out.id);
+      } catch (err) {
+        const list = problems(err);
+        showErrors(list);
+        // Błąd dotyczy id (powtórzone, zły format): schowane pole trzeba pokazać, żeby dało się je poprawić.
+        if (!edit && list.some(b => /\bid\b/.test(b) || (idIn.value && b.includes(idIn.value)))) showIdInput();
+        save.disabled = false;
+      }
+    }
+  }
+
+  sync();
+  if (EDIT) renderEditBar();
+  // Po zapisie strona wraca tam, gdzie była: do ćwiczenia albo do szkiców.
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  if (EDIT && wanted === "szkice") openDrafts(); else if (wanted && byId[wanted]) open(wanted);
+  if (location.hash) history.replaceState(null, "", location.pathname);
+</script>

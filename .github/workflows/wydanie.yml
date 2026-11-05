@@ -1,0 +1,252 @@
+name: Wydanie
+
+# Wydanie powstaje, gdy zmiany trafią do `master` razem z podniesionym numerem aplikacji w VERSION.md.
+# Scalenie samej poprawki kodu czy dokumentacji nie uruchamia więc niczego.
+#
+# Druga bramka jest w jobie `wersja`: jeśli tag o tej wersji już istnieje, bieg
+# kończy się bez robienia czegokolwiek. Chroni to przed powtórnym wydaniem, gdy
+# ktoś ruszy w VERSION.md sam opis albo numer bazy ćwiczeń (D-47, bazę wydaje
+# `baza.yml`), nie zmieniając numeru aplikacji. Ten sam job pilnuje też,
+# żeby numer nie cofnął się poniżej najwyższego już wydanego tagu — takiej pomyłki
+# nie wolno przemilczeć, więc kończy się ona czerwonym biegiem, a nie cichym
+# „nie wydajemy”.
+on:
+  push:
+    branches: [master]
+    paths:
+      - VERSION.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wydanie
+  cancel-in-progress: false
+
+jobs:
+  wersja:
+    name: Numer wersji
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      wersja: ${{ steps.odczyt.outputs.wersja }}
+      tag: ${{ steps.odczyt.outputs.tag }}
+      wydajemy: ${{ steps.odczyt.outputs.wydajemy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: odczyt
+        name: Wersja z VERSION.md i opis z CHANGELOG.md
+        run: |
+          set -euo pipefail
+          wersja=$(grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+$' VERSION.md || true)
+          if [ -z "$wersja" ]; then
+            echo "::error file=VERSION.md::Nie znalazłem numeru wersji (oczekiwany format: 1.2.3)"
+            exit 1
+          fi
+
+          # Numer nie ma prawa się cofnąć. Do 2026-09-21 pilnował tego job `wersja`
+          # w testy.yml, który chodził na KAŻDYM pull requeście do `master`; po
+          # zawężeniu tamtego workflow do PR-ów z `develop` (bez draftów) cofnięty
+          # numer trafiał do `master` bez jednego czerwonego statusu, a tutaj kończył
+          # się cichym `wydajemy=false` i zielonym biegiem bez wydania. Tagi są na
+          # miejscu, bo checkout wyżej bierze pełną historię.
+          najwyzszy=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+          if [ -n "${najwyzszy:-}" ] && [ "$najwyzszy" != "$wersja" ] \
+             && [ "$(printf '%s\n%s\n' "$najwyzszy" "$wersja" | sort -V | tail -1)" != "$wersja" ]; then
+            echo "::error file=VERSION.md::$wersja jest niższe niż wydane już v$najwyzszy — numer wersji cofnięty"
+            exit 1
+          fi
+
+          # Opis wydania musi istnieć zanim cokolwiek zbudujemy — inaczej wyszłoby
+          # wydanie z pustą informacją o zmianach.
+          python tools/release_notes.py "$wersja" > /dev/null
+
+          tag="v$wersja"
+          echo "wersja=$wersja" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag $tag już istnieje, nie wydajemy drugi raz." >> "$GITHUB_STEP_SUMMARY"
+            echo "wydajemy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Wydanie $tag" >> "$GITHUB_STEP_SUMMARY"
+            echo "wydajemy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Budowa, wydanie i kopia na stronę w jednym jobie. Rozbicie na dwa wymagałoby
+  # przeniesienia gotowego APK artefaktem, a artefakty mają wspólny limit magazynu
+  # z resztą konta: gdy limit się wyczerpał, `upload-artifact` przewracał całe wydanie
+  # mimo APK zbudowanego i podpisanego poprawnie (bieg #9, 0.7.0). Tutaj plik
+  # nie opuszcza maszyny — z katalogu builda idzie prosto do wydania i na stronę.
+  wydanie:
+    name: Podpisany APK, wydanie na GitHubie i kopia na stronę
+    needs: wersja
+    if: needs.wersja.outputs.wydajemy == 'true'
+    runs-on: ubuntu-latest
+    # 40 na build i wydanie, +5 na kroki przeniesione z dawnego joba `strona`.
+    timeout-minutes: 45
+    # Na stronę jedzie sam plik i krótki opis (D-33), pełny opis zostaje w wydaniu tutaj.
+    # Na stronie stoi zawsze jedna wersja: najnowsza.
+    env:
+      HUB: Mysttic/Mysttic
+      PROJEKT: mysttic-trainings
+      NAZWA: Treningi
+      STRONA: https://mysttic.github.io/Mysttic/mysttic-trainings/
+      WERSJA: ${{ needs.wersja.outputs.wersja }}
+      TAG: ${{ needs.wersja.outputs.tag }}
+      TAG_STRONY: mysttic-trainings-v${{ needs.wersja.outputs.wersja }}
+    steps:
+      # Pełna historia: opis wydania powstaje z CHANGELOG.md.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: chmod +x gradlew
+
+      # Bez klucza powstałby APK niepodpisany, a takiego nie zainstaluje ani
+      # telefon, ani aktualizator w aplikacji. Lepiej zatrzymać się tutaj
+      # z czytelnym komunikatem niż wydać plik, którego nie da się uruchomić.
+      - name: Klucz do podpisu
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${KEYSTORE_PASSWORD:-}" ] \
+             || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "::error::Brak sekretów do podpisania APK. Ustaw w repozytorium:"
+            echo "::error::KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD (patrz docs/RELEASE.md)"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Release APK
+        env:
+          TRAININGS_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          TRAININGS_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          TRAININGS_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          TRAININGS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      # Podpis kluczem debug albo jego brak znaczy, że aktualizacja w miejscu
+      # nie zadziała — Android wymaga tego samego klucza co poprzednia instalacja.
+      - name: Podpis się zgadza
+        run: |
+          set -euo pipefail
+          narzedzia=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$narzedzia/apksigner" verify --print-certs \
+            app/build/outputs/apk/release/app-release.apk
+
+      # Klucz znika z maszyny zanim cokolwiek pójdzie na zewnątrz, i znika też
+      # wtedy, gdy build się przewrócił.
+      - name: Sprzątanie klucza
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      # Nazwa pliku jest częścią umowy: szuka jej `UpdateCheck.assetNameFor`
+      # w aplikacji i skrypt strony, po końcówce `-android.apk` (D-33).
+      - name: Nazwa z numerem wersji i opis zmian
+        env:
+          WERSJA: ${{ needs.wersja.outputs.wersja }}
+        run: |
+          set -euo pipefail
+          mkdir -p wydanie
+          mv app/build/outputs/apk/release/app-release.apk \
+            "wydanie/mysttic-trainings-$WERSJA-android.apk"
+          python tools/release_notes.py "$WERSJA" -o wydanie/opis.md
+          ls -la wydanie
+
+      - name: Utwórz wydanie
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.wersja.outputs.tag }}
+          WERSJA: ${{ needs.wersja.outputs.wersja }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" "wydanie/mysttic-trainings-$WERSJA-android.apk" \
+            --title "mysttic-trainings $WERSJA" \
+            --notes-file wydanie/opis.md \
+            --target "$GITHUB_SHA"
+
+      # Poniżej dawny job `strona`. Te same kroki, ale w tym samym jobie: APK leży
+      # już na dysku runnera, więc odpada spin-up trzeciego runnera i pobieranie
+      # z sieci pliku, który chwilę wcześniej tu powstał. Ta sama logika, która
+      # trzyma build i wydanie w jednym jobie.
+      #
+      # Kolejność jest częścią umowy: sprawdzenie sekretu idzie PO utworzeniu wydania
+      # u nas, bo tak było dotychczas — brak HUB_TOKEN nie ma blokować wydania
+      # na GitHubie, tylko kopię na stronę. Mówi o tym wprost komunikat błędu.
+      - name: Poświadczenie do repozytorium strony
+        env:
+          HUB_TOKEN: ${{ secrets.HUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [ -z "${HUB_TOKEN:-}" ]; then
+            echo "::error::Brak sekretu HUB_TOKEN. Wydanie $TAG powstało, kopia na stronę nie."
+            echo "::error::Potrzebny token osobisty z Contents: read and write na $HUB (patrz docs/RELEASE.md)."
+            exit 1
+          fi
+
+      # Plik bierzemy z katalogu builda, nie z właśnie utworzonego wydania — to ten sam
+      # plik, który przed chwilą poszedł do `gh release create`.
+      - name: Plik na stronę
+        run: |
+          set -euo pipefail
+          mkdir -p kopia
+          cp "wydanie/$PROJEKT-$WERSJA-android.apk" kopia/
+          ls -la kopia
+
+      # Na stronie zostaje numer i adres strony (umowa D-33), a opis z CHANGELOG-a
+      # ma wydanie w tym repozytorium. Ten sam tekst widać na karcie aktualizacji w aplikacji.
+      - name: Opis wydania
+        run: |
+          set -euo pipefail
+          {
+            echo "$NAZWA $WERSJA"
+            echo
+            echo "$STRONA"
+          } > opis.md
+          cat opis.md
+
+      - name: Wydanie na stronie
+        env:
+          GH_TOKEN: ${{ secrets.HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG_STRONY" --repo "$HUB" >/dev/null 2>&1; then
+            gh release delete "$TAG_STRONY" --repo "$HUB" --cleanup-tag --yes
+          fi
+          gh release create "$TAG_STRONY" kopia/* \
+            --repo "$HUB" \
+            --title "$NAZWA $WERSJA" \
+            --notes-file opis.md \
+            --target master
+
+      # Najpierw nowe wydanie, dopiero potem kasowanie starych: strona nie może
+      # zostać pusta nawet na chwilę. Filtr po prefiksie nie rusza innych projektów.
+      - name: Na stronie zostaje jedna wersja
+        env:
+          GH_TOKEN: ${{ secrets.HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release list --repo "$HUB" --limit 100 --json tagName -q '.[].tagName' \
+            | { grep -E "^$PROJEKT-v[0-9]" || true; } \
+            | { grep -vxF "$TAG_STRONY" || true; } \
+            | while read -r stary; do
+                echo "Kasuję $stary"
+                gh release delete "$stary" --repo "$HUB" --cleanup-tag --yes
+              done
+          echo "Na stronie stoi $TAG_STRONY" >> "$GITHUB_STEP_SUMMARY"
