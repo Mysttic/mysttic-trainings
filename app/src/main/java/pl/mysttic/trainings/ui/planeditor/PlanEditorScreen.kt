@@ -124,6 +124,7 @@ fun PlanEditorScreen(
             allowRest = false,
             onPick = { id -> id?.let(viewModel::copyWorkout) },
             onDismiss = { dialog = null },
+            emptyText = "Brak treningów w innych planach. Trening z tego planu skopiujesz przez „×2” przy nim.",
         )
     }
     dayForPicker?.let { index ->
@@ -201,6 +202,7 @@ fun PlanEditorScreen(
                     WorkoutRow(
                         workout = workout,
                         onEdit = { onEditWorkout(workout.id, draft.programId, false, draft.literal) },
+                        onDuplicate = { viewModel.copyWorkout(workout.id) },
                     )
                 }
                 item(key = "treningi-akcje") {
@@ -292,8 +294,9 @@ private const val DIALOG_DISCARD = "discard"
 private const val DIALOG_SKELETON = "skeleton"
 private const val DIALOG_COPY = "copy"
 
+/** Trening planu: tapnięcie otwiera edytor treningu, „×2” dokłada kopię z „(kopia)” w nazwie (D-49). */
 @Composable
-private fun WorkoutRow(workout: Workout, onEdit: () -> Unit) {
+private fun WorkoutRow(workout: Workout, onEdit: () -> Unit, onDuplicate: () -> Unit) {
     Surface(
         onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
@@ -308,6 +311,10 @@ private fun WorkoutRow(workout: Workout, onEdit: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            // Czytnik ekranu przeczytałby „razy dwa”; opis mówi, co przycisk robi, jak „×2” przy dniu i bloku.
+            TextButton(onClick = onDuplicate, modifier = Modifier.semantics { contentDescription = "Duplikuj trening" }) {
+                Text("×2", style = MaterialTheme.typography.labelMedium)
             }
             Icon(Icons.Filled.Edit, contentDescription = "Edytuj trening", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -394,6 +401,7 @@ private fun WorkoutPickerDialog(
     allowRest: Boolean,
     onPick: (String?) -> Unit,
     onDismiss: () -> Unit,
+    emptyText: String = "Brak treningów do wyboru.",
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -412,7 +420,7 @@ private fun WorkoutPickerDialog(
                 }
                 if (workouts.isEmpty()) {
                     item(key = "pusto") {
-                        Text("Brak treningów do wyboru.", style = MaterialTheme.typography.bodyMedium)
+                        Text(emptyText, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

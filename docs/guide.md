@@ -159,14 +159,16 @@ Gdy trening z planu właśnie trwa, planu nie da się zmienić ani usunąć, dop
 Poradnik krok po kroku dla osoby, która układa plany dla innych: [poradnik-trenera.md](poradnik-trenera.md).
 
 **Ułóż własny plan** otwiera edytor planu: nazwa, opis (dla kogo, jak ćwiczyć), treningi planu i rozkład dni.
-Trening dodajesz jako nowy albo kopiujesz istniejący (**Skopiuj trening**). Każdy dzień to trening albo odpoczynek;
+Trening dodajesz jako nowy, kopiujesz z innego planu (**Skopiuj trening**) albo duplikujesz trening tego planu
+(**×2** przy treningu; kopia dostaje w nazwie „(kopia)”). Każdy dzień to trening albo odpoczynek;
 dni przesuwasz o jeden w górę lub w dół i usuwasz. **Rozpisz tygodnie** układa naraz kilka tygodni (na przykład
 4 tygodnie po 3 treningi): treningi idą po kolei (A, B, A…), a reszta dni to odpoczynek. **Kolejny tydzień jak ostatni**
 dokłada tydzień na wzór ostatniego.
 
 Przełącznik **Dopasowuj cele do poziomu i trenera** decyduje, czy cele skalują się z poziomem trudności, korektą trenera
-i „Podbij cele”, czy zostają dokładnie takie, jak wpisane. Dni już zrobione w aktywnym planie są zablokowane
-i zostają na swoich numerach. **Zapisz plan** zapisuje całość; nowy plan czeka na liście, aż ustawisz go jako aktywny.
+i „Podbij cele”, czy zostają dokładnie takie, jak wpisane. W nowym planie jest wyłączony: plan dla kogoś jedzie
+z twoimi liczbami, a w planie dla siebie, który ma rosnąć razem z tobą, go włączasz. Dni już zrobione w aktywnym planie
+są zablokowane i zostają na swoich numerach. **Zapisz plan** zapisuje całość; nowy plan czeka na liście, aż ustawisz go jako aktywny.
 
 W edytorze treningu ćwiczenie ma cel, ciężar i wskazówkę do pozycji, którą player pokaże w trakcie serii. Blok może mieć
 nazwę i przerwę po bloku. **Zmień ćwiczenie** podmienia ćwiczenie z zachowaniem serii i przerw, a **Duplikuj** kopiuje

@@ -30,12 +30,13 @@ to, co wpisałeś. Po kilku tygodniach może odesłać Ci raport PDF z przebiegu
 
 ## Krok 2. Przełącznik „Dopasowuj cele do poziomu i trenera”
 
-W nowym planie przełącznik jest włączony. Dla planu dla klienta **wyłącz go**. Wtedy serie, powtórzenia, czasy
+W nowym planie przełącznik jest wyłączony. Dla planu dla klienta **tak go zostaw**: serie, powtórzenia, czasy
 i przerwy zostają dokładnie takie, jak je wpiszesz.
 
 Włączony przełącznik skaluje cele poziomem trudności i korektami z aplikacji, co ma sens w planie, który układasz
 dla siebie. Do klienta i tak trafiają liczby dosłowne: przy wysyłce aplikacja przelicza je na Twój poziom i Twój
-sprzęt, więc bez wyłączenia klient mógłby dostać inne liczby albo trudniejszy wariant ćwiczenia, niż wpisałeś.
+sprzęt, więc z włączonym przełącznikiem klient mógłby dostać inne liczby albo trudniejszy wariant ćwiczenia,
+niż wpisałeś.
 
 ## Krok 3. Trening A: blok serii
 
@@ -65,14 +66,19 @@ sprzęt, więc bez wyłączenia klient mógłby dostać inne liczby albo trudnie
    **Przerwa po ćwiczeniu w rundzie**.
 3. Dodaj ćwiczenia i ustaw cele jak w kroku 3, potem **Zapisz trening**.
 
+Gdy trening B ma być podobny do A, nie układaj go od zera: tapnij **×2** przy treningu A na liście **Treningi planu**.
+Na końcu listy pojawi się kopia „A: siła (kopia)”. Tapnij ją, zmień nazwę na „B: …” i podmień ćwiczenia (**Zmień ćwiczenie**
+zostawia serie i przerwy), potem **Zapisz trening**.
+
 Przydatne w obu treningach:
 - **Przerwa po bloku** ustawia odpoczynek przed następnym blokiem; trening może mieć kilka bloków, na przykład
   rozgrzewkę w obwodzie, część główną w seriach i rozciąganie.
 - **Nazwa bloku (opcjonalnie)** pojawi się klientowi w playerze („Rozgrzewka”, „Część główna”).
 - **Duplikuj blok** i **Duplikuj** przy ćwiczeniu (w oknie celu) kopiują gotowe elementy, a **Zmień ćwiczenie**
   podmienia ćwiczenie z zachowaniem serii i przerw.
-- **Skopiuj trening** w edytorze planu bierze trening z innego Twojego planu. Treningu z tego samego planu
-  nie skopiujesz: drugi trening układasz przez **Nowy trening**.
+- **Skopiuj trening** w edytorze planu bierze trening z innego Twojego planu, a **×2** przy treningu planu
+  robi jego kopię w tym samym planie. Kopia dostaje w nazwie „(kopia)”, żeby przy wyborze treningu dnia
+  nie pomylić jej z oryginałem.
 
 ## Krok 5. Dni planu
 
@@ -140,7 +146,8 @@ Postęp ze starego planu zostaje w jego historii i statystykach, nowy plan liczy
 | Chcesz | Gdzie |
 |---|---|
 | Nowy plan | Dziś → Twoje plany → Ułóż własny plan |
-| Liczby dokładnie jak wpisane | przełącznik „Dopasowuj cele do poziomu i trenera” wyłączony |
+| Liczby dokładnie jak wpisane | przełącznik „Dopasowuj cele do poziomu i trenera” wyłączony (tak startuje nowy plan) |
+| Trening B na wzór A | ×2 przy treningu A, potem zmiana kopii |
 | Serie jednego ćwiczenia po kolei | Blok serii |
 | Ćwiczenia na zmianę w rundach | Blok obwodu, Rundy |
 | Uwaga widoczna w trakcie serii | Zmień cel → Wskazówka |

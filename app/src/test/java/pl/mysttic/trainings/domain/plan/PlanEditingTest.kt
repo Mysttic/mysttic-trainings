@@ -139,4 +139,30 @@ class PlanEditingTest {
         val days = PlanEditing.duplicateDay(PlanEditing.fromPlan(plan), 0)
         assertEquals(listOf("p-a", "p-a", null, "p-b", "p-a"), days.map { it.workoutId })
     }
+
+    @Test
+    fun `kopia treningu z planu dostaje wolna nazwe z dopiskiem kopia`() {
+        assertEquals("A: siła (kopia)", PlanEditing.copyName("A: siła", listOf("A: siła", "B: obwód")))
+        assertEquals("A: siła (kopia 2)", PlanEditing.copyName("A: siła", listOf("A: siła", "A: siła (kopia)")))
+        assertEquals(
+            "A: siła (kopia 3)",
+            PlanEditing.copyName("A: siła", listOf("A: siła", "A: siła (kopia)", "A: siła (kopia 2)")),
+        )
+    }
+
+    @Test
+    fun `kopia kopii nie doklada drugiego nawiasu`() {
+        assertEquals("A (kopia 2)", PlanEditing.copyName("A (kopia)", listOf("A", "A (kopia)")))
+        assertEquals("A (kopia 3)", PlanEditing.copyName("A (kopia 2)", listOf("A", "A (kopia)", "A (kopia 2)")))
+        // Oryginał mógł zniknąć z planu: kopia kopii bierze pierwszą wolną nazwę od „(kopia)”.
+        assertEquals("A (kopia)", PlanEditing.copyName("A (kopia 2)", listOf("A (kopia 2)")))
+    }
+
+    @Test
+    fun `wolna nazwa zostaje, a wielkosc liter i spacje nie odrozniaja nazw`() {
+        assertEquals("Full body A", PlanEditing.copyName("Full body A", listOf("Full body B")))
+        assertEquals("Full body A", PlanEditing.copyName("  Full body A ", emptyList()))
+        assertEquals("full body a (kopia)", PlanEditing.copyName("full body a", listOf(" Full Body A")))
+        assertEquals("Trening (kopia)", PlanEditing.copyName(" ", listOf("Trening")))
+    }
 }

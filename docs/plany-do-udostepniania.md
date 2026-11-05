@@ -193,7 +193,7 @@ UPDATE sessions SET programId = (SELECT p.id FROM programs p
 - Player i szczegóły: wskazówka pod nazwą ćwiczenia, ciężar jako „20 kg” albo „22,5 kg” (dziś „20.0 kg”, `ui/player/PlayerScreen.kt:332`).
 - Przełącznik planu „Dopasowuj cele do poziomu i trenera” ustawia `fixed = !adaptive` we wszystkich blokach.
   - Opis przy wyłączonym: „Wartości dokładnie jak wpisane: bez poziomu, trenera i «Podbij cele»”.
-  - **Plan własny domyślnie ma przełącznik włączony** (bloki bez `fixed`), więc zachowuje się jak plan z kreatora i nie traci progresji (D-24, D-35).
+  - **Plan własny domyślnie ma przełącznik włączony** (bloki bez `fixed`), więc zachowuje się jak plan z kreatora i nie traci progresji (D-24, D-35). Zmienione w D-49: nowy plan własny startuje z wyłączonym.
   - Osobnej flagi „dosłownie, ale z progresją” nie dodajemy. Każda kombinacja flag to nowa gałąź w `WorkoutPlanner.shownTarget` i w niezmienniku `WorkoutPlannerTest:253-267`.
 - Ustawienie `authorName` („Twoje imię na planach i raportach”) w DataStore i w `BackupSettings`.
 - Testy:
@@ -334,7 +334,7 @@ UPDATE sessions SET programId = (SELECT p.id FROM programs p
 | kopia presetu niesie `presetId` | `PlanCopy` zeruje, `presetId` czytany tylko przy PRESET |
 | edycja przy sesji w toku | I11: `PlanLock` w domenie i ViewModelach |
 | walidator bez spójności odwołań | klucze, duplikaty, treningi bez dni, format `uid` |
-| `fixed` domyślnie zabija progresję planu własnego | plan własny domyślnie adaptacyjny, import to pytanie 2; osobnej flagi nie dodajemy (powód w sekcji 3) |
+| `fixed` domyślnie zabija progresję planu własnego | plan własny domyślnie adaptacyjny, import to pytanie 2; osobnej flagi nie dodajemy (powód w sekcji 3); od D-49 nowy plan własny startuje dosłownie, a progresję włącza przełącznik |
 
 Drobne zarzuty też są uwzględnione:
 - id `-w<UUID8>`,

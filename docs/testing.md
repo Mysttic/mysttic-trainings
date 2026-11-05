@@ -104,9 +104,11 @@ Tego nie złapie test jednostkowy — do przejścia na emulatorze po każdym eta
 1. Lista planów: kreator, potem gotowy program — pierwszy plan ląduje w „Czekają” z postępem; „Ustaw jako aktywny”
    z potwierdzeniem przełącza z powrotem, a kolejka obu planów zostaje (dzień odhaczony w A nie znika po B → A).
 2. Duplikat i „Zacznij od nowa”: kopia ma pusty postęp, usunięcie kopii nie rusza oryginału.
-3. Edytor planu: „Ułóż własny plan”, dwa nowe treningi, „Rozpisz tygodnie” 4 × 3, zapis, aktywacja, trening dnia 1,
-   potem próba przesunięcia dnia 1 — zapis ma odmówić. `adb shell am kill pl.mysttic.trainings.debug` w trakcie
-   edycji niczego nie gubi (szkic w `SavedStateHandle`).
+3. Edytor planu: „Ułóż własny plan” (przełącznik „Dopasowuj cele…” wyłączony, D-49), nowy trening A, „×2” przy nim
+   (kopia „A (kopia)” na końcu listy, drugie „×2” daje „A (kopia 2)”), kopia przemianowana na B, „Rozpisz tygodnie” 4 × 3,
+   zapis, aktywacja, trening dnia 1, potem próba przesunięcia dnia 1 — zapis ma odmówić. „Porzuć” zabiera kopie
+   zrobione w tej edycji. `adb shell am kill pl.mysttic.trainings.debug` w trakcie edycji niczego nie gubi
+   (szkic w `SavedStateHandle`).
 4. Plik planu: „Wyślij plan” → „Zapisz do pliku”, potem na drugim emulatorze (albo po `pm clear`) „Wczytaj plan z pliku”;
    podgląd pokazuje treningi i braki sprzętu, po dodaniu plan czeka nieaktywny, a ponowny import mówi „Masz już ten plan”.
    Plik planu podany w „Importuj kopię” w Ustawieniach daje czytelny błąd. Na telefonie: wysłanie i otwarcie przez

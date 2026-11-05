@@ -63,6 +63,25 @@ object PlanEditing {
         if (index !in days.indices) days else days.mapIndexed { i, d -> if (i == index) d.copy(workoutId = workoutId) else d }
 
     /**
+     * Nazwa kopii treningu w planie (D-49): wolna wśród nazw treningów planu (`taken`), żeby wybór treningu dnia
+     * je rozróżniał. Wolna nazwa zostaje bez zmian (kopia z innego planu), zajęta dostaje „(kopia)”, potem
+     * „(kopia 2)”, „(kopia 3)”… Kopia kopii nie dokłada drugiego nawiasu: z „A (kopia)” powstaje „A (kopia 2)”.
+     * Wielkość liter i spacje na brzegach nazw nie odróżniają.
+     */
+    fun copyName(name: String, taken: Collection<String>): String {
+        val used = taken.map { it.trim().lowercase() }.toSet()
+        val trimmed = name.trim().ifEmpty { DEFAULT_WORKOUT_NAME }
+        if (trimmed.lowercase() !in used) return trimmed
+        val base = trimmed.replace(COPY_SUFFIX, "").trim().ifEmpty { trimmed }
+        return generateSequence(1) { it + 1 }
+            .map { n -> if (n == 1) "$base (kopia)" else "$base (kopia $n)" }
+            .first { it.lowercase() !in used }
+    }
+
+    private const val DEFAULT_WORKOUT_NAME = "Trening"
+    private val COPY_SUFFIX = Regex("""\s*\(kopia(?: \d+)?\)$""")
+
+    /**
      * Kolejny tydzień jak ostatni: kopia ostatnich 7 dni (albo wszystkich, gdy jest ich mniej) na koniec.
      * Tak trener rozpisuje mezocykl — ten sam tydzień, potem zmiany w liczbach.
      */

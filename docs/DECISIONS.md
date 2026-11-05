@@ -544,7 +544,7 @@ lista planów jest osobnym ekranem, „Dziś” zostaje jedną kartą (D-26), a 
 Powtórka planu to nowy wiersz, stary przebieg zostaje z własnymi statystykami. Plan własny układa się w edytorze planu
 (dni, odpoczynki, przypisania, nowe treningi), zrobione dni aktywnego planu są zablokowane, trening wbudowany wchodzi
 do planu tylko jako kopia (D-19 w domenie, nie tylko w UI); plan własny domyślnie dopasowuje się do poziomu i trenera
-jak plan z kreatora, a przełącznik planu ustawia `Block.fixed`; gotowy i zaimportowany plan zmienia się przez kopię.
+jak plan z kreatora (od D-49 nowy startuje dosłownie), a przełącznik planu ustawia `Block.fixed`; gotowy i zaimportowany plan zmienia się przez kopię.
 Plan własny i zaimportowany nie przechodzi przez `PlanGenerator` (D-34 bez zmian). Plik planu to osobny format
 `mysttic-trainings-plan` (`.plan.json`), nie wariant kopii zapasowej: dni, treningi i migawki użytych ćwiczeń, bez profilu
 (wzrost, waga), historii i pamięci trenera; import zawsze pod nowe id, niczego nie nadpisuje i sam nie aktywuje planu,
@@ -932,3 +932,32 @@ z sekretem.
 Uzupełnienie (2026-11-05): właściciel chce usunąć dawne repozytorium. Przed usunięciem przeszły z niego wydanie 1.1.0
 z APK i otwarte issue, a pełna historia (gałęzie i tagi) leży w kopii u właściciela. Klucz podpisu zostaje w sekretach
 tego repozytorium.
+
+## D-49 Nowy plan własny startuje dosłownie, a trening planu ma kopię w tym samym planie (2026-11-05)
+
+Kontekst: issue #1, uwagi z przejścia `docs/poradnik-trenera.md` na emulatorze (1.0.0), potwierdzone na 1.1.0. Sama
+lista wielu planów z dodawaniem planu powstała w D-42. Nowy plan własny startował z włączonym „Dopasowuj cele do poziomu
+i trenera” (D-42), więc autor planu dla kogoś musiał pamiętać, żeby go wyłączyć; inaczej „Wyślij plan” liczy bloki przez
+`WorkoutPlanner.shownBlocks` na poziom i sprzęt autora i odbiorca może dostać inne cele albo trudniejszy wariant
+ćwiczenia, niż stało w edytorze. „Skopiuj trening” w edytorze planu bierze tylko treningi spoza planu, a „×2” przy dniu
+powtarza ten sam trening, więc drugiego treningu planu nie dało się zrobić z kopii pierwszego.
+
+Decyzja:
+- Nowy plan własny startuje dosłownie (`PlanDraft.literal = true`, bloki `fixed`): cele dokładnie jak wpisane. Plan dla
+  siebie, który ma rosnąć z poziomem, trenerem (D-35) i „Podbij cele” (D-24), włącza jeden przełącznik, a jego opis mówi
+  przy obu stanach, co plan wtedy robi. Plan bez treningów ocenia się tak samo. Plany zapisane wcześniej, z kreatora,
+  gotowe i zaimportowane zostają przy swoim trybie: edytor czyta go z bloków ich treningów.
+- „×2” przy treningu na liście „Treningi planu” dokłada jego kopię w tym samym planie: ta sama droga co „Skopiuj
+  trening” (`ProgramRepository.copyWorkoutInto`, nowe id z prefiksem planu, tryb planu ze szkicu), jeden zapis kopii.
+  Każda kopia do planu dostaje nazwę wolną wśród treningów planu (`PlanEditing.copyName`: „A (kopia)”, „A (kopia 2)”…),
+  bo wybór treningu dnia pokazuje same nazwy. „Skopiuj trening” dalej pokazuje tylko treningi spoza planu, a jego puste
+  okno odsyła do „×2”.
+
+Odrzucone: treningi tego planu w oknie „Skopiuj trening” (okno miesza wtedy treningi planu z cudzymi, a przycisk przy
+treningu stoi tam, gdzie się go szuka, jak „×2” przy dniu i bloku); kopia, która od razu otwiera edytor treningu (kopię
+widać na liście, edytor otwiera jedno tapnięcie, a nawigacja po zapisie w tle dokłada zdarzenie jednorazowe).
+
+Konsekwencje: zmienia zdanie D-42, że plan własny domyślnie dopasowuje się do poziomu i trenera. Ryzyko z projektu D-42
+(„`fixed` domyślnie zabija progresję planu własnego”) wraca w łagodniejszej postaci: plan dla siebie bez włączonego
+przełącznika nie rośnie z „Podbij cele” ani trenerem. Porzucenie edycji kasuje kopie z tej edycji jak każdy trening
+dodany w edycji. Opis zmian: `docs/guide.md`, `docs/poradnik-trenera.md`, `docs/testing.md`, `CHANGELOG.md`.
