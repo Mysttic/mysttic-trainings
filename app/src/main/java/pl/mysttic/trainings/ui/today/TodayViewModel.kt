@@ -19,6 +19,7 @@ import pl.mysttic.trainings.data.repo.ProgramRepository
 import pl.mysttic.trainings.data.repo.SessionRepository
 import pl.mysttic.trainings.data.repo.WorkoutRepository
 import pl.mysttic.trainings.data.settings.SettingsRepository
+import pl.mysttic.trainings.domain.engine.Step
 import pl.mysttic.trainings.domain.engine.WorkoutPlanner
 import pl.mysttic.trainings.domain.coach.ExerciseTuning
 import pl.mysttic.trainings.domain.engine.snapshot
@@ -67,6 +68,13 @@ data class PlanCard(
     val cycleDurationSec: Int = 0,
     /** Propozycje podbicia celów w następnym treningu z planu (M5). */
     val suggestions: List<TargetSuggestion> = emptyList(),
+    /**
+     * Ilustracje ćwiczeń następnego treningu w kolejności wykonania, bez powtórzeń (D-52): pasek miniatur na karcie dnia.
+     * Ćwiczenie pokazane na ekranie (wariant poziomu, D-43), nie pozycja szablonu.
+     */
+    val previewImages: List<String> = emptyList(),
+    /** Ile różnych ćwiczeń ma następny trening — z tego pasek liczy „+N” za ostatnią miniaturą. */
+    val previewCount: Int = 0,
     /** Gotowy program (D-37): opis etapu na karcie, ostrzeżenie programu i wybory potrzebne do powtórki. */
     val isPreset: Boolean = false,
     val note: String? = null,
@@ -132,9 +140,11 @@ class TodayViewModel @Inject constructor(
             trainingDays.count { it.dayIndex in progress.doneDayIndexes } to trainingDays.size
         } ?: (0 to 0)
         val next = nextId?.let { id -> workouts.firstOrNull { it.id == id } }
+        val exercises = exerciseRepo.getMap()
         val steps = next?.let {
-            planner.expand(it, exerciseRepo.getMap(), settings.difficulty, settings.ownedEquipment, settings.countdownSec, tuning)
+            planner.expand(it, exercises, settings.difficulty, settings.ownedEquipment, settings.countdownSec, tuning)
         }.orEmpty()
+        val shownIds = steps.filterIsInstance<Step.Work>().map { it.exerciseId }.distinct()
         // Gotowy program (D-37): stały protokół, więc bez propozycji progresji; karta pokazuje etap i ostrzeżenie.
         val preset = program.presetId?.let { PresetCatalog.get(it) }
         PlanCardState(
@@ -145,6 +155,8 @@ class TodayViewModel @Inject constructor(
                 nextWorkoutName = next?.name,
                 nextWorkoutMinutes = if (steps.isEmpty()) 0 else (planner.estimateSeconds(steps) + 59) / 60,
                 nextWorkoutExercises = next?.exerciseIds?.size ?: 0,
+                previewImages = shownIds.mapNotNull { exercises[it]?.images?.lastOrNull() }.take(PREVIEW_MAX),
+                previewCount = shownIds.size,
                 doneCount = progress.doneCount,
                 totalCount = progress.totalCount,
                 isComplete = progress.isComplete,
@@ -242,9 +254,15 @@ class TodayViewModel @Inject constructor(
         }
     }
 
-    /** Liczba zapisanych planów — cichy odsyłacz „Twoje plany” na „Dziś” (D-42). */
-    val planCount: StateFlow<Int> = programRepo.observeAll().map { it.size }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    /**
+     * Trzy ilustracje na powitanie przed pierwszym planem (D-52): nie informacja, tylko zapowiedź tego, co będzie.
+     * Stałe ćwiczenia z bazy; gdy któregoś zabraknie (wycofane, D-47), w jego miejsce wchodzi pierwsze z ilustracją.
+     */
+    val welcomeImages: StateFlow<List<String>> = exerciseRepo.observeAll().map { all ->
+        val withImages = all.filter { it.retiredAt == null && it.images.isNotEmpty() }
+        val preferred = WELCOME_IDS.mapNotNull { id -> withImages.firstOrNull { it.id == id } }
+        (preferred + withImages.filter { it !in preferred }).take(WELCOME_COUNT).mapNotNull { it.images.lastOrNull() }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Powtórka w toku: blokada podwójnego tapnięcia „Powtórz plan”. */
     private var repeating = false
@@ -287,5 +305,9 @@ class TodayViewModel @Inject constructor(
     companion object {
         private const val TAG = "TodayViewModel"
         private const val REFRESH_WAIT_MS = 3_000L
+        /** Miniatur na karcie dnia: cztery, a przy dłuższym treningu trzy i „+N”. */
+        const val PREVIEW_MAX = 4
+        private const val WELCOME_COUNT = 3
+        private val WELCOME_IDS = listOf("pushups", "high-knees", "plank")
     }
 }

@@ -54,6 +54,13 @@ class ThemeContractTest {
         Para("tertiary", "surfaceContainer", 4.5, "żar na karcie"),
         Para("onTertiary", "tertiary", 4.5, "tekst na żarze („Zastosuj”)"),
         Para("primary", "surfaceContainerHigh", 3.0, "wskaźnik nawigacji, pasek „to teraz”"),
+        // D-52: kategorie Ustawień, menu playera, podświetlony wybór na tablecie, pole szukania.
+        Para("onSurfaceVariant", "surfaceContainer", 4.5, "streszczenie kategorii, opis na karcie dnia"),
+        Para("onSurfaceVariant", "surfaceContainerHigh", 4.5, "opis w menu playera, podświetlony kafelek"),
+        Para("onSurfaceVariant", "surfaceContainerHighest", 4.5, "streszczenie wybranej kategorii"),
+        Para("tertiary", "surfaceContainerHighest", 4.5, "„Jest wersja” na wybranej kategorii"),
+        Para("error", "surfaceContainerHigh", 4.5, "brak sprzętu na podświetlonym kafelku"),
+        Para("onSurface", "surfaceContainerLow", 4.5, "tekst w polu szukania"),
     )
 
     @Test

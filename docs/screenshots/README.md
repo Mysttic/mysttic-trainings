@@ -1,5 +1,10 @@
 # Zrzuty ekranu
 
+> Uwaga (2026-11-05): te zrzuty pokazują wygląd sprzed nowego interfejsu (D-52, D-53) — bez ikon w nawigacji, bez
+> zakładki Plany, z Ustawieniami na jednej stronie. Aktualny układ głównych ekranów na telefonie i tablecie rysuje
+> `LayoutScreenshotTest` do [`app/src/test/screenshots/uklad`](../../app/src/test/screenshots/uklad); zrzuty
+> z emulatora odświeżymy przy najbliższym przejściu `tools/przebieg*.py`.
+
 Emulator Pixel_9_Pro (API 37), stan z 2026-09-07 po przejściu na system wizualny „Ogień i Krew” (D-32).
 Motyw ciemny, bo tak aplikacja wygląda domyślnie przy wieczornym treningu; jeden zrzut pokazuje motyw jasny.
 Plan wygenerowany na 45 minut, poziom początkujący, cel redukcja.

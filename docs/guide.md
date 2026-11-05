@@ -3,12 +3,16 @@
 Aplikacja ma być prosta w obsłudze: jeden ekran, jeden trening, jeden przycisk. Ten dokument opisuje
 wszystko, co da się w niej zrobić, w kolejności, w jakiej zwykle się na to trafia.
 
+Dolny pasek ma pięć zakładek z ikonami: **Dziś**, **Plany**, **Ćwiczenia**, **Historia** i **Ustawienia**. Na tablecie
+i na telefonie w poziomie te same zakładki stoją w szynie z boku ekranu.
+
 ## Pierwsze uruchomienie
 
-Po instalacji „Dziś” pokazuje jedno wezwanie: **Ułóż plan**, a pod nim ciche odsyłacze **Gotowy program**
-i **Twoje plany**. Bez planu aplikacja nie ma czego proponować, więc zaczynasz od kreatora, od gotowego programu
-albo z listy planów, gdzie ułożysz własny plan od zera albo wczytasz plan z pliku od kogoś (opis niżej,
-w części „Twoje plany”).
+Po instalacji „Dziś” pokazuje trzy ilustracje, jedno zdanie i dwa wybory: **Ułóż plan** (kreator) i **Gotowy program**.
+Pod nimi cichy przycisk **Własny plan albo plik od kogoś** prowadzi do zakładki **Plany**. Bez planu aplikacja nie ma
+czego proponować, więc zaczynasz od kreatora, od gotowego programu albo od zakładki Plany, gdzie ułożysz własny plan
+od zera albo wczytasz plan z pliku od kogoś (opis niżej, w części „Plany”). Statystyk na start nie ma: pojawią się
+po pierwszym treningu.
 
 Kreator pyta o:
 
@@ -34,15 +38,16 @@ dane w kreatorze, a nie licz na to, że kolejne kliknięcie wylosuje coś innego
 
 ## Ekran „Dziś”
 
-Jedna karta z następnym treningiem z kolejki: nazwa, liczba ćwiczeń, szacowany czas i **Start**.
-Pod spodem dwa odsyłacze: **Co jest w treningu** (pełna lista ćwiczeń z celami) i **Zobacz plan** (cały cykl).
+Jedna karta z następnym treningiem z kolejki: miniatury jego ćwiczeń, nazwa, liczba ćwiczeń, szacowany czas, pasek
+tygodnia i **Start**. Pod przyciskiem dwa ciche odsyłacze: **Co jest w treningu** (pełna lista ćwiczeń z celami;
+to samo otwiera tapnięcie w miniatury) i **Zobacz plan** (cały cykl).
 
-Nad kartą: ile treningów w tym tygodniu, seria dni z rzędu i ostatni trening.
+Pod kartą: ile treningów w tym tygodniu, seria dni z rzędu i ostatni trening — gdy jest już jakaś historia.
 
 Gdy trening trwa w tle, pojawia się karta **Trening w toku** z powrotem do playera.
 
-Bez planu i po zamknięciu cyklu pod kartą stoi też cichy odsyłacz **Twoje plany** z liczbą planów. W trakcie cyklu
-lista planów jest w podglądzie planu (**Zobacz plan**).
+Lista wszystkich planów jest w zakładce **Plany**. Na tablecie w poziomie „Dziś” ma dwie kolumny: kartę treningu
+po lewej, tydzień i propozycję podbicia celów po prawej.
 
 ## Trening
 
@@ -58,14 +63,18 @@ Odliczanie (domyślnie 5 sekund, do zmiany w Ustawieniach), potem kolejne kroki:
   głośności, a wynik w sekundach trafia do historii. Po dziesięciokrotności celu aplikacja sama robi pauzę.
 - **Przerwa** odlicza i zapowiada kolejne ćwiczenie. **+15 s** dokłada czasu, **Pomiń** kończy przerwę.
 
+Nad liczbą stoi pozycja (runda albo seria) i nazwa ćwiczenia dużym tytułem, pod przyciskiem **Zrobione** ciche
+**Wstecz**, **Pauza** i **Pomiń**.
+
 Pod ćwiczeniem widać zdjęcie i instrukcję. Ciężar ustawiony przy ćwiczeniu, wskazówka do pozycji z edytora
 treningu i notatka z planu stoją przy celu serii. **Wstecz** nie przerywa treningu: silnik żyje w serwisie,
 więc możesz wyjść do innego ekranu albo zgasić ekran, a trening idzie dalej. Powrót: karta na „Dziś”
 albo powiadomienie, które ma chronometr i przyciski (Pauza, Zrobione, +15 s, Pomiń).
 
-**Przerwij trening** kończy sesję ze statusem „przerwany”; wykonane serie zostają w historii.
+Menu **⋮** w prawym górnym rogu ma dwie rzeczy, których w trakcie serii zwykle się nie szuka: poziom trudności
+i **Przerwij trening**. Przerwanie kończy sesję ze statusem „przerwany”; wykonane serie zostają w historii.
 
-Poziom trudności można zmienić w trakcie (chipy 1/2/3 na górze). Wykonane serie zostają, reszta planu
+Poziom trudności zmienisz w każdej chwili (menu ⋮ → Poziom 1, 2 albo 3). Wykonane serie zostają, reszta planu
 przelicza się na nowy poziom.
 
 Po ostatnim kroku pojawia się podsumowanie: czas, liczba serii, powtórzenia, sekundy pracy i porównanie
@@ -86,7 +95,7 @@ przy **Zakończ**, więc do tego momentu można zmienić zdanie.
 **Zobacz plan** pokazuje cały cykl: dni treningowe, dni odpoczynku i wyróżniony następny trening.
 Plan rozliczany jest kolejką, nie datami — jeśli ominiesz dzień, trening czeka, a nie przepada.
 Menu **⋮** w prawym górnym rogu podglądu ma akcje planu: statystyki, edycję, kopię, wysyłkę i usunięcie
-(opisane w części „Twoje plany”).
+(opisane w części „Plany”).
 
 Seria dni z rzędu liczy dni, w których trenowałeś, i **przeżywa zaplanowany odpoczynek**: dzień wolny
 z planu jej nie kasuje, przerwa poza planem tak.
@@ -120,26 +129,27 @@ Program liczy się ze sprzętem z Ustawień. W Siedmiu minutach bez ławki wejś
 a notatka etapu mówi, co podmieniono. Deska i drążek bez zaznaczonego drążka jest na liście wyszarzona, bo drążka
 nie ma czym zastąpić. Zaznaczony później sprzęt działa od następnego założenia programu.
 
-Poziom wchodzi w tabele etapów przy starcie; w trakcie protokół jest stały, więc chipy poziomu, „Podbij cele”
+Poziom wchodzi w tabele etapów przy starcie; w trakcie protokół jest stały, więc poziom w menu playera, „Podbij cele”
 i podmiana „Nie chcę” go nie ruszają („Nie chcę” zadziała od następnego planu z kreatora). Program zmienisz przez
 kopię: **Duplikuj i zmień** w menu planu.
 
 Gotowy program wybierzesz w każdej chwili. Aktywny jest zawsze jeden plan, więc gdy trwa inny, aplikacja uprzedza,
-że zostanie wstrzymany z postępem, i wrócisz do niego z listy planów. Po domknięciu kolejki karta proponuje
+że zostanie wstrzymany z postępem, i wrócisz do niego z zakładki Plany. Po domknięciu kolejki karta proponuje
 **Powtórz program**, **Ułóż plan** albo **Inny gotowy program**.
 
 Oddech Wima Hofa tylko na siedząco lub leżąco, nigdy w wodzie, na stojąco ani za kierownicą; ostrzeżenie stoi na karcie
 programu i na „Dziś”.
 
-## Twoje plany
+## Plany
 
 Aplikacja trzyma listę planów: z kreatora, gotowe programy, własne i od innych osób. Aktywny jest jeden i tylko z niego
 „Dziś” podaje trening. Pozostałe czekają ze swoim postępem, więc plan przełączysz w każdej chwili, niczego nie tracąc.
 
-Lista (**Twoje plany**) ma trzy grupy: **Aktywny**, **Czekają** (wstrzymane i jeszcze nierozpoczęte) oraz zwinięte
+Zakładka **Plany** ma trzy grupy: **Aktywny**, **Czekają** (wstrzymane i jeszcze nierozpoczęte) oraz zwinięte
 **Zakończone**. Karta planu mówi, skąd jest (z kreatora, gotowy program, twój plan albo „Od:” z imieniem autora),
-w jakim jest stanie i ile treningów z kolejki już za tobą. Tapnięcie otwiera podgląd planu, a na dole listy są
-**Ułóż własny plan**, **Wczytaj plan z pliku**, **Kreator** i **Gotowy program**.
+w jakim jest stanie i ile treningów z kolejki już za tobą. Tapnięcie otwiera podgląd planu. **Nowy plan** w nagłówku
+daje cztery drogi: **Kreator**, **Gotowy program**, **Własny plan** i **Plan z pliku**; bez żadnego planu te same
+cztery stoją od razu na liście.
 
 W podglądzie planu, który nie jest aktywny, stoi **Ustaw jako aktywny**. Menu **⋮** ma resztę:
 
@@ -158,7 +168,7 @@ Gdy trening z planu właśnie trwa, planu nie da się zmienić ani usunąć, dop
 
 Poradnik krok po kroku dla osoby, która układa plany dla innych: [poradnik-trenera.md](poradnik-trenera.md).
 
-**Ułóż własny plan** otwiera edytor planu: nazwa, opis (dla kogo, jak ćwiczyć), treningi planu i rozkład dni.
+**Nowy plan → Własny plan** otwiera edytor planu: nazwa, opis (dla kogo, jak ćwiczyć), treningi planu i rozkład dni.
 Trening dodajesz jako nowy, kopiujesz z innego planu (**Skopiuj trening**) albo duplikujesz trening tego planu
 (**×2** przy treningu; kopia dostaje w nazwie „(kopia)”). Każdy dzień to trening albo odpoczynek;
 dni przesuwasz o jeden w górę lub w dół i usuwasz. **Rozpisz tygodnie** układa naraz kilka tygodni (na przykład
@@ -181,10 +191,10 @@ pozycję albo cały blok.
 i wskazówkami oraz notatki do ćwiczeń. Nie ma w nim twojego wzrostu i wagi, historii treningów, notatek z sesji ani
 pamięci trenera. Plan, który u ciebie dopasowuje się do poziomu, jedzie z ćwiczeniami i liczbami, które widzisz na swoim
 poziomie i ze swoim sprzętem, a odbiorca dostaje go dokładnie takim, bez skalowania. Podpis autora to imię
-z Ustawień → Plany.
+z Ustawień → Dane i kopia → Podpis planów.
 
 Plik od kogoś otworzysz w aplikacji prosto z komunikatora, maila albo Plików („Otwórz za pomocą”) albo przez
-**Wczytaj plan z pliku** na liście planów. Podgląd pokazuje treningi, autora, sprzęt, którego nie zaznaczyłeś,
+**Nowy plan → Plan z pliku** w zakładce Plany. Podgląd pokazuje treningi, autora, sprzęt, którego nie zaznaczyłeś,
 i ćwiczenia, które dojdą do biblioteki. **Dodaj do planów** dopisuje plan do listy; czeka tam, aż ustawisz go jako
 aktywny. Jeśli ten plan już masz, podgląd o tym mówi, a dodanie zrobi drugą, osobną kopię.
 
@@ -198,20 +208,22 @@ drugi raz ponad kolejkę widać osobno jako „ponad plan”, a w całości w Hi
 Raport PDF zbiera to samo na stronach A4 z tabelą „Dzień po dniu”. **Udostępnij raport** wysyła go na przykład osobie,
 która ułożyła plan, **Zapisz PDF** zapisuje go w Plikach, a **Podgląd raportu** pokazuje pierwsze strony w aplikacji.
 Notatki z treningów trafiają do raportu tylko po włączeniu przełącznika **Notatki z treningów w raporcie**. W nagłówku
-raportu stoi autor planu i, jako osoba ćwicząca, twoje imię z Ustawień → Plany.
+raportu stoi autor planu i, jako osoba ćwicząca, twoje imię z Ustawień → Dane i kopia → Podpis planów.
 
 ## Ćwiczenia
 
-Zakładka **Ćwiczenia** to biblioteka: kafelki z ilustracjami (przełącznik w nagłówku zmienia je na listę wierszy i pamięta
-wybór), wyszukiwarka, przełącznik **Mój sprzęt** i przycisk **Filtry**, który rozwija panel
-z sekcjami sprzęt, rodzaj, poziom i partie. W sekcji można zaznaczyć kilka wartości naraz (którakolwiek pasuje), sekcje
-zawężają się nawzajem, a licznik na pasku mówi, ile ćwiczeń zostało; **Wyczyść filtry** zeruje panel.
-W szczegółach ćwiczenia są dwa zdjęcia (pozycja startowa i docelowa), instrukcja, warianty łatwiejszy
-i trudniejszy, zamienniki przy brakującym sprzęcie oraz twoje wyniki: wykres najlepszej serii w czasie
-i rekord. Sekcja **Trener** pokazuje korektę celu z twoich opinii (z przyciskiem **Wyzeruj**) i przełącznik
-**Nie proponuj w planach**, którym wykluczysz ćwiczenie albo cofniesz „Nie chcę”.
+Zakładka **Ćwiczenia** to biblioteka: kafelki z ilustracjami i nad nimi tylko pole szukania. Lejek w polu (**Filtry**)
+rozwija panel: **Tylko mój sprzęt**, sekcje sprzęt, rodzaj, poziom i partie oraz **Widok** (kafelki albo lista wierszy,
+wybór zostaje zapamiętany). W sekcji można zaznaczyć kilka wartości naraz (którakolwiek pasuje), sekcje zawężają się
+nawzajem, a liczba zaznaczeń stoi przy lejku. Gdy coś zawęża listę, nad nią pojawia się licznik („41 z 283”)
+i **Wyczyść filtry**.
+Szczegóły ćwiczenia pokazują ilustrację, partie i sprzęt (brakujący na czerwono) i instrukcję. Reszta czeka
+w zwijanych wierszach ze streszczeniem: **Twoje wyniki** (wykres najlepszej serii w czasie i rekord), **Łatwiej
+i trudniej**, **Zamienniki** przy brakującym sprzęcie i **Trener** — korekta celu z twoich opinii (z przyciskiem
+**Wyzeruj**) i przełącznik **Nie proponuj w planach**, którym wykluczysz ćwiczenie albo cofniesz „Nie chcę”.
+Na tablecie w poziomie lista i szczegół stoją obok siebie: tapnięcie kafelka otwiera ćwiczenie w panelu po prawej.
 
-Ergometry (wioślarz, rower stacjonarny, orbitrek, bieżnia) zaznaczasz w Ustawieniach → Sprzęt. Ćwiczenia na nich są na
+Ergometry (wioślarz, rower stacjonarny, orbitrek, bieżnia) zaznaczasz w Ustawieniach → Mój sprzęt → Ergometry. Ćwiczenia na nich są na
 czas, więc player odlicza minuty; trening na ergometrach układasz w edytorze treningu albo planu, bo kreator ich
 nie używa. Czas w edytorze sięga godziny.
 
@@ -226,9 +238,15 @@ Wpis sesji otwiera szczegóły: wszystkie serie, RPE i notatka do dopisania po f
 Historia pokazuje wszystkie treningi razem, ze wszystkich planów. Przebieg jednego planu jest w jego statystykach
 (menu planu → **Statystyki i raport**).
 
-## Ustawienia
+Ustawienia to sześć kategorii; wiersz każdej mówi, co jest w środku ustawione, a tapnięcie otwiera ją jako podstronę
+(na tablecie w poziomie lista i kategoria stoją obok siebie):
 
-- **Poziom trudności** i **mój sprzęt** — te same, których używa kreator i player.
+- **Trening** — poziom trudności (ten sam, którego używa kreator i player), **odliczanie przed startem** (0, 3, 5 albo
+  10 sekund), **sygnały** (dźwięk, głos TTS, wibracja, „nie gaś ekranu w trakcie treningu”) i **przycisk głośności**
+  potwierdzający serię (opisany wyżej skrót; da się wyłączyć).
+- **Mój sprzęt** — sprzęt domowy, a pod nim ergometry.
+- **Przypomnienie** — codzienne o wybranej godzinie. Powiadomienie przychodzi tylko wtedy, gdy tego dnia
+  nie było jeszcze treningu, a plan ma co podać. Alarm przeżywa restart telefonu.
 - **Wygląd**: jeden z trzech motywów, „Ogień i Krew” (domyślny), jasny „Papier i Ogień” albo „Stal i Bursztyn”.
   Aplikacja trzyma wybrany motyw i nie przełącza się sama za trybem jasnym czy ciemnym systemu.
   Pod motywami jest **Tło**: jednolite (domyślne) albo jeden z trzech gradientów w kolorach motywu: Żar, Łuna
@@ -240,21 +258,15 @@ Historia pokazuje wszystkie treningi razem, ze wszystkich planów. Przebieg jedn
   których jest najwięcej (brzuch, nogi, góra ciała, całe ciało, kardio, joga), i losuje jeden z nich, częściej ten
   liczniejszy. Zdjęcie losuje się raz dziennie i nic w aplikacji nie mówi, jaką partię dziś ćwiczysz. W **Na zdjęciach**
   wybierasz, kogo pokazywać: kobietę, mężczyznę albo oboje. Karty są przy zdjęciu szklane, żeby prześwitywało.
-- **Odliczanie przed startem** — 0, 3, 5 albo 10 sekund.
-- **Sygnały** — dźwięk, głos (TTS), wibracja, „nie gaś ekranu w trakcie treningu”.
-- **Przycisk głośności potwierdza serię** — opisany wyżej skrót; da się wyłączyć.
-- **Przypomnienie** — codzienne o wybranej godzinie. Powiadomienie przychodzi tylko wtedy, gdy tego dnia
-  nie było jeszcze treningu, a plan ma co podać. Alarm przeżywa restart telefonu.
-- **Health Connect** — opcjonalny zapis ukończonych treningów do systemowego dziennika zdrowia. Zapis
-  jest jednostronny: aplikacja nic stamtąd nie czyta. Sekcja pojawia się tylko na telefonach,
-  które mają Health Connect.
-- **Aktualizacje** — patrz niżej.
-- **Plany**: twoje imię, którym podpisujesz plany wysłane innym i raporty z przebiegu planu. Puste pole to brak podpisu.
-- **Kopia zapasowa**: eksport i import jednego pliku JSON z historią, wszystkimi planami (z autorami i notatkami
+- **Dane i kopia** — kopia zapasowa, **Health Connect** (opcjonalny, jednostronny zapis ukończonych treningów
+  do systemowego dziennika zdrowia; tylko na telefonach, które go mają) i podpis planów.
+- **Aktualizacje** — patrz niżej; gdy jest nowa wersja, wiersz kategorii mówi o tym na liście.
+- **Dane i kopia → Podpis planów**: twoje imię, którym podpisujesz plany wysłane innym i raporty z przebiegu planu. Puste pole to brak podpisu.
+- **Dane i kopia → Kopia zapasowa**: eksport i import jednego pliku JSON z historią, wszystkimi planami (z autorami i notatkami
   do ćwiczeń), pamięcią trenera, ustawieniami oraz własnymi ćwiczeniami i treningami. Po wczytaniu na nowym telefonie
   aktywny plan wraca tam, gdzie był. Import dokłada brakujące sesje i plany, a pomija te, które już masz: plan, który
   jest w telefonie, zostaje nietknięty razem ze swoimi treningami. Ustawienia wracają z pliku; imię z kopii sprzed
-  wersji z listą planów nie kasuje wpisanego. Plik planu od kogoś wczytujesz z listy planów, nie tutaj.
+  wersji z listą planów nie kasuje wpisanego. Plik planu od kogoś wczytujesz z zakładki Plany, nie tutaj.
 
 ## Aktualizacje
 
@@ -292,7 +304,8 @@ w telefonie nic się wtedy nie zmienia. Baza przygotowana dla nowszej aplikacji 
 ## Tablet i ekran w poziomie
 
 Na tablecie i na telefonie obróconym w poziom nawigacja przechodzi z dołu na bok ekranu, a listy i formularze trzymają
-czytelną szerokość zamiast rozciągać się na cały ekran. Biblioteka ma więcej kolumn kafelków, a player stawia liczbę
+czytelną szerokość zamiast rozciągać się na cały ekran. Na tablecie w poziomie Ćwiczenia i Ustawienia stoją jako lista
+i szczegół obok siebie, a „Dziś” ma dwie kolumny. Biblioteka w pionie ma więcej kolumn kafelków, a player stawia liczbę
 po lewej i przyciski po prawej.
 
 ## Czego aplikacja nie robi

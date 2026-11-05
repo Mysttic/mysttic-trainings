@@ -21,9 +21,15 @@ data class LibraryFilter(
     val levels: Set<Difficulty> = emptySet(),
     val muscles: Set<MuscleGroup> = emptySet(),
 ) {
-    /** Ile wartości jest zaznaczonych w panelu: bez „Mój sprzęt” i szukania, bo te widać poza panelem. */
+    /** Ile wartości jest zaznaczonych w sekcjach chipów panelu (sprzęt, rodzaj, poziom, partie); bez szukania. */
     val selectedCount: Int
         get() = (if (noEquipment) 1 else 0) + equipment.size + categories.size + levels.size + muscles.size
+
+    /**
+     * Liczba na przycisku filtrów (D-52): chipy plus „Tylko mój sprzęt”, który przeszedł z paska nad listą do panelu.
+     * Szukanie nie wchodzi — pole pokazuje je samo.
+     */
+    val panelCount: Int get() = selectedCount + if (onlyOwned) 1 else 0
 
     /** Czy jest co czyścić (szukanie nie wchodzi: pole je pokazuje i ma własne kasowanie). */
     val hasSelection: Boolean get() = onlyOwned || selectedCount > 0

@@ -117,19 +117,40 @@ Tego nie złapie test jednostkowy — do przejścia na emulatorze po każdym eta
 1. Lista planów: kreator, potem gotowy program — pierwszy plan ląduje w „Czekają” z postępem; „Ustaw jako aktywny”
    z potwierdzeniem przełącza z powrotem, a kolejka obu planów zostaje (dzień odhaczony w A nie znika po B → A).
 2. Duplikat i „Zacznij od nowa”: kopia ma pusty postęp, usunięcie kopii nie rusza oryginału.
-3. Edytor planu: „Ułóż własny plan” (przełącznik „Dopasowuj cele…” wyłączony, D-49), nowy trening A, „×2” przy nim
-   (kopia „A (kopia)” na końcu listy, drugie „×2” daje „A (kopia 2)”), kopia przemianowana na B, „Rozpisz tygodnie” 4 × 3,
-   zapis, aktywacja, trening dnia 1, potem próba przesunięcia dnia 1 — zapis ma odmówić. W zapisanym planie samo „×2”
-   i Wstecz pyta „Porzucić zmiany?”, a „Porzuć” zabiera kopie zrobione w tej edycji. „Skopiuj trening” z planu
-   z kreatora przy poziomie początkującym do nowego planu daje kopię z wariantem i liczbami, które pokazuje źródło. `adb shell am kill pl.mysttic.trainings.debug` w trakcie edycji niczego nie gubi
+3. Edytor planu: zakładka Plany → „Nowy plan” → „Własny plan” (przełącznik „Dopasowuj cele…” wyłączony, D-49),
+   nowy trening A, „×2” przy nim (kopia „A (kopia)” na końcu listy, drugie „×2” daje „A (kopia 2)”), kopia
+   przemianowana na B, „Rozpisz tygodnie” 4 × 3, zapis, aktywacja, trening dnia 1, potem próba przesunięcia dnia 1 —
+   zapis ma odmówić. W zapisanym planie samo „×2” i Wstecz pyta „Porzucić zmiany?”, a „Porzuć” zabiera kopie zrobione
+   w tej edycji. „Skopiuj trening” z planu z kreatora przy poziomie początkującym do nowego planu daje kopię z wariantem
+   i liczbami, które pokazuje źródło. `adb shell am kill pl.mysttic.trainings.debug` w trakcie edycji niczego nie gubi
    (szkic w `SavedStateHandle`).
-4. Plik planu: „Wyślij plan” → „Zapisz do pliku”, potem na drugim emulatorze (albo po `pm clear`) „Wczytaj plan z pliku”;
+4. Plik planu: „Wyślij plan” → „Zapisz do pliku”, potem na drugim emulatorze (albo po `pm clear`) Plany → „Nowy plan” → „Plan z pliku”;
    podgląd pokazuje treningi i braki sprzętu, po dodaniu plan czeka nieaktywny, a ponowny import mówi „Masz już ten plan”.
    Plik planu podany w „Importuj kopię” w Ustawieniach daje czytelny błąd. Na telefonie: wysłanie i otwarcie przez
    Messenger, Gmail i Pliki Google (zapisać, z jakim MIME przyszło).
 5. Statystyki i PDF: dwie sesje planu, „Statystyki i raport”, „Zapisz PDF”. Plik sprawdzić poza aplikacją:
    `adb pull` i `python -c "d=open('raport.pdf','rb').read(); print(d[:5], d.count(b'/Type /Page'))"` —
    nagłówek `%PDF-` i liczba stron; na podglądzie polskie znaki i pogrubienie nagłówków (oś `wght` Sory).
+
+### Nowy interfejs (D-52, D-53)
+
+Układ głównych ekranów rysuje bez emulatora `LayoutScreenshotTest` (telefon w pionie i tablet w poziomie, z fiksturami);
+`./gradlew testDebugUnitTest -Proborazzi.record=true` zapisuje obrazy do `app/src/test/screenshots/uklad`.
+Na emulatorze zostaje to, czego zrzut nie złapie:
+
+1. Pierwsze uruchomienie (`pm clear`): „Dziś” bez statystyk, dwa wybory i cichy przycisk do zakładki Plany.
+2. Biblioteka: lejek w polu szukania rozwija panel, liczba zaznaczeń stoi przy lejku, „Tylko mój sprzęt” i widok
+   kafelki / lista działają z panelu, „Wyczyść filtry” nad listą tylko przy aktywnych filtrach.
+3. Szczegół ćwiczenia: zwijane wiersze przetrwają obrót; na tablecie w poziomie wybór w liście zmienia panel szczegółu,
+   a wariant tapnięty w panelu otwiera się w tym samym panelu.
+4. Player: menu ⋮ zmienia poziom w trakcie serii (cele od następnej serii) i przerywa trening z potwierdzeniem;
+   klawisz głośności dalej potwierdza serię, gdy menu jest zamknięte.
+5. Ustawienia: kategoria otwiera się jako podstrona, systemowe „Wstecz” wraca do listy kategorii, eksport kopii przez SAF
+   wraca do tej samej kategorii z komunikatem. W „Wygląd” zmiana tła działa od razu, „Na zdjęciach” jest tylko przy
+   zdjęciu dnia, a wiersz kategorii mówi motyw i tło („Ogień i Krew · Żar”); kategorie i podstrony leżą na gradiencie
+   i na zdjęciu jako szkło, jak karty.
+6. Plany: zakładka z „Dziś” (cichy przycisk przy pierwszym uruchomieniu) i z menu podglądu planu („Twoje plany”) podświetla
+   zakładkę Plany; „Nowy plan” otwiera arkusz z czterema drogami.
 
 Duże ekrany sprawdza drugi AVD — ten sam obraz systemu co `Pixel_9_Pro` (API 37, x86_64, 16 KB), profil tabletu:
 
@@ -143,9 +164,10 @@ python tools/przebieg_biblioteka.py
 ```
 
 Skrypty biorą wymiary ekranu z korzenia `uiautomator dump`, więc przewijają dobrze na każdym rozmiarze.
-Do obejrzenia na tablecie w obu orientacjach i na `Pixel_9_Pro` w poziomie: szyna z czterema etykietami zamiast
-dolnego paska, „Dziś” jako jedna karta nie szersza niż ok. 640 dp, lista planów i szczegóły planu w czytelnej
-szerokości, biblioteka w 3–4 kolumnach, player w poziomie z liczbą po lewej i przyciskami po prawej bez przewijania,
+Do obejrzenia na tablecie w obu orientacjach i na `Pixel_9_Pro` w poziomie: szyna z pięcioma ikonami i etykietami
+zamiast dolnego paska, „Dziś” na tablecie w poziomie w dwóch kolumnach (karta i tydzień), a w pionie jako jedna karta
+nie szersza niż ok. 640 dp, Ćwiczenia i Ustawienia na tablecie w poziomie jako lista i szczegół obok siebie (D-52),
+lista planów i szczegóły planu w czytelnej szerokości, biblioteka w pionie w 3 kolumnach, player w poziomie z liczbą po lewej i przyciskami po prawej bez przewijania,
 obrót i podzielony ekran w trakcie treningu (player biegnie dalej, bo stan żyje w `PlayerController`, D-16).
 
 ## CI

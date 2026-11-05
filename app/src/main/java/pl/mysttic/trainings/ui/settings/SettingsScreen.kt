@@ -1,25 +1,27 @@
 package pl.mysttic.trainings.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -29,52 +31,65 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.mysttic.trainings.BuildConfig
+import pl.mysttic.trainings.data.settings.UserSettings
 import pl.mysttic.trainings.domain.background.PhotoPeople
+import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.reminder.ReminderSchedule
 import pl.mysttic.trainings.domain.update.DatabaseOffer
 import pl.mysttic.trainings.domain.update.DatabaseUpdate
 import pl.mysttic.trainings.domain.update.UpdateCheck
+import pl.mysttic.trainings.ui.adaptive.LocalAppLayout
+import pl.mysttic.trainings.ui.adaptive.TwoPane
 import pl.mysttic.trainings.ui.adaptive.centeredReadable
+import pl.mysttic.trainings.ui.common.AppIcons
 import pl.mysttic.trainings.ui.common.AppSwitch
+import pl.mysttic.trainings.ui.common.BackTopBar
+import pl.mysttic.trainings.ui.common.CategoryDivider
+import pl.mysttic.trainings.ui.common.CategoryGroup
+import pl.mysttic.trainings.ui.common.CategoryRow
 import pl.mysttic.trainings.ui.common.DifficultySelector
 import pl.mysttic.trainings.ui.common.FilterPill
 import pl.mysttic.trainings.ui.common.InfoCard
 import pl.mysttic.trainings.ui.common.PrimaryAction
+import pl.mysttic.trainings.ui.common.ScreenTitle
 import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.TextInput
-import androidx.compose.runtime.saveable.rememberSaveable
 import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.Dimens
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Ustawienia (D-52): sześć kategorii ze streszczeniem zamiast jednej strony z dwunastoma sekcjami. Na telefonie
+ * kategoria otwiera się jako podstrona tej samej zakładki (wstecz wraca do listy), na tablecie w poziomie lista
+ * i otwarta kategoria stoją obok siebie. Logika zostaje w `SettingsViewModel` — ekran tylko ją rozkłada.
+ */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val backupStatus by viewModel.backupStatus.collectAsStateWithLifecycle()
-    var showTimePicker by remember { mutableStateOf(false) }
     val healthGranted by viewModel.healthGranted.collectAsStateWithLifecycle()
+    val update by viewModel.update.collectAsStateWithLifecycle()
 
     // Kontrakt Health Connect sam obsługuje okno zgody; po powrocie odświeżamy stan.
     val healthPermission = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
         viewModel.refreshHealthPermission()
     }
     LaunchedEffect(Unit) { viewModel.refreshHealthPermission() }
-
-    val update by viewModel.update.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.checkUpdatesIfDue() }
 
     // Storage Access Framework: użytkownik sam wybiera miejsce pliku, aplikacja nie potrzebuje uprawnień do dysku.
@@ -89,324 +104,444 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         if (uri != null) viewModel.installDatabaseFromFile(uri)
     }
 
+    val actions = remember(viewModel, context) {
+        SettingsActions(
+            setDifficulty = viewModel::setDifficulty,
+            toggleEquipment = viewModel::toggleEquipment,
+            setCountdown = viewModel::setCountdown,
+            setSound = viewModel::setSound,
+            setTts = viewModel::setTts,
+            setVibration = viewModel::setVibration,
+            setKeepScreenOn = viewModel::setKeepScreenOn,
+            setVolumeKeyDone = viewModel::setVolumeKeyDone,
+            setTheme = viewModel::setTheme,
+            setBackground = { themeId, backgroundId -> viewModel.setBackground(themeId, backgroundId) },
+            setPhotoPeople = { viewModel.setPhotoPeople(it) },
+            setReminderEnabled = viewModel::setReminderEnabled,
+            setReminderTime = viewModel::setReminderTime,
+            setHealthConnectEnabled = viewModel::setHealthConnectEnabled,
+            requestHealthPermission = { healthPermission.launch(viewModel.healthPermissions) },
+            setUpdateChecks = viewModel::setUpdateChecks,
+            checkUpdates = { viewModel.checkUpdates() },
+            downloadAndInstall = viewModel::downloadAndInstall,
+            openReleasePage = { viewModel.openReleasePage(context) },
+            downloadDatabase = viewModel::downloadDatabase,
+            installDatabaseFromFile = { databaseFile.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
+            setAuthorName = viewModel::setAuthorName,
+            exportBackup = { viewModel.clearStatus(); exportFile.launch(viewModel.suggestedFileName()) },
+            importBackup = { viewModel.clearStatus(); importFile.launch(arrayOf("application/json", "text/plain", "*/*")) },
+        )
+    }
+    SettingsContent(
+        state = SettingsState(
+            settings = settings,
+            update = update,
+            backupStatus = backupStatus,
+            healthAvailable = viewModel.healthAvailable,
+            healthGranted = healthGranted,
+            versionName = BuildConfig.VERSION_NAME,
+            debug = BuildConfig.DEBUG,
+        ),
+        actions = actions,
+    )
+}
+
+/** Wszystko, co Ustawienia pokazują; bez ViewModelu, żeby zrzut narysował ekran z fiksturą. */
+data class SettingsState(
+    val settings: UserSettings,
+    val update: UpdateUiState = UpdateUiState(),
+    val backupStatus: BackupStatus? = null,
+    val healthAvailable: Boolean = false,
+    val healthGranted: Boolean = false,
+    val versionName: String = "",
+    val debug: Boolean = false,
+)
+
+/** Zmiany ustawień i akcje plikowe; domyślnie nic nie robią (zrzuty). */
+class SettingsActions(
+    val setDifficulty: (Difficulty) -> Unit = {},
+    val toggleEquipment: (Equipment) -> Unit = {},
+    val setCountdown: (Int) -> Unit = {},
+    val setSound: (Boolean) -> Unit = {},
+    val setTts: (Boolean) -> Unit = {},
+    val setVibration: (Boolean) -> Unit = {},
+    val setKeepScreenOn: (Boolean) -> Unit = {},
+    val setVolumeKeyDone: (Boolean) -> Unit = {},
+    val setTheme: (String) -> Unit = {},
+    val setBackground: (themeId: String, backgroundId: String) -> Unit = { _, _ -> },
+    val setPhotoPeople: (String) -> Unit = {},
+    val setReminderEnabled: (Boolean) -> Unit = {},
+    val setReminderTime: (Int, Int) -> Unit = { _, _ -> },
+    val setHealthConnectEnabled: (Boolean) -> Unit = {},
+    val requestHealthPermission: () -> Unit = {},
+    val setUpdateChecks: (Boolean) -> Unit = {},
+    val checkUpdates: () -> Unit = {},
+    val downloadAndInstall: () -> Unit = {},
+    val openReleasePage: () -> Unit = {},
+    val downloadDatabase: () -> Unit = {},
+    val installDatabaseFromFile: () -> Unit = {},
+    val setAuthorName: (String) -> Unit = {},
+    val exportBackup: () -> Unit = {},
+    val importBackup: () -> Unit = {},
+)
+
+/**
+ * Lista kategorii i otwarta kategoria. [initialSection] otwiera od razu podstronę (zrzuty); w aplikacji null.
+ * Wybór przetrwa obrót, a przejście z dwóch paneli do jednego zostawia otwartą kategorię jako podstronę.
+ */
+@Composable
+fun SettingsContent(state: SettingsState, actions: SettingsActions, initialSection: SettingsSection? = null) {
+    var section by rememberSaveable { mutableStateOf(initialSection) }
+    if (LocalAppLayout.current.twoPane) {
+        val current = section ?: SettingsSection.TRAINING
+        TwoPane(
+            listWidth = CATEGORIES_PANE_WIDTH,
+            list = { SettingsCategories(state, selected = current, onSelect = { section = it }) },
+            detail = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 48.dp, vertical = 36.dp),
+                ) {
+                    // Czytelna szerokość wewnątrz panelu: przełączniki nie odjeżdżają na drugi koniec tabletu.
+                    Column(modifier = Modifier.widthIn(max = 600.dp)) {
+                        Text(current.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                        SectionBody(current, state, actions)
+                    }
+                }
+            },
+        )
+        return
+    }
+    val current = section
+    BackHandler(enabled = current != null) { section = null }
+    if (current == null) {
+        SettingsCategories(state, selected = null, onSelect = { section = it })
+    } else {
+        Column(
+            modifier = Modifier
+                .centeredReadable()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimens.screenPadding, vertical = 8.dp),
+        ) {
+            BackTopBar(title = current.title, onBack = { section = null })
+            SectionBody(current, state, actions)
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Sześć kategorii w dwóch grupach i stopka o wersji i źródłach danych. */
+@Composable
+private fun SettingsCategories(state: SettingsState, selected: SettingsSection?, onSelect: (SettingsSection) -> Unit) {
+    val settings = state.settings
+    val twoPane = selected != null
     Column(
         modifier = Modifier
-            .centeredReadable()
+            .then(if (twoPane) Modifier.fillMaxSize() else Modifier.centeredReadable())
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = Dimens.screenPadding, vertical = Dimens.sectionGap),
+            .padding(horizontal = Dimens.screenPadding, vertical = Dimens.sectionGap + 4.dp),
+        verticalArrangement = Arrangement.spacedBy(Dimens.sectionGap),
     ) {
-        Text("Ustawienia", style = MaterialTheme.typography.headlineMedium)
-
-        SectionTitle("Poziom trudności")
-        Text(
-            text = "Skaluje powtórzenia, czas i przerwy we wszystkich treningach; początkujący dostaje łatwiejsze warianty, zaawansowany trudniejsze. Zmienisz go też w trakcie treningu.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(8.dp))
-        DifficultySelector(selected = settings.difficulty, onSelect = viewModel::setDifficulty)
-
-        SectionTitle("Mój sprzęt")
-        Text(
-            text = "Zaznacz, co masz w domu. Biblioteka i treningi pokażą, które ćwiczenia są wykonalne, a dla reszty zaproponują zamienniki.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Equipment.entries.forEach { eq ->
-            val checked = eq in settings.ownedEquipment
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.toggleEquipment(eq) }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(checked = checked, onCheckedChange = { viewModel.toggleEquipment(eq) })
-                Text(eq.labelPl)
-            }
-        }
-
-        SectionTitle("Wygląd")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            AppTheme.entries.forEach { theme ->
-                FilterPill(
-                    text = theme.labelPl,
-                    selected = settings.themeId == theme.id,
-                    onClick = { viewModel.setTheme(theme.id) },
-                )
-            }
-        }
-        val theme = AppTheme.fromId(settings.themeId)
-        Text(
-            text = theme.opisPl,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        // Tło motywu (D-50): warianty tylko tego motywu, bo każdy gradient liczony jest pod jego karty i napisy.
-        // Bez miniatur, jak przy motywach (D-39): wybór przemalowuje od razu cały ekran, także ten.
-        Text(
-            text = "Tło",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-        )
-        val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            AppBackground.of(theme).forEach { option ->
-                FilterPill(
-                    text = option.labelPl,
-                    selected = option == background,
-                    onClick = { viewModel.setBackground(theme.id, option.id) },
-                )
-            }
-        }
-        if (background.photo) {
-            // Zdjęcie dnia (D-51): aplikacja nie zna płci użytkownika, więc pyta, kogo pokazywać.
-            Text(
-                text = "Na zdjęciach",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-            )
-            val people = PhotoPeople.fromId(settings.photoPeople)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PhotoPeople.entries.forEach { option ->
-                    FilterPill(text = option.labelPl, selected = option == people, onClick = { viewModel.setPhotoPeople(option.id) })
+        ScreenTitle("Ustawienia", modifier = Modifier.padding(bottom = 6.dp))
+        SettingsSection.groups.forEach { group ->
+            CategoryGroup {
+                group.forEachIndexed { index, section ->
+                    if (index > 0) CategoryDivider()
+                    CategoryRow(
+                        icon = section.icon,
+                        title = section.title,
+                        summary = summaryOf(section, state),
+                        accent = if (section == SettingsSection.UPDATES) updatesAccent(state.update) else null,
+                        onClick = { onSelect(section) },
+                        selected = section == selected,
+                        chevron = !twoPane,
+                    )
                 }
             }
         }
         Text(
-            text = if (background.photo) {
-                "Zdjęcie losuje się raz dziennie, w klimacie dzisiejszych treningów ze wszystkich planów. " +
-                    "Karty są wtedy szklane, żeby prześwitywało."
-            } else {
-                "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło."
-            },
+            text = "mysttic-trainings ${state.versionName} · baza ćwiczeń v${settings.seedVersion}. Część danych pochodzi " +
+                "z free-exercise-db (domena publiczna), ilustracje są własne, generowane.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
         )
+    }
+}
 
-        SectionTitle("Odliczanie przed startem")
+private val SettingsSection.icon: ImageVector
+    get() = when (this) {
+        SettingsSection.TRAINING -> AppIcons.Timer
+        SettingsSection.EQUIPMENT -> AppIcons.Exercises
+        SettingsSection.REMINDER -> AppIcons.Bell
+        SettingsSection.APPEARANCE -> AppIcons.Palette
+        SettingsSection.DATA -> AppIcons.Data
+        SettingsSection.UPDATES -> AppIcons.Update
+    }
+
+private fun summaryOf(section: SettingsSection, state: SettingsState): String = when (section) {
+    SettingsSection.TRAINING -> SettingsSummary.training(state.settings)
+    SettingsSection.EQUIPMENT -> SettingsSummary.equipment(state.settings.ownedEquipment)
+    SettingsSection.REMINDER -> SettingsSummary.reminder(state.settings)
+    SettingsSection.APPEARANCE -> SettingsSummary.appearance(state.settings)
+    SettingsSection.DATA -> SettingsSummary.data(state.settings, state.healthAvailable)
+    SettingsSection.UPDATES -> SettingsSummary.updates(state.versionName, state.settings.seedVersion)
+}
+
+private fun updatesAccent(update: UpdateUiState): String? = SettingsSummary.updatesAccent(
+    newVersion = update.release?.version,
+    newDatabase = (update.database as? DatabaseOffer.Available)?.manifest?.version,
+)
+
+@Composable
+private fun SectionBody(section: SettingsSection, state: SettingsState, actions: SettingsActions) {
+    when (section) {
+        SettingsSection.TRAINING -> TrainingSection(state.settings, actions)
+        SettingsSection.EQUIPMENT -> EquipmentSection(state.settings, actions)
+        SettingsSection.REMINDER -> ReminderSection(state.settings, actions)
+        SettingsSection.APPEARANCE -> AppearanceSection(state.settings, actions)
+        SettingsSection.DATA -> DataSection(state, actions)
+        SettingsSection.UPDATES -> UpdatesSection(state, actions)
+    }
+}
+
+@Composable
+private fun TrainingSection(settings: UserSettings, actions: SettingsActions) {
+    SectionTitle("Poziom trudności")
+    DifficultySelector(selected = settings.difficulty, onSelect = actions.setDifficulty)
+    Hint("Skaluje powtórzenia, czas i przerwy we wszystkich treningach; początkujący dostaje łatwiejsze warianty, " +
+        "zaawansowany trudniejsze. Zmienisz go też w trakcie treningu.")
+
+    SectionTitle("Odliczanie przed startem")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(0, 3, 5, 10).forEach { sec ->
+            FilterPill(
+                text = if (sec == 0) "brak" else "$sec s",
+                selected = settings.countdownSec == sec,
+                onClick = { actions.setCountdown(sec) },
+            )
+        }
+    }
+
+    SectionTitle("Sygnały")
+    SwitchRow("Dźwięk", settings.soundEnabled, actions.setSound, "beep 3-2-1 przed każdą serią")
+    SwitchRow("Zapowiedź głosem", settings.ttsEnabled, actions.setTts, "nazwa następnego ćwiczenia")
+    SwitchRow("Wibracja", settings.vibrationEnabled, actions.setVibration)
+    SwitchRow("Nie gaś ekranu", settings.keepScreenOn, actions.setKeepScreenOn, "tylko w trakcie treningu")
+    SwitchRow("Przycisk głośności", settings.volumeKeyDone, actions.setVolumeKeyDone, "potwierdza serię tak jak Zrobione")
+}
+
+/** Sprzęt domowy, a pod nim ergometry (D-44) osobno: tych kreator nie używa, są dla biblioteki i edytorów. */
+@Composable
+private fun EquipmentSection(settings: UserSettings, actions: SettingsActions) {
+    Hint("Zaznacz, co masz w domu. Biblioteka i treningi pokażą, które ćwiczenia są wykonalne, a dla reszty zaproponują zamienniki.")
+    val (ergometers, home) = Equipment.entries.partition { it.ergometer }
+    Spacer(Modifier.height(8.dp))
+    home.forEach { EquipmentRow(it, it in settings.ownedEquipment, actions.toggleEquipment) }
+    SectionTitle("Ergometry")
+    ergometers.forEach { EquipmentRow(it, it in settings.ownedEquipment, actions.toggleEquipment) }
+}
+
+@Composable
+private fun EquipmentRow(equipment: Equipment, checked: Boolean, onToggle: (Equipment) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle(equipment) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle(equipment) })
+        Text(equipment.labelPl, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+private fun ReminderSection(settings: UserSettings, actions: SettingsActions) {
+    var showTimePicker by remember { mutableStateOf(false) }
+    Spacer(Modifier.height(8.dp))
+    SwitchRow(
+        "Codzienne przypomnienie",
+        settings.reminderEnabled,
+        actions.setReminderEnabled,
+        "tylko gdy tego dnia nie było jeszcze treningu",
+    )
+    if (settings.reminderEnabled) {
+        SettingRow(
+            title = "Godzina",
+            value = ReminderSchedule.formatTime(settings.reminderHour, settings.reminderMinute),
+            onClick = { showTimePicker = true },
+        )
+    }
+    if (showTimePicker) {
+        TimePickerDialog(
+            hour = settings.reminderHour,
+            minute = settings.reminderMinute,
+            onDismiss = { showTimePicker = false },
+            onConfirm = { h, m ->
+                actions.setReminderTime(h, m)
+                showTimePicker = false
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppearanceSection(settings: UserSettings, actions: SettingsActions) {
+    SectionTitle("Motyw")
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppTheme.entries.forEach { theme ->
+            FilterPill(text = theme.labelPl, selected = settings.themeId == theme.id, onClick = { actions.setTheme(theme.id) })
+        }
+    }
+    val theme = AppTheme.fromId(settings.themeId)
+    Hint(theme.opisPl)
+
+    // Tło motywu (D-50): warianty tylko tego motywu, bo każdy gradient liczony jest pod jego karty i napisy.
+    // Bez miniatur, jak przy motywach (D-39): wybór przemalowuje od razu cały ekran, także ten.
+    SectionTitle("Tło")
+    val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppBackground.of(theme).forEach { option ->
+            FilterPill(text = option.labelPl, selected = option == background, onClick = { actions.setBackground(theme.id, option.id) })
+        }
+    }
+    if (background.photo) {
+        // Zdjęcie dnia (D-51): aplikacja nie zna płci użytkownika, więc pyta, kogo pokazywać.
+        SectionTitle("Na zdjęciach")
+        val people = PhotoPeople.fromId(settings.photoPeople)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(0, 3, 5, 10).forEach { sec ->
-                FilterPill(
-                    text = if (sec == 0) "brak" else "$sec s",
-                    selected = settings.countdownSec == sec,
-                    onClick = { viewModel.setCountdown(sec) },
-                )
+            PhotoPeople.entries.forEach { option ->
+                FilterPill(text = option.labelPl, selected = option == people, onClick = { actions.setPhotoPeople(option.id) })
             }
         }
+    }
+    Hint(
+        if (background.photo) {
+            "Zdjęcie losuje się raz dziennie, w klimacie dzisiejszych treningów ze wszystkich planów. " +
+                "Karty są wtedy szklane, żeby prześwitywało."
+        } else {
+            "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło."
+        },
+    )
+}
 
-        SectionTitle("Sygnały")
-        SwitchRow("Dźwięk", settings.soundEnabled, viewModel::setSound, "beep 3-2-1 przed każdą serią")
-        SwitchRow("Zapowiedź głosem", settings.ttsEnabled, viewModel::setTts, "nazwa następnego ćwiczenia")
-        SwitchRow("Wibracja", settings.vibrationEnabled, viewModel::setVibration)
-        SwitchRow("Nie gaś ekranu", settings.keepScreenOn, viewModel::setKeepScreenOn, "tylko w trakcie treningu")
-        SwitchRow("Przycisk głośności", settings.volumeKeyDone, viewModel::setVolumeKeyDone, "potwierdza serię tak jak Zrobione")
+@Composable
+private fun DataSection(state: SettingsState, actions: SettingsActions) {
+    val settings = state.settings
+    SectionTitle("Kopia zapasowa")
+    Hint(
+        "Plik JSON z historią, wszystkimi planami (z autorami i notatkami do ćwiczeń), ćwiczeniami i treningami " +
+            "własnymi, pamięcią trenera oraz ustawieniami. Import dokłada brakujące sesje i plany; plany, które już masz, " +
+            "zostają nietknięte razem z treningami, a ustawienia, sprzęt i pamięć trenera wracają z pliku.",
+        top = 0.dp,
+    )
+    Spacer(Modifier.height(10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        PrimaryAction(text = "Eksportuj", onClick = actions.exportBackup, modifier = Modifier.weight(1f), height = 48.dp)
+        SecondaryAction(text = "Importuj", onClick = actions.importBackup, modifier = Modifier.weight(1f), height = 48.dp)
+    }
+    state.backupStatus?.let { status -> StatusText(status.message, status.error) }
 
-        SectionTitle("Przypomnienie")
-        SwitchRow(
-            "Codzienne przypomnienie",
-            settings.reminderEnabled,
-            viewModel::setReminderEnabled,
-            "tylko gdy tego dnia nie było jeszcze treningu",
-        )
-        if (settings.reminderEnabled) {
-            SettingRow(
-                title = "Godzina",
-                value = ReminderSchedule.formatTime(settings.reminderHour, settings.reminderMinute),
-                onClick = { showTimePicker = true },
-            )
+    if (state.healthAvailable) {
+        SectionTitle("Health Connect")
+        SwitchRow("Zapisuj ukończone treningi", settings.healthConnectEnabled, actions.setHealthConnectEnabled)
+        if (settings.healthConnectEnabled && !state.healthGranted) {
+            Hint("Brakuje zgody na zapis treningów. Bez niej aplikacja po prostu nic nie wysyła.", top = 0.dp)
+            Spacer(Modifier.height(8.dp))
+            SecondaryAction(text = "Udziel zgody", onClick = actions.requestHealthPermission, modifier = Modifier.fillMaxWidth(), height = 48.dp)
         }
-        if (showTimePicker) {
-            TimePickerDialog(
-                hour = settings.reminderHour,
-                minute = settings.reminderMinute,
-                onDismiss = { showTimePicker = false },
-                onConfirm = { h, m ->
-                    viewModel.setReminderTime(h, m)
-                    showTimePicker = false
-                },
-            )
-        }
+    }
 
-        if (viewModel.healthAvailable) {
-            SectionTitle("Health Connect")
-            SwitchRow("Zapisuj ukończone treningi", settings.healthConnectEnabled, viewModel::setHealthConnectEnabled)
-            if (settings.healthConnectEnabled && !healthGranted) {
-                Text(
-                    text = "Brakuje zgody na zapis treningów. Bez niej aplikacja po prostu nic nie wysyła.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SecondaryAction(
-                    text = "Udziel zgody",
-                    onClick = { healthPermission.launch(viewModel.healthPermissions) },
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 48.dp,
-                )
+    Spacer(Modifier.height(20.dp))
+    // Lokalny tekst, a nie klucz z ustawień: zapis przycina spacje, więc spacja między imieniem a nazwiskiem
+    // znikałaby w trakcie pisania.
+    var author by rememberSaveable { mutableStateOf<String?>(null) }
+    TextInput(
+        label = "Podpis planów",
+        value = author ?: settings.authorName,
+        onValueChange = { text ->
+            author = text.take(60)
+            actions.setAuthorName(text.take(60))
+        },
+    )
+    Hint("Twoje imię trafia na plany, które wyślesz innym, i na raporty z przebiegu planu. Puste = bez podpisu.")
+}
+
+@Composable
+private fun UpdatesSection(state: SettingsState, actions: SettingsActions) {
+    val settings = state.settings
+    val update = state.update
+    Hint("Zainstalowana wersja: ${state.versionName} · baza ćwiczeń v${settings.seedVersion}")
+    SwitchRow(
+        "Pytaj o nowe wydanie",
+        settings.updateChecks,
+        actions.setUpdateChecks,
+        "raz dziennie: pytanie o numer wersji aplikacji i bazy ćwiczeń na stronie projektu, bez tokenu i bez niczego o tobie",
+    )
+    Spacer(Modifier.height(8.dp))
+    SecondaryAction(
+        text = if (update.checking) "Sprawdzam…" else "Sprawdź teraz",
+        onClick = actions.checkUpdates,
+        modifier = Modifier.fillMaxWidth(),
+        height = 48.dp,
+    )
+    update.release?.let { release ->
+        Spacer(Modifier.height(8.dp))
+        InfoCard {
+            Column {
+                Text("Jest wersja ${release.version}", style = MaterialTheme.typography.titleLarge)
+                val size = UpdateCheck.formatSize(release.assetSize)
+                if (size.isNotEmpty()) {
+                    Text(
+                        text = "Plik do pobrania: $size",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (release.notes.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(release.notes, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.height(12.dp))
+                if (release.assetUrl == null) {
+                    // Wydanie bez pliku dla Androida i tak niesie numer i adres strony (D-33).
+                    Text(
+                        text = "To wydanie nie ma pliku dla Androida. Pobierzesz je ze strony projektu.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    SecondaryAction(
+                        text = "Otwórz stronę projektu",
+                        onClick = actions.openReleasePage,
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 48.dp,
+                    )
+                } else {
+                    PrimaryAction(
+                        text = if (update.downloading) "Pobieram…" else "Pobierz i zainstaluj",
+                        onClick = actions.downloadAndInstall,
+                        enabled = !update.downloading,
+                        height = 48.dp,
+                    )
+                }
             }
         }
-
-        SectionTitle("Aktualizacje")
-        Text(
-            text = "Zainstalowana wersja: ${BuildConfig.VERSION_NAME} · baza ćwiczeń v${settings.seedVersion}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SwitchRow(
-            "Pytaj o nowe wydanie",
-            settings.updateChecks,
-            viewModel::setUpdateChecks,
-            "raz dziennie: pytanie o numer wersji aplikacji i bazy ćwiczeń na stronie projektu, bez tokenu i bez niczego o tobie",
-        )
+    }
+    update.message?.let { StatusText(it, update.error) }
+    DatabaseUpdateCard(offer = update.database, working = update.databaseWorking, onDownload = actions.downloadDatabase)
+    update.databaseMessage?.let { StatusText(it, update.databaseError) }
+    if (state.debug) {
         Spacer(Modifier.height(8.dp))
         SecondaryAction(
-            text = if (update.checking) "Sprawdzam…" else "Sprawdź teraz",
-            onClick = { viewModel.checkUpdates() },
+            text = if (update.databaseWorking) "Wczytuję bazę…" else "Wczytaj bazę ćwiczeń z pliku (debug)",
+            onClick = actions.installDatabaseFromFile,
             modifier = Modifier.fillMaxWidth(),
             height = 48.dp,
-        )
-        update.release?.let { release ->
-            Spacer(Modifier.height(8.dp))
-            InfoCard {
-                Column {
-                    Text("Jest wersja ${release.version}", style = MaterialTheme.typography.titleLarge)
-                    val size = UpdateCheck.formatSize(release.assetSize)
-                    if (size.isNotEmpty()) {
-                        Text(
-                            text = "Plik do pobrania: $size",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (release.notes.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(release.notes, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    if (release.assetUrl == null) {
-                        // Wydanie bez pliku dla Androida i tak niesie numer i adres strony (D-33).
-                        Text(
-                            text = "To wydanie nie ma pliku dla Androida. Pobierzesz je ze strony projektu.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        SecondaryAction(
-                            text = "Otwórz stronę projektu",
-                            onClick = { viewModel.openReleasePage(context) },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 48.dp,
-                        )
-                    } else {
-                        PrimaryAction(
-                            text = if (update.downloading) "Pobieram…" else "Pobierz i zainstaluj",
-                            onClick = viewModel::downloadAndInstall,
-                            enabled = !update.downloading,
-                            height = 48.dp,
-                        )
-                    }
-                }
-            }
-        }
-        update.message?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (update.error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-        DatabaseUpdateCard(
-            offer = update.database,
-            working = update.databaseWorking,
-            onDownload = viewModel::downloadDatabase,
-        )
-        update.databaseMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (update.databaseError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-        if (BuildConfig.DEBUG) {
-            Spacer(Modifier.height(8.dp))
-            SecondaryAction(
-                text = if (update.databaseWorking) "Wczytuję bazę…" else "Wczytaj bazę ćwiczeń z pliku (debug)",
-                onClick = { databaseFile.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
-                modifier = Modifier.fillMaxWidth(),
-                height = 48.dp,
-            )
-        }
-
-        SectionTitle("Plany")
-        Text(
-            text = "Imię trafia na plany, które wyślesz innym, i na raporty z przebiegu planu. Puste = bez podpisu.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(8.dp))
-        // Lokalny tekst, a nie klucz z ustawień: zapis przycina spacje, więc spacja między imieniem a nazwiskiem
-        // znikałaby w trakcie pisania.
-        var author by rememberSaveable { mutableStateOf<String?>(null) }
-        TextInput(
-            label = "Twoje imię",
-            value = author ?: settings.authorName,
-            onValueChange = { text ->
-                author = text.take(60)
-                viewModel.setAuthorName(text.take(60))
-            },
-        )
-
-        SectionTitle("Kopia zapasowa")
-        Text(
-            text = "Plik JSON z historią, wszystkimi planami (z autorami i notatkami do ćwiczeń), ćwiczeniami " +
-                "i treningami własnymi, pamięcią trenera oraz ustawieniami. Import dokłada brakujące sesje i plany; " +
-                "plany, które już masz, zostają nietknięte razem z treningami, a ustawienia, sprzęt i pamięć trenera " +
-                "wracają z pliku.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            PrimaryAction(
-                text = "Eksportuj",
-                onClick = { viewModel.clearStatus(); exportFile.launch(viewModel.suggestedFileName()) },
-                modifier = Modifier.weight(1f),
-                height = 48.dp,
-            )
-            SecondaryAction(
-                text = "Importuj",
-                onClick = { viewModel.clearStatus(); importFile.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                modifier = Modifier.weight(1f),
-                height = 48.dp,
-            )
-        }
-        backupStatus?.let { status ->
-            Text(
-                text = status.message,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (status.error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
-        Text(
-            text = "Baza ćwiczeń v${settings.seedVersion}. Część danych pochodzi z free-exercise-db (domena publiczna), " +
-                "ilustracje są własne, generowane.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -414,14 +549,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 /** Nowsza baza ćwiczeń (D-47): liczby zmian i rozmiar z manifestu albo powód, dla którego ta wersja jej nie wczyta. */
 @Composable
 private fun DatabaseUpdateCard(offer: DatabaseOffer?, working: Boolean, onDownload: () -> Unit) {
-    val note: @Composable (String) -> Unit = { text ->
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-    }
     when (offer) {
         is DatabaseOffer.Available -> {
             Spacer(Modifier.height(8.dp))
@@ -449,12 +576,34 @@ private fun DatabaseUpdateCard(offer: DatabaseOffer?, working: Boolean, onDownlo
                 }
             }
         }
-        is DatabaseOffer.NeedsApp -> note(
+        is DatabaseOffer.NeedsApp -> Hint(
             "Nowa baza ćwiczeń v${offer.version} wymaga aplikacji ${offer.minApp ?: "w nowszej wersji"}: najpierw zaktualizuj aplikację.",
         )
-        is DatabaseOffer.Unreadable -> note("Wydania bazy ćwiczeń v${offer.version} nie da się teraz odczytać. Spróbuj później.")
+        is DatabaseOffer.Unreadable -> Hint("Wydania bazy ćwiczeń v${offer.version} nie da się teraz odczytać. Spróbuj później.")
         DatabaseOffer.UpToDate, null -> Unit
     }
+}
+
+/** Jedno zdanie wyjaśnienia pod ustawieniem: mały tekst w onSurfaceVariant. */
+@Composable
+private fun Hint(text: String, top: androidx.compose.ui.unit.Dp = 8.dp) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = top),
+    )
+}
+
+/** Wynik akcji (eksport, sprawdzenie wydania): błąd w kolorze błędu, sukces w ogniu. */
+@Composable
+private fun StatusText(text: String, error: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
 }
 
 @Composable
@@ -482,3 +631,6 @@ private fun TimePickerDialog(hour: Int, minute: Int, onDismiss: () -> Unit, onCo
         dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj") } },
     )
 }
+
+/** Szerokość listy kategorii obok otwartej kategorii (tablet). */
+private val CATEGORIES_PANE_WIDTH = 400.dp

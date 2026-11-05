@@ -66,6 +66,13 @@ PAIRS = [
     ("tertiary", "surfaceContainer", 4.5, "żar na karcie"),
     ("onTertiary", "tertiary", 4.5, "tekst na żarze („Zastosuj”)"),
     ("primary", "surfaceContainerHigh", 3.0, "wskaźnik nawigacji, pasek „to teraz”"),
+    # D-52: kategorie Ustawień, menu playera, podświetlony wybór na tablecie, pole szukania.
+    ("onSurfaceVariant", "surfaceContainer", 4.5, "streszczenie kategorii, opis na karcie dnia"),
+    ("onSurfaceVariant", "surfaceContainerHigh", 4.5, "opis w menu playera, podświetlony kafelek"),
+    ("onSurfaceVariant", "surfaceContainerHighest", 4.5, "streszczenie wybranej kategorii"),
+    ("tertiary", "surfaceContainerHighest", 4.5, "„Jest wersja” na wybranej kategorii"),
+    ("error", "surfaceContainerHigh", 4.5, "brak sprzętu na podświetlonym kafelku"),
+    ("onSurface", "surfaceContainerLow", 4.5, "tekst w polu szukania"),
 ]
 
 

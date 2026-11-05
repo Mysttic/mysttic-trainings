@@ -32,6 +32,8 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
 ## [1.2.0]
 
 ### Dodane
+- **Zakładka Plany.** Lista planów jest w dolnym pasku, obok „Dziś”: aktywny plan, czekające i zakończone, a w nagłówku
+  „Nowy plan” z czterema drogami — kreator, gotowy program, własny plan i plan z pliku od kogoś (issue #1, D-53).
 - **Tło z gradientem w każdym motywie.** Ustawienia → Wygląd → Tło: obok tła jednolitego każdy motyw ma trzy
   gradienty. „Ogień i Krew”: Żar, Łuna i Wino, „Papier i Ogień”: Świt, Róża i Pergamin, „Stal i Bursztyn”: Granat,
   Głębia i Zmrok. Gradient leży pod wszystkimi ekranami i stoi w miejscu przy przewijaniu, a karty, przyciski
@@ -49,8 +51,20 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
   „(kopia 2)”, „(kopia 3)”. Tak samo nazywa się trening skopiowany z innego planu, gdy plan ma już trening
   o tej nazwie, żeby przy wyborze treningu dnia nie pomylić ich ze sobą.
+- **Tablet: lista i szczegół obok siebie.** Na tablecie w poziomie Ćwiczenia pokazują listę i wybrane ćwiczenie naraz,
+  Ustawienia — kategorie i otwartą kategorię, a „Dziś” ma dwie kolumny (D-52).
 
 ### Zmienione
+- **Nowy wygląd (issue #5, D-52).** Projekt powstał w designerze, motywy, tła i kolory zostają, zmienia się układ:
+  - nawigacja z ikonami, pięć zakładek;
+  - „Dziś” na start pokazuje dwa wybory zamiast pustych statystyk, a karta treningu ma miniatury ćwiczeń; statystyki
+    stoją pod kartą, gdy jest już jakaś historia;
+  - w bibliotece nad listą jest tylko szukanie z przyciskiem filtrów; „Tylko mój sprzęt” i widok kafelki / lista są
+    w panelu filtrów, a wyniki, warianty, zamienniki i trener w szczegółach ćwiczenia zwijają się do jednej linii;
+  - Ustawienia to sześć kategorii z podsumowaniem zamiast jednej długiej strony; motyw, tło i osoby na zdjęciu dnia
+    są razem w „Wygląd”;
+  - player jest prostszy: nazwa ćwiczenia dużym tytułem, poziom trudności i „Przerwij trening” w menu ⋮, a Wstecz,
+    Pauza i Pomiń jako ciche przyciski z ikoną.
 - **Nowy plan własny zaczyna od celów dokładnie takich, jak wpisane.** Przełącznik „Dopasowuj cele do poziomu
   i trenera” jest w nowym planie wyłączony, więc plan dla kogoś nie wymaga już pamiętania o nim przed „Wyślij plan”.
   W planie dla siebie, który ma rosnąć z poziomem, trenerem i „Podbij cele”, włączasz go jednym ruchem.
@@ -69,6 +83,12 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
 - **Kod jest publiczny.** Repozytorium zaczyna od stanu 1.1.0, bez wcześniejszej historii (D-48). Kod jest
   na licencji MIT, a baza ćwiczeń (nazwy, opisy, instrukcje i ilustracje) na CC BY 4.0. W samej aplikacji
   nic się nie zmienia.
+
+### Poprawione
+- **Ilustracje ćwiczeń przy ciemnym motywie i jasnym systemie.** Filtr ilustracji brał tryb systemu zamiast motywu,
+  więc „Ogień i Krew” przy jasnym systemie pokazywał ilustracje białe jak kartka. Ilustracje mają też swoje proporcje,
+  bez pasów tła u góry i po bokach.
+- **Podwójna kropka w „Podbij cele”** („9 powt..”).
 
 ## [1.1.0]
 

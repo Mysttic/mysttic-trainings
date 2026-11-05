@@ -1080,3 +1080,73 @@ a `pick` losuje jeden z wagą liczby ćwiczeń, potem zdjęcie tematu, z ziarnem
 przez dzień i nie zmienia się po zrobionym treningu, bo zrobiony trening zostaje w składzie dnia. Dzień bez treningów
 losuje z wszystkich zdjęć. Żaden napis w aplikacji nie mówi o partii dnia; opis w Ustawieniach mówi tylko o „klimacie
 dzisiejszych treningów”.
+
+## D-52 Nowy interfejs: mniej na start, szczegóły schowane, tablet w dwóch panelach (2026-11-05, wersja 1.2.0)
+
+Kontekst: issue #5 (właściciel, 2026-11-05): motywy są, ale aplikacja jest mało atrakcyjna i na start pokazuje za dużo;
+interfejs do przebudowy w designerze, z lepiej schowanymi elementami sekcji ćwiczeń i ustawień, lepszym wyglądem na tabletach
+i prostszym ekranem ćwiczeń. Stan kodu: „Dziś” pokazywało statystyki także przed pierwszym treningiem, nad biblioteką stały
+przełącznik widoku, „Filtry”, „Mój sprzęt” i licznik, Ustawienia były jedną stroną z dwunastoma sekcjami, player trzymał
+nad liczbą wybór poziomu, a pod przyciskami drugi rząd i „Przerwij trening”. `AppLayout.twoPane` z D-42 istniał, ale żaden
+ekran go nie używał: tablet w poziomie dostawał wąską kolumnę pośrodku.
+
+Decyzja: projekt powstał w designerze (canvas „mysttic-trainings: nowy interfejs”, telefon i tablet), a kod idzie za nim.
+Kolory, krój Sora, trzy motywy (D-39) i reguły D-32 (ogień = akcja, żar = informacja, elewacje zerowe) zostają. Zmienia się
+struktura:
+- **Nawigacja z ikonami.** Własne ikony kreskowe 24 × 24 w `ui/common/AppIcons.kt` (`ImageVector` ze ścieżek SVG,
+  te same co w projekcie), bo `material-icons-core` (D-13) nie ma hantla, pauzy ani „pomiń”. Wskaźnik 34 × 4 dp nad aktywną
+  zostaje. Zmienia zdanie z D-32 „dolna nawigacja jest bez ikon”.
+- **„Dziś” mówi mniej na start.** Przed pierwszym planem: trzy ilustracje, jedno zdanie i dwa wybory (kreator jako akcja,
+  gotowy program na stopniu karty). Statystyki schodzą pod kartę i pojawiają się dopiero z historią. Karta dnia dostaje pasek
+  miniatur ćwiczeń (ćwiczenia pokazane, D-43), a „Co jest w treningu” i „Zobacz plan” są cichymi odsyłaczami zamiast
+  drugiego rzędu przycisków. Tablet w poziomie: karta po lewej, tydzień po prawej. Dalej jeden trening na ekranie (D-26).
+- **Ćwiczenia.** Nad listą tylko tytuł i pole szukania z lejkiem; „Tylko mój sprzęt”, widok kafelki / lista i chipy w panelu
+  (D-38: panel dalej rozwija się w siatce, bez arkusza), licznik i „Wyczyść filtry” tylko przy aktywnym filtrze.
+  `LibraryFilter.panelCount` liczy zaznaczenia razem z „Mój sprzęt”. Szczegół ćwiczenia: ilustracja, znaczniki partii
+  i sprzętu, instrukcja; wyniki, warianty, zamienniki i trener w zwijanych wierszach ze streszczeniem.
+- **Ustawienia** to sześć kategorii (Trening, Mój sprzęt, Przypomnienie, Wygląd, Dane i kopia, Aktualizacje) ze streszczeniem
+  stanu (`SettingsSummary`, czysty Kotlin z testem); kategoria jest podstroną tej samej zakładki, bez nowej trasy.
+- **Player**: pozycja w żarze nad nazwą, nazwa dużym tytułem (z półtora metra czyta się nazwę, nie wersaliki 11 sp), liczba,
+  ilustracja i jedna akcja. Poziom (dalej zmienny w każdej chwili, D-06) i „Przerwij trening” w arkuszu pod ⋮; Wstecz,
+  Pauza i Pomiń jako ciche przyciski z ikoną. Liczby playera bez zmian (D-32).
+- **Tablet**: `TwoPane` z D-42 wchodzi w Ćwiczenia (lista 460 dp + szczegół w tym samym `ExerciseDetailViewModel`, który
+  dostał wybór przez `select`, a z trasy bierze id z `SavedStateHandle`) i w Ustawienia (kategorie 400 dp + kategoria).
+- **Ilustracje** w swoich proporcjach (`ExerciseIllustration`), bez pasów tła, a filtr zdjęć idzie za jasnością motywu,
+  nie za trybem systemu — przy jasnym systemie i ciemnym motywie ilustracje były białe jak kartka (luka po D-39).
+- Ekrany główne mają bezstanowe `*Content` z akcjami w osobnej klasie, a `LayoutScreenshotTest` rysuje je z fiksturami
+  na telefonie i tablecie (zapowiedziany w D-42), z paskiem albo szyną.
+- **Tło i szkło zostają** (D-50, D-51): nowe karty (grupy kategorii, wybory na „Dziś”, znaczniki) biorą `cardColor()`,
+  ekrany `ScreenScaffold`, a obrysowane elementy są przezroczyste, więc gradient i zdjęcie dnia przechodzą przez nowy
+  układ jak przez stary. Kategoria Wygląd w Ustawieniach zbiera motyw, tło i osoby na zdjęciu dnia, a jej streszczenie
+  dopisuje tło, gdy nie jest jednolite.
+
+Odrzucone: nowa paleta (motywy były dobre, problemem była struktura); `material-icons-extended` (kilka megabajtów dla
+kilkunastu ikon, D-13); arkusz dolny na filtry biblioteki (D-38: rozwijany panel był prośbą wprost); osobne trasy dla kategorii
+Ustawień (pasek nawigacji zniknąłby na podstronie); dwa panele także dla Historii i planów (osobny krok, wymaga szczegółu
+sesji i planu w panelu).
+
+Konsekwencje: `tools/check_contrast.py` i `ThemeContractTest` dostały sześć par używanych przez nowe komponenty
+(streszczenia na kartach, menu playera, podświetlony wybór, pole szukania) — wszystkie trzy motywy je trzymają.
+Skrypty `tools/przebieg_biblioteka.py` i `tools/przebieg_preset.py` szukają filtrów, widoku i „Przerwij trening” w nowych
+miejscach. Zrzuty w `docs/screenshots` pokazują wygląd sprzed D-52 do następnego przejścia na emulatorze; aktualny układ
+rysuje `LayoutScreenshotTest`. Historia, kreator, edytory i podgląd planu dostają tylko wspólne elementy (nawigacja, ikony,
+filtr zdjęć) — ich przebudowa to następny krok.
+
+## D-53 Plany w głównej nawigacji z „Nowy plan” (2026-11-05, wersja 1.2.0)
+
+Kontekst: issue #1 (przeniesione z archiwum, D-48): lista planów ma pozwalać na zarządzanie wieloma planami i dodanie planu
+wprost z niej, a „na głównym oknie”. Od D-42 lista istniała, ale jako osobny ekran za cichym odsyłaczem na „Dziś”, którego
+w trakcie cyklu nie było (wejście przez podgląd planu). Dwie uwagi z przejścia poradnika trenera rozwiązało D-49 (plan
+własny startuje dosłownie, „×2” przy treningu planu). Właściciel (2026-11-05): uwzględnić to issue w nowym interfejsie (D-52).
+
+Decyzja: **Plany** to piąta zakładka (Dziś, Plany, Ćwiczenia, Historia, Ustawienia) — cofnięcie odrzucenia „na razie”
+z D-42. „Dziś” zostaje jednym treningiem (D-26), a lista jest jedno tapnięcie obok. Nagłówek listy ma „Nowy plan” (akcja
+w ogniu) z czterema drogami w arkuszu: kreator, gotowy program, własny plan, plan z pliku; bez żadnego planu te same cztery
+stoją od razu na liście. Odsyłacze „Twoje plany” z „Dziś” znikają (zostaje jeden cichy przycisk przed pierwszym planem),
+a „Twoje plany” z menu podglądu planu przełącza zakładkę.
+
+Odrzucone: lista planów na samym „Dziś” (łamie D-26 i cel D-52, żeby na start było mniej); przełącznik planów w nagłówku
+„Dziś” (drugi sposób na to samo co zakładka).
+
+Konsekwencje: pięć pozycji w pasku i szynie (etykiety mieszczą się od 360 dp szerokości); `TodayViewModel.planCount`
+znika. Poradnik trenera i przewodnik opisują nową ścieżkę: Plany → Nowy plan → Własny plan.

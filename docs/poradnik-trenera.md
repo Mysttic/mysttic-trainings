@@ -2,29 +2,28 @@
 
 Jak w Mysttic Trainings ułożyć plan dla klienta i wysłać mu go jako plik. Przykład przez cały poradnik: **Full body,
 3 treningi w tygodniu przez 4 tygodnie**, z dwoma treningami na zmianę (A siłowy, B w obwodzie). Ułożenie takiego planu
-zajmuje kilkanaście minut. Opis dotyczy wersji 1.2.0. W 1.1.0 i starszych nowy plan startuje
-z włączonym przełącznikiem „Dopasowuj cele do poziomu i trenera” (wyłącz go, krok 2), a przy treningu planu
-nie ma „×2” (drugi trening układasz przez **Nowy trening**).
+zajmuje kilkanaście minut. Opis dotyczy wersji 1.2.0 (zakładka **Plany** w dolnym pasku). W 1.1.0 i starszych
+plany są pod „Dziś → Twoje plany”, nowy plan startuje z włączonym przełącznikiem „Dopasowuj cele do poziomu
+i trenera” (wyłącz go, krok 2), a przy treningu planu nie ma „×2” (drugi trening układasz przez **Nowy trening**).
 
 Plan układasz w aplikacji na swoim telefonie. Klient dostaje plik, otwiera go w swojej aplikacji i ćwiczy dokładnie
 to, co wpisałeś. Po kilku tygodniach może odesłać Ci raport PDF z przebiegu planu.
 
 ## Zanim zaczniesz
 
-- **Podpis.** W **Ustawienia → Plany → Twoje imię** wpisz imię albo nazwę, pod którą pracujesz. Klient zobaczy ją
+- **Podpis.** W **Ustawienia → Dane i kopia → Podpis planów** wpisz imię albo nazwę, pod którą pracujesz. Klient zobaczy ją
   na karcie planu („Od: …”) i w nagłówku raportu PDF. Puste pole = plan bez podpisu.
 - **Ćwiczenia są z biblioteki aplikacji** (ok. 280, każde z ilustracją i opisem krok po kroku). Własnych ćwiczeń
   się nie dopisuje. Zanim zaczniesz, przejrzyj zakładkę **Ćwiczenia**: filtry po partii mięśni i sprzęcie pokażą,
   z czego możesz składać plan.
-- **Sprzęt klienta.** Wyszukiwarka ćwiczeń ma filtr **Tylko mój sprzęt**, który bierze sprzęt zaznaczony u Ciebie
-  w Ustawieniach. Układając plan dla kogoś z innym sprzętem, zostaw filtr wyłączony; ćwiczenie oznaczone „Nie masz tego
+- **Sprzęt klienta.** Panel filtrów biblioteki (lejek w polu szukania) ma przełącznik **Tylko mój sprzęt**, który bierze
+  sprzęt zaznaczony u Ciebie w Ustawieniach. Układając plan dla kogoś z innym sprzętem, zostaw filtr wyłączony; ćwiczenie oznaczone „Nie masz tego
   sprzętu” i tak trafi do planu. Klient przy wczytaniu pliku zobaczy, jakiego sprzętu z planu nie zaznaczył.
 
 ## Krok 1. Nowy plan
 
-1. Na ekranie **Dziś** tapnij **Twoje plany**. Gdy masz aktywny plan w trakcie, odsyłacza na „Dziś” nie ma:
-   wejdź w **Zobacz plan**, a tam w **Twoje plany**.
-2. Na dole listy tapnij **Ułóż własny plan**.
+1. W dolnym pasku tapnij zakładkę **Plany**.
+2. Tapnij **Nowy plan** w nagłówku, a potem **Własny plan**.
 3. **Nazwa planu**: zamiast domyślnego „Nowy plan” wpisz nazwę, którą klient rozpozna, na przykład
    „Full body 3× w tygodniu, Ania”.
 4. **Opis (dla kogo, jak ćwiczyć)**: dla kogo jest plan, jak się rozgrzać, jak dobierać ciężar, co robić przy bólu.
@@ -62,7 +61,9 @@ niż wpisałeś.
 
 ## Krok 4. Trening B: blok obwodu
 
-1. Znowu **Nowy trening**, nazwa na przykład „B: obwód”.
+1. Znowu **Nowy trening**, nazwa na przykład „B: obwód”. Jeśli B ma być podobny do A, tapnij zamiast tego **×2**
+   przy treningu A: kopia („A: siła (kopia)”) stanie na liście treningów planu, a w jej edytorze zostaje tylko
+   zmienić nazwę i podmienić ćwiczenia.
 2. Tapnij **Blok obwodu**. W obwodzie klient robi po jednej serii każdego ćwiczenia po kolei, a całość powtarza
    tyle razy, ile ustawisz w **Rundy**. Między rundami jest **Przerwa między rundami**, a po każdym ćwiczeniu
    **Przerwa po ćwiczeniu w rundzie**.
@@ -122,7 +123,7 @@ z Twoich sesji. Ekran wysyłki przypomina, jeśli nie ustawiłeś podpisu.
 
 1. Instaluje Mysttic Trainings (strona: <https://mysttic.github.io/Mysttic/mysttic-trainings/>).
 2. Otwiera plik prosto z komunikatora, maila albo Plików („Otwórz za pomocą” → Mysttic Trainings) albo przez
-   **Twoje plany → Wczytaj plan z pliku**.
+   zakładkę **Plany → Nowy plan → Plan z pliku**.
 3. Podgląd pokazuje treningi, autora i sprzęt z planu, którego klient nie zaznaczył u siebie. **Dodaj do planów**
    dopisuje plan do listy.
 4. W podglądzie planu tapnie **Ustaw jako aktywny**. Od tej chwili ekran „Dziś” podaje mu kolejne treningi z planu.
@@ -147,7 +148,7 @@ Postęp ze starego planu zostaje w jego historii i statystykach, nowy plan liczy
 
 | Chcesz | Gdzie |
 |---|---|
-| Nowy plan | Dziś → Twoje plany → Ułóż własny plan |
+| Nowy plan | Plany → Nowy plan → Własny plan |
 | Liczby dokładnie jak wpisane | przełącznik „Dopasowuj cele do poziomu i trenera” wyłączony (tak startuje nowy plan) |
 | Trening B na wzór A | ×2 przy treningu A, potem zmiana kopii |
 | Serie jednego ćwiczenia po kolei | Blok serii |

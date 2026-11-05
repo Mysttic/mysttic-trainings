@@ -3,9 +3,11 @@ package pl.mysttic.trainings.ui.library
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -20,7 +22,6 @@ import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.domain.stats.ExerciseRecord
 import pl.mysttic.trainings.domain.stats.ProgressStats
-import pl.mysttic.trainings.ui.navigation.ExerciseDetailRoute
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -50,22 +51,43 @@ class ExerciseDetailViewModel @Inject constructor(
     private val coachRepo: CoachRepository,
 ) : ViewModel() {
 
-    private val route = savedStateHandle.toRoute<ExerciseDetailRoute>()
     private val zone: ZoneId = ZoneId.systemDefault()
+
+    /**
+     * Ćwiczenie na ekranie. Z trasy `ExerciseDetailRoute` przychodzi od razu; w bibliotece na tablecie (D-52) ten sam
+     * ViewModel siedzi w panelu szczegółu i dostaje wybór przez [select]. Klucz w `SavedStateHandle` to nazwa pola
+     * trasy, więc wybór w panelu przetrwa też odtworzenie procesu.
+     */
+    private val selectedId = savedStateHandle.getStateFlow<String?>(KEY_EXERCISE_ID, null)
+
+    /** Id wybranego ćwiczenia; null = panel jeszcze nic nie pokazuje. */
+    val selected: StateFlow<String?> get() = selectedId
+
+    private val handle = savedStateHandle
+
+    fun select(exerciseId: String) {
+        handle[KEY_EXERCISE_ID] = exerciseId
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val logsForSelected = selectedId.flatMapLatest { id ->
+        if (id == null) flowOf(emptyList()) else sessionRepo.observeSetLogsForExercise(id)
+    }
 
     val uiState: StateFlow<ExerciseDetailUiState> = combine(
         exerciseRepo.observeAll(),
         settingsRepo.settings,
-        sessionRepo.observeSetLogsForExercise(route.exerciseId),
+        selectedId,
+        logsForSelected,
         coachRepo.observeAll(),
-    ) { all, settings, logs, tuning ->
+    ) { all, settings, id, logs, tuning ->
         val byId = all.associateBy { it.id }
-        val exercise = byId[route.exerciseId]
+        val exercise = id?.let { byId[it] }
         if (exercise == null) {
             ExerciseDetailUiState(loading = false)
         } else {
             val missing = exercise.missingEquipment(settings.ownedEquipment)
-            val history = ProgressStats.exerciseHistory(logs, route.exerciseId) {
+            val history = ProgressStats.exerciseHistory(logs, exercise.id) {
                 LocalDate.ofInstant(Instant.ofEpochMilli(it), zone)
             }
             ExerciseDetailUiState(
@@ -78,17 +100,24 @@ class ExerciseDetailViewModel @Inject constructor(
                 substitutes = if (missing.isEmpty()) emptyList() else EquipmentMatcher.substitutes(exercise, all, settings.ownedEquipment),
                 history = history,
                 personalBest = ProgressStats.personalBest(history),
-                tuning = tuning[route.exerciseId],
+                tuning = tuning[exercise.id],
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExerciseDetailUiState())
 
     /** Trener (D-35): wykluczenie z planów albo jego cofnięcie. */
     fun setExcluded(excluded: Boolean) {
-        viewModelScope.launch { coachRepo.setExcluded(route.exerciseId, excluded) }
+        val id = selectedId.value ?: return
+        viewModelScope.launch { coachRepo.setExcluded(id, excluded) }
     }
 
     fun resetTuning() {
-        viewModelScope.launch { coachRepo.resetDeltas(route.exerciseId) }
+        val id = selectedId.value ?: return
+        viewModelScope.launch { coachRepo.resetDeltas(id) }
+    }
+
+    private companion object {
+        /** Nazwa pola w [ExerciseDetailRoute]: pod nią Navigation zapisuje argument trasy. */
+        const val KEY_EXERCISE_ID = "exerciseId"
     }
 }
