@@ -14,7 +14,8 @@ Gradle podpina baza/ jako assety APK, a wydanie bazy pakuje ten sam katalog do Z
   python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE  # zdjęcie tła (D-51): kadr, szarość, rozmycie, do baza/tla/
 
 Edytor to kartoteka z tools/przeglad.html z trybem edycji: dodawanie ćwiczenia z ilustracją, edycja pól, wycofanie
-z datą, szkice, paczki z generatora i podbicie numeru. Zapisuje prosto do baza/ i tools/szkice/, niczego nie
+z datą, szkice, paczki z generatora, zdjęcia tła (dodawanie, podmiana, usuwanie, podgląd w kolorach motywów)
+i podbicie numeru. Zapisuje prosto do baza/ i tools/szkice/, niczego nie
 commituje. Słucha tylko na 127.0.0.1 i przyjmuje zapis wyłącznie z własnej strony.
 
 Szkice (tools/szkice/) to ilustracje i definicje, które jeszcze nie weszły do bazy, więc nie jadą do aplikacji.
@@ -73,6 +74,10 @@ TLO_ROZMYCIE = 4  # promień Gaussa przy 360 px: sylwetka czytelna, szczegóły 
 TLO_MAX_BAJTOW = 60_000
 TLO_NAZWY = {"CORE": "brzuch", "LEGS": "nogi", "UPPER": "gora", "FULL_BODY": "calosc", "CARDIO": "kardio", "YOGA": "joga"}
 TLO_PLEC = {"FEMALE": "k", "MALE": "m"}
+TLO_KOLEJNOSC = ["CORE", "LEGS", "UPPER", "FULL_BODY", "CARDIO", "YOGA"]  # jak `PhotoTopic`, też kolejność w edytorze
+TLO_ETYKIETY = {"CORE": "Brzuch", "LEGS": "Nogi", "UPPER": "Góra ciała", "FULL_BODY": "Całe ciało", "CARDIO": "Kardio",
+                "YOGA": "Joga", "FEMALE": "kobieta", "MALE": "mężczyzna"}
+MOTYWY_KT = "app/src/main/java/pl/mysttic/trainings/ui/theme/Themes.kt"
 STARY_PLIK = "app/src/main/assets/seed/exercises.json"
 STARE_OBRAZY = "app/src/main/assets/seed/images"
 
@@ -894,6 +899,39 @@ def cmd_tlo(args):
     print("Zmieniła się treść bazy, więc przed wydaniem: python tools/baza.py podbij")
 
 
+def usun_tlo_z_bazy(tlo_id):
+    """Usunięcie zdjęcia tła. Ostatniego zdjęcia tematu i płci nie ruszamy: baza przestałaby przechodzić reguły,
+    a aplikacja straciłaby zdjęcie dla tego dnia i wyboru z Ustawień. Takie zdjęcie się podmienia."""
+    tla = wczytaj_tla() or {"photos": []}
+    po_id = {z["id"]: z for z in tla["photos"]}
+    if tlo_id not in po_id:
+        raise ValueError(f"nie ma zdjęcia {tlo_id}")
+    z = po_id[tlo_id]
+    if not any(x["id"] != tlo_id and x["topic"] == z["topic"] and x["sex"] == z["sex"] for x in tla["photos"]):
+        etykieta = f"{TLO_ETYKIETY.get(z['topic'], z['topic'])} / {TLO_ETYKIETY.get(z['sex'], z['sex'])}"
+        raise ValueError(f"{tlo_id} to ostatnie zdjęcie: {etykieta}; podmień je albo najpierw dodaj inne")
+    tla["photos"] = [x for x in tla["photos"] if x["id"] != tlo_id]
+    zapisz_plik(TLA_PLIK, json_tekst(tla))
+    sciezka = os.path.join(TLA, f"{tlo_id}.jpg")
+    if os.path.isfile(sciezka):
+        os.remove(sciezka)
+
+
+def pasma_motywow():
+    """Pasma zdjęcia dnia z Backgrounds.kt z nazwami motywów, do podglądu w edytorze: [{id, nazwa, low, high}].
+    Te same wartości, które bierze `PhotoBand` w aplikacji, więc podgląd pokazuje zdjęcie tak, jak zobaczy je telefon."""
+    try:
+        import check_contrast  # tools/ jest na ścieżce, tak jak przy przeglad.py
+        tekst_palety = "\n".join(f.read_text(encoding="utf-8") for f in check_contrast.PALETTE_FILES if f.exists())
+        pasma = check_contrast.parse_photo_bands(check_contrast.BACKGROUNDS.read_text(encoding="utf-8"),
+                                                 check_contrast.parse_palette(tekst_palety))
+        with open(os.path.join(ROOT, MOTYWY_KT), encoding="utf-8") as f:
+            nazwy = dict(re.findall(r'(\w+)\("[a-z]+",\s*"([^"]+)"', f.read()))
+    except (OSError, ImportError, KeyError):
+        return []
+    return [dict(id=motyw.lower(), nazwa=nazwy.get(motyw, motyw), low=low, high=high) for motyw, _, low, high, _ in pasma]
+
+
 # --- wydanie bazy --------------------------------------------------------------------------------------------
 
 PROJEKT = "mysttic-trainings"
@@ -1050,8 +1088,46 @@ def dane_strony():
         szkice=szkice,
         pillow=pillow,
         dzis=dzis(),
+        tla=dane_tla(adres),
     )
     return strona
+
+
+def dane_tla(adres):
+    """Sekcja „Zdjęcia tła” (D-51): zdjęcia z tla.json z adresami podglądu, tematy w kolejności z aplikacji i pasma motywów."""
+    tla = wczytaj_tla() or {"photos": []}
+    tematy, plcie = znane_tematy()
+    zdjecia = []
+    for z in tla.get("photos", []):
+        if not isinstance(z, dict) or not isinstance(z.get("id"), str):
+            continue
+        sciezka = os.path.join(TLA, f"{z['id']}.jpg")
+        zdjecia.append(dict(id=z["id"], temat=z.get("topic"), plec=z.get("sex"),
+                            obraz=adres(f"tla/{z['id']}.jpg", sciezka) if os.path.isfile(sciezka) else None))
+    return dict(
+        zdjecia=zdjecia,
+        tematy=[t for t in TLO_KOLEJNOSC if t in tematy] + sorted(tematy - set(TLO_KOLEJNOSC)),
+        plcie=[p for p in ("FEMALE", "MALE") if p in plcie] + sorted(plcie - {"FEMALE", "MALE"}),
+        etykiety=TLO_ETYKIETY,
+        pasma=pasma_motywow(),
+    )
+
+
+def zapisz_tlo(cialo):
+    """Zdjęcie tła z edytora: nowe (temat i płeć z formularza) albo podmiana istniejącego, która zostawia jego id,
+    temat i płeć, bo id mówi, co jest na zdjęciu. Obróbka ta sama co w `tools/baza.py tlo`."""
+    obraz = dekoduj_obraz(cialo.get("obraz"))
+    if obraz is None:
+        raise Odmowa("brak zdjęcia")
+    tlo_id = cialo.get("id") or None
+    temat, plec = cialo.get("temat"), cialo.get("plec")
+    if tlo_id is not None:
+        istniejace = {z["id"]: z for z in (wczytaj_tla() or {"photos": []})["photos"]}
+        if tlo_id not in istniejace:
+            raise Odmowa(f"nie ma zdjęcia {tlo_id}")
+        temat, plec = istniejace[tlo_id]["topic"], istniejace[tlo_id]["sex"]
+    tlo_id, rozmiar = dodaj_tlo(obraz, temat, plec, tlo_id)
+    return {"id": tlo_id, "rozmiar": rozmiar}
 
 
 class Odmowa(Exception):
@@ -1197,9 +1273,9 @@ class Edytor(http.server.BaseHTTPRequestHandler):
             return self._wyslij(200, "text/html; charset=utf-8", html.encode("utf-8"))
         if sciezka == "/api/dane":
             return self._json(200, dane_strony())
-        m = re.fullmatch(r"/(images|szkice)/([a-z0-9]+(?:-[a-z0-9]+)*)\.jpg", sciezka)
+        m = re.fullmatch(r"/(images|szkice|tla)/([a-z0-9]+(?:-[a-z0-9]+)*)\.jpg", sciezka)
         if m:
-            dane = obraz_z_dysku(m.group(2), OBRAZY if m.group(1) == "images" else SZKICE)
+            dane = obraz_z_dysku(m.group(2), {"images": OBRAZY, "szkice": SZKICE, "tla": TLA}[m.group(1)])
             if dane is not None:
                 return self._wyslij(200, "image/jpeg", dane, cache=True)
         self._json(404, {"bledy": ["nie ma takiej strony"]})
@@ -1222,6 +1298,8 @@ class Edytor(http.server.BaseHTTPRequestHandler):
             "/api/szkic": zapisz_szkic,
             "/api/szkic/usun": lambda c: (usun_szkic(str(c.get("id"))), {"id": c.get("id")})[1],
             "/api/wycofaj": wycofaj,
+            "/api/tlo": zapisz_tlo,
+            "/api/tlo/usun": lambda c: (usun_tlo_z_bazy(str(c.get("id"))), {"id": c.get("id")})[1],
             "/api/podbij": lambda c: {"version": podbij((c.get("minApp") or "").strip() or None)[1]["version"]},
             "/api/partia": lambda c: dict(zip(("podmienione", "doSzkicow", "pominiete"),
                                               wczytaj_partie(dekoduj_obraz(c.get("zip")) or b""))),
@@ -1242,7 +1320,7 @@ class Edytor(http.server.BaseHTTPRequestHandler):
 def cmd_edytor(args):
     serwer = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), Edytor)
     adres = f"http://127.0.0.1:{serwer.server_port}/"
-    print(f"Edytor bazy: {adres} (Ctrl+C kończy). Zmiany lądują w baza/ i tools/szkice/, commit robisz sam.")
+    print(f"Edytor bazy: {adres} (Ctrl+C kończy). Zmiany lądują w baza/ i tools/szkice/, commit robisz sam.")  # baza/ to też tla/
     if not args.bez_otwierania:
         webbrowser.open(adres)
     try:

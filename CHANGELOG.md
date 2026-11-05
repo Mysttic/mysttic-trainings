@@ -42,6 +42,9 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
   (kobieta, mężczyzna albo oboje). Zdjęcie zmienia się raz dziennie i z kolejnym treningiem, a nie z ekranu na ekran.
   Karty są przy nim szklane, żeby zdjęcie prześwitywało, a napisy i obrysy przycisków trzymają ten sam kontrast co
   zawsze. Zdjęcia przychodzą z bazą ćwiczeń 11.
+- **Zdjęcia tła w edytorze bazy (dla właściciela).** `python tools/baza.py` ma sekcję „Zdjęcia tła”: dodawanie
+  zdjęcia z tematem i płcią, podmiana w to samo miejsce, usuwanie i podgląd w kolorach każdego motywu, takich jak
+  w aplikacji. Edytor sam kadruje zdjęcie pod telefon, odbarwia je i rozmywa.
 - **Kopia treningu w edytorze planu.** „×2” przy treningu planu dokłada jego kopię, więc drugi trening układasz
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
   „(kopia 2)”, „(kopia 3)”. Tak samo nazywa się trening skopiowany z innego planu, gdy plan ma już trening

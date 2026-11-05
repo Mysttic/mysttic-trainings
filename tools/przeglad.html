@@ -348,6 +348,17 @@
   .draft img, .draft .ph { flex: 0 0 96px; width: 96px; aspect-ratio: 3 / 2; border-radius: 8px; object-fit: cover; background: #fff; }
   .draft .ph { display: grid; place-items: center; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-size: 11px; text-align: center; }
   .draft .grow { flex: 1 1 auto; min-width: 0; }
+  /* Zdjęcia tła (D-51): kadr telefonu 360×780, podgląd w kolorach motywu przez filtr SVG z pasmem aplikacji. */
+  .tla { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
+  .tlo { position: relative; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .tlo.over { border-color: var(--fire); }
+  .tlo img, .tlo .ph { display: block; width: 100%; aspect-ratio: 360 / 780; border-radius: 8px; object-fit: cover; background: #000; }
+  .tlo .ph { display: grid; place-items: center; color: var(--muted); font-size: 11px; background: transparent; border: 1px dashed var(--line); }
+  .tlo .pid { margin: 6px 2px 0; }
+  .tlo .actions { margin-top: 6px; gap: 6px; }
+  .tlo .actions > * { padding: 4px 8px; font-size: 12px; }
+  .tlo-add { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .tlo-add .drop { grid-column: 1 / -1; aspect-ratio: auto; min-height: 96px; margin-top: 0; }
 
   @media (max-width: 720px) {
     .panel, .panel.wide { width: 100%; border-left: none; }
@@ -439,6 +450,7 @@
     EDIT && [count("status", "nowe"), `nowych od ${EDIT.ref}`, () => only("status", "nowe")],
     [count("status", "wycofane"), "wycofanych", () => only("status", "wycofane")],
     EDIT && [EDIT.szkice.length, "szkiców", () => openDrafts()],
+    EDIT && EDIT.tla && [EDIT.tla.zdjecia.length, "zdjęć tła", () => openBackgrounds()],
   ].filter(Boolean).forEach(([n, label, fn]) => {
     const b = el("button", { type: "button" }, [el("b", { textContent: String(n) }), el("span", { textContent: label })]);
     b.onclick = fn;
@@ -693,6 +705,8 @@
     add.onclick = () => openForm(null);
     const drafts = el("button", { type: "button", className: "ghost", textContent: `Szkice (${EDIT.szkice.length})` });
     drafts.onclick = () => openDrafts();
+    const photos = el("button", { type: "button", className: "ghost", textContent: `Zdjęcia tła (${EDIT.tla.zdjecia.length})` });
+    photos.onclick = () => openBackgrounds();
     const bump = el("button", {
       type: "button",
       className: "ghost",
@@ -705,7 +719,7 @@
       textContent: EDIT.bledy.length ? `Błędy: ${EDIT.bledy.length}` : "Reguły bazy: bez błędów",
     });
     st.onclick = () => openStatus();
-    bar.append(add, drafts, bump, st, ...EDIT.uwagi.map(u => el("p", { className: "note", textContent: u })));
+    bar.append(add, drafts, photos, bump, st, ...EDIT.uwagi.map(u => el("p", { className: "note", textContent: u })));
   }
 
   function openStatus() {
@@ -773,6 +787,137 @@
         del,
       ]));
     }
+  }
+
+  // ---- zdjęcia tła (D-51) ----
+  // Pasmo motywu jako filtr SVG: to samo przekształcenie co `PhotoBand.colorFilter()` w aplikacji (jasność piksela
+  // wybiera punkt między dwoma kolorami motywu), liczone w sRGB, żeby podgląd zgadzał się z telefonem.
+  function bandFilters() {
+    if (document.getElementById("pasma")) return;
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.id = "pasma";
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    for (const band of EDIT.tla.pasma) {
+      const filter = document.createElementNS(ns, "filter");
+      filter.id = `pasmo-${band.id}`;
+      filter.setAttribute("color-interpolation-filters", "sRGB");
+      const matrix = document.createElementNS(ns, "feColorMatrix");
+      matrix.setAttribute("type", "matrix");
+      const [lo, hi] = [rgb(band.low), rgb(band.high)];
+      const row = k => [0.2126, 0.7152, 0.0722].map(w => ((hi[k] - lo[k]) * w).toFixed(5)).join(" ") + ` 0 ${lo[k].toFixed(5)}`;
+      matrix.setAttribute("values", `${row(0)} ${row(1)} ${row(2)} 0 0 0 1 0`);
+      filter.append(matrix);
+      svg.append(filter);
+    }
+    document.body.append(svg);
+  }
+
+  let bandPreview = "";
+
+  function openBackgrounds() {
+    const T = EDIT.tla;
+    const label = key => T.etykiety[key] || key;
+    const panel = shell("Zdjęcia tła", "baza/tla/ · Zdjęcie dnia w aplikacji (D-51)", true);
+    bandFilters();
+    panel.append(el("p", { className: "note", style: "margin-top:12px", textContent:
+      "Zdjęcie dnia dobiera się do następnego treningu z planu i do wyboru „Na zdjęciach” w Ustawieniach. Wrzuć zdjęcie " +
+      "z generatora: edytor wykadruje je ze środka pod telefon (360×780), zamieni na skalę szarości, rozciągnie jasność " +
+      "i rozmyje, a kolor nada motyw w aplikacji. Najlepiej wychodzi zbliżenie albo postać od pasa w górę na ciemnym tle. " +
+      "Podmiana zostawia id, temat i płeć zdjęcia. Każdy temat potrzebuje zdjęcia z kobietą i z mężczyzną." }));
+    if (!EDIT.pillow) panel.append(el("p", { className: "note", textContent: "Obróbka zdjęć potrzebuje Pillow: pip install pillow." }));
+
+    const send = async (body, done) => {
+      try { await api("/api/tlo", body); reloadAt("tla"); } catch (err) { alert(problems(err).join("\n")); done && done(); }
+    };
+
+    // podgląd: zdjęcie z bazy albo w kolorach motywu
+    const look = el("select");
+    look.setAttribute("aria-label", "Podgląd zdjęć");
+    look.append(el("option", { value: "", textContent: "Podgląd: zdjęcie z bazy (szare, rozmyte)" }));
+    T.pasma.forEach(b => look.append(el("option", { value: b.id, textContent: `Podgląd: ${b.nazwa}, jak w aplikacji` })));
+    look.value = bandPreview;
+
+    // nowe zdjęcie: temat, płeć, plik
+    const topic = el("select");
+    T.tematy.forEach(t => topic.append(el("option", { value: t, textContent: label(t) })));
+    const sex = el("select");
+    T.plcie.forEach(x => sex.append(el("option", { value: x, textContent: label(x) })));
+    const fileIn = el("input", { type: "file", accept: "image/*", hidden: true });
+    const drop = el("label", { className: "drop" }, [
+      el("span", { textContent: "Przeciągnij tu nowe zdjęcie albo kliknij, żeby wybrać plik: wejdzie z tematem i płcią wybranymi wyżej." }),
+      fileIn,
+    ]);
+    const addFile = async file => {
+      if (!file || !file.type.startsWith("image/")) return;
+      drop.classList.add("over");
+      send({ obraz: await readAsDataUrl(file), temat: topic.value, plec: sex.value }, () => drop.classList.remove("over"));
+    };
+    fileIn.onchange = () => addFile(fileIn.files[0]);
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add("over"); };
+    drop.ondragleave = () => drop.classList.remove("over");
+    drop.ondrop = ev => { ev.preventDefault(); drop.classList.remove("over"); addFile(ev.dataTransfer.files[0]); };
+    panel.append(el("section", { className: "sect" }, [
+      el("h3", { textContent: "Dodaj zdjęcie" }),
+      el("div", { className: "tlo-add" }, [
+        el("label", {}, [el("span", { className: "glabel", textContent: "Temat" }), topic]),
+        el("label", {}, [el("span", { className: "glabel", textContent: "Na zdjęciu" }), sex]),
+        drop,
+      ]),
+    ]));
+
+    const gaps = [];
+    for (const t of T.tematy) for (const x of T.plcie) {
+      if (!T.zdjecia.some(z => z.temat === t && z.plec === x)) gaps.push(`${label(t)} / ${label(x)}`);
+    }
+    if (gaps.length) panel.append(el("ul", { className: "errors" }, gaps.map(g => el("li", { textContent: `Brak zdjęcia: ${g}` }))));
+
+    const thumbs = [];
+    const applyLook = () => {
+      bandPreview = look.value;
+      thumbs.forEach(img => { img.style.filter = bandPreview ? `url(#pasmo-${bandPreview})` : ""; });
+    };
+    look.onchange = applyLook;
+    panel.append(el("div", { className: "actions" }, [look]));
+
+    for (const t of T.tematy) {
+      const list = T.zdjecia.filter(z => z.temat === t);
+      const grid = el("div", { className: "tla" });
+      for (const z of list) {
+        const img = z.obraz ? el("img", { src: z.obraz, alt: `${label(z.temat)}, ${label(z.plec)}` }) : el("span", { className: "ph", textContent: "brak pliku" });
+        if (z.obraz) thumbs.push(img);
+        const swapIn = el("input", { type: "file", accept: "image/*", hidden: true });
+        const swap = el("label", { className: "ghost", title: "Nowy plik w miejsce tego zdjęcia: to samo id, temat i płeć" }, [document.createTextNode("Podmień"), swapIn]);
+        const replace = async file => {
+          if (!file || !file.type.startsWith("image/")) return;
+          card.classList.add("over");
+          send({ id: z.id, obraz: await readAsDataUrl(file) }, () => card.classList.remove("over"));
+        };
+        swapIn.onchange = () => replace(swapIn.files[0]);
+        const del = el("button", { type: "button", className: "ghost", textContent: "Usuń" });
+        del.onclick = async () => {
+          if (!confirm(`Usunąć zdjęcie ${z.id}?`)) return;
+          try { await api("/api/tlo/usun", { id: z.id }); reloadAt("tla"); } catch (err) { alert(problems(err).join("\n")); }
+        };
+        const card = el("div", { className: "tlo" }, [
+          img,
+          el("p", { className: "pid", textContent: `${z.id} · ${label(z.plec)}` }),
+          el("div", { className: "actions" }, [swap, del]),
+        ]);
+        card.ondragover = ev => { ev.preventDefault(); card.classList.add("over"); };
+        card.ondragleave = () => card.classList.remove("over");
+        card.ondrop = ev => { ev.preventDefault(); card.classList.remove("over"); replace(ev.dataTransfer.files[0]); };
+        grid.append(card);
+      }
+      if (!list.length) grid.append(el("p", { className: "hint", textContent: "Brak zdjęć." }));
+      panel.append(el("section", { className: "sect" }, [el("h3", { textContent: `${label(t)} (${list.length})` }), grid]));
+    }
+    panel.append(el("p", { className: "hint", textContent:
+      "Przeciągnięcie pliku na zdjęcie też je podmienia. Z terminala to samo robi: python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE" }));
+    applyLook();
   }
 
   /** Formularz nowego ćwiczenia, szkicu albo edycji. `rec` w układzie exercises.json. */
@@ -993,6 +1138,8 @@
   if (EDIT) renderEditBar();
   // Po zapisie strona wraca tam, gdzie była: do ćwiczenia albo do szkiców.
   const wanted = decodeURIComponent(location.hash.slice(1));
-  if (EDIT && wanted === "szkice") openDrafts(); else if (wanted && byId[wanted]) open(wanted);
+  if (EDIT && wanted === "szkice") openDrafts();
+  else if (EDIT && wanted === "tla") openBackgrounds();
+  else if (wanted && byId[wanted]) open(wanted);
   if (location.hash) history.replaceState(null, "", location.pathname);
 </script>

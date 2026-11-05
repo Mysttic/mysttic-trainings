@@ -103,6 +103,11 @@ bazy `SeedIntegrityTest` i `PresetSeedConsistencyTest` (gotowe programy wskazuj�
 - **Szkice**: ćwiczenie bez ilustracji („Zapisz jako szkic”) albo ilustracja bez definicji (z paczki generatora) czeka
   w `tools/szkice/`; „Uzupełnij” kończy szkic i przenosi go do bazy. „Wczytaj paczkę z generatora (ZIP)” robi to samo
   co `partia`.
+- **Zdjęcia tła** (D-51): zdjęcia do „Zdjęcia dnia” pogrupowane tematami. „Dodaj zdjęcie” bierze temat, płeć i plik
+  (przeciągnij albo wybierz), a edytor obrabia go tak jak `tlo`. „Podmień” albo upuszczenie pliku na zdjęcie wstawia
+  nowy plik w to samo miejsce: to samo id, temat i płeć. „Usuń” nie zabierze ostatniego zdjęcia tematu i płci,
+  bo baza przestałaby przechodzić reguły. „Podgląd” pokazuje zdjęcia w kolorach wybranego motywu, tym samym pasmem
+  (`PhotoBand` z `Backgrounds.kt`), co aplikacja.
 - **Podbij numer** i pasek stanu z tymi samymi regułami co `sprawdz --wzgledem origin/master`.
 
 Każdy zapis przechodzi reguły całej bazy, a odrzucony pokazuje powody w formularzu. Serwer przyjmuje zapis tylko

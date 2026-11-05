@@ -46,7 +46,8 @@ a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do 
 każdy motyw ma tło jednolite i trzy gradienty (`ui/theme/Backgrounds.kt`), wybór osobno dla każdego motywu
 w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie. Czwarta opcja to zdjęcie dnia (D-51): rozmyte zdjęcie
 z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) dobrane do następnego treningu i do wyboru „Na zdjęciach”,
-ze szklanymi kartami (`cardColor()`); baza 11 wymaga aplikacji 1.2.0.
+ze szklanymi kartami (`cardColor()`); baza 11 wymaga aplikacji 1.2.0. Obecne zdjęcia są tymczasowe (SD-Turbo):
+właściciel podmieni je na własne w sekcji „Zdjęcia tła” edytora bazy.
 
 Zmiany idą do `CHANGELOG.md` pod wersją, do której wejdą; `docs/PLAN.md` nie prowadzimy (decyzja właściciela z 2026-10-28).
 
@@ -59,7 +60,7 @@ gradlew.bat installDebug           # instalacja na podłączonym telefonie (adb)
 gradlew.bat testDebugUnitTest      # testy jednostkowe (domain, serwis, motyw, kopia, seed, sprzątanie w Room) — obowiązkowe po zmianach w domain/
 gradlew.bat testDebugUnitTest -Proborazzi.record=true  # zapis wzorców zrzutów palet do app/src/test/screenshots (D-40)
 gradlew.bat assembleRelease        # release (niepodpisany bez keystore — patrz docs/RELEASE.md)
-python tools/baza.py               # edytor bazy ćwiczeń w przeglądarce (127.0.0.1:8770): dodawanie z ilustracją, edycja, wycofanie, szkice
+python tools/baza.py               # edytor bazy ćwiczeń w przeglądarce (127.0.0.1:8770): dodawanie z ilustracją, edycja, wycofanie, szkice, zdjęcia tła
 python tools/baza.py sprawdz --wzgledem origin/master  # reguły bazy ćwiczeń i zgodność wstecz (D-47), obowiązkowo po zmianie w baza/
 python tools/baza.py podbij        # numer bazy +1 w exercises.json i VERSION.md, nagłówek [Baza N] w CHANGELOG.md (--min-app X.Y.Z, gdy baza wymaga nowszej aplikacji)
 python tools/baza.py partia <zip>  # ilustracje z generatora zdjęć (D-36): do baza/images/ albo do tools/szkice/

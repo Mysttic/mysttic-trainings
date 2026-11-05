@@ -1064,3 +1064,9 @@ Nowa karta na tle ekranu bierze `cardColor()`, a nie `surfaceContainer`. `Databa
 i `tla/<id>.jpg`, `ExerciseDatabaseCheck` sprawdza zdjęcia jak ilustracje, a manifest wydania bazy niesie ich liczbę.
 Baza rośnie o około pół megabajta. W wydanym 1.1.0 nic się nie zmienia. Opis zmian: `docs/SEED.md`, `docs/guide.md`,
 `docs/testing.md`, `docs/DATABASE.md`, `CHANGELOG.md`.
+
+Uzupełnienie (2026-11-05): właściciel ocenił zdjęcia z SD-Turbo jako złe i wygeneruje własne. Na razie zostają,
+żeby baza 11 przechodziła reguły i funkcja działała, ale są tymczasowe. Do podmiany edytor bazy (`python tools/baza.py`)
+dostał sekcję „Zdjęcia tła”: dodawanie z tematem i płcią, podmiana w to samo id (przycisk albo upuszczenie pliku),
+usuwanie bez zostawiania tematu i płci bez zdjęcia oraz podgląd w kolorach motywów tym samym pasmem co aplikacja.
+Nowe zdjęcia wejdą do bazy 11, dopóki ta nie wyjdzie, a po wydaniu do kolejnego numeru.
