@@ -824,7 +824,8 @@
     const panel = shell("Zdjęcia tła", "baza/tla/ · Zdjęcie dnia w aplikacji (D-51)", true);
     bandFilters();
     panel.append(el("p", { className: "note", style: "margin-top:12px", textContent:
-      "Zdjęcie dnia dobiera się do następnego treningu z planu i do wyboru „Na zdjęciach” w Ustawieniach. Wrzuć zdjęcie " +
+      "Zdjęcie dnia losuje się raz dziennie z trzech tematów, których najwięcej w dzisiejszych treningach, i z osobami " +
+      "z „Na zdjęciach” w Ustawieniach. Wrzuć zdjęcie " +
       "z generatora: edytor wykadruje je ze środka pod telefon (360×780), zamieni na skalę szarości, rozciągnie jasność " +
       "i rozmyje, a kolor nada motyw w aplikacji. Najlepiej wychodzi zbliżenie albo postać od pasa w górę na ciemnym tle. " +
       "Podmiana zostawia id, temat i płeć zdjęcia. Każdy temat potrzebuje zdjęcia z kobietą i z mężczyzną." }));

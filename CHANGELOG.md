@@ -37,9 +37,9 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
   Głębia i Zmrok. Gradient leży pod wszystkimi ekranami i stoi w miejscu przy przewijaniu, a karty, przyciski
   i napisy zostają takie same i równie czytelne. Każdy motyw pamięta swoje tło, więc po powrocie do motywu wraca
   też jego gradient. Domyślnie tło jest jednolite, jak dotąd.
-- **Zdjęcie dnia w tle.** Ostatnia opcja w Ustawienia → Wygląd → Tło: rozmyte zdjęcie dobrane do dzisiejszego
-  treningu z planu, czyli brzuch, nogi, góra ciała, kardio, joga albo całe ciało, z osobami wybranymi w „Na zdjęciach”
-  (kobieta, mężczyzna albo oboje). Zdjęcie zmienia się raz dziennie i z kolejnym treningiem, a nie z ekranu na ekran.
+- **Zdjęcie dnia w tle.** Ostatnia opcja w Ustawienia → Wygląd → Tło: rozmyte zdjęcie w klimacie dzisiejszych
+  treningów ze wszystkich planów, z osobami wybranymi w „Na zdjęciach” (kobieta, mężczyzna albo oboje). Losuje się
+  raz dziennie spośród trzech tematów, których dziś najwięcej, więc tylko nawiązuje do dnia, a nie ogłasza, co ćwiczysz.
   Karty są przy nim szklane, żeby zdjęcie prześwitywało, a napisy i obrysy przycisków trzymają ten sam kontrast co
   zawsze. Zdjęcia przychodzą z bazą ćwiczeń 11.
 - **Zdjęcia tła w edytorze bazy (dla właściciela).** `python tools/baza.py` ma sekcję „Zdjęcia tła”: dodawanie

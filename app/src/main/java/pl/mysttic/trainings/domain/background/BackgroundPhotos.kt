@@ -3,11 +3,20 @@ package pl.mysttic.trainings.domain.background
 import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.domain.model.ExerciseCategory
 import pl.mysttic.trainings.domain.model.MuscleGroup
+import pl.mysttic.trainings.domain.model.Session
+import pl.mysttic.trainings.domain.model.SessionStatus
+import pl.mysttic.trainings.domain.plan.PlanSessions
+import pl.mysttic.trainings.domain.plan.Program
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlin.random.Random
 
 /*
- * Zdjęcie dnia w tle (D-51): rozmyte zdjęcie z bazy ćwiczeń, dobrane do dzisiejszego treningu i do tego, kogo
- * użytkownik chce widzieć na zdjęciach. Czysty Kotlin: skąd wziąć zdjęcia i trening wie repozytorium, jak je
- * pokazać — motyw. Tu jest tylko reguła wyboru, więc da się ją sprawdzić testem.
+ * Zdjęcie dnia w tle (D-51): rozmyte zdjęcie z bazy ćwiczeń, losowane raz dziennie z tematów, których najwięcej
+ * w dzisiejszych treningach ze wszystkich planów, i z osobami, które użytkownik chce widzieć. Tło tylko nawiązuje
+ * do dnia: nic w aplikacji nie mówi, jaką partię dziś ćwiczysz. Czysty Kotlin: skąd wziąć zdjęcia i treningi wie
+ * repozytorium, jak je pokazać — motyw. Tu jest tylko reguła wyboru, więc da się ją sprawdzić testem.
  */
 
 /** Temat zdjęcia. Nazwy idą do `baza/tla.json` (pole `topic`), więc istniejących nie zmieniamy. */
@@ -47,6 +56,12 @@ data class BackgroundPhoto(val id: String, val topic: PhotoTopic, val sex: Photo
 
 object PhotoPicker {
 
+    /** Ile tematów dnia bierze udział w losowaniu: właściciel chce zdjęcia z trzech, których jest najwięcej. */
+    const val TOP_TOPICS = 3
+
+    /** Plan, z którego był trening w ostatnim tygodniu, jest w użyciu, nawet gdy nie jest aktywny. */
+    const val RECENT_DAYS = 7L
+
     private val CORE_MUSCLES = setOf(MuscleGroup.ABS, MuscleGroup.LOWER_BACK)
     private val LEG_MUSCLES = setOf(
         MuscleGroup.GLUTES, MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS,
@@ -54,14 +69,40 @@ object PhotoPicker {
     )
 
     /**
-     * Temat dnia: ten, do którego należy najwięcej ćwiczeń treningu. Remis rozstrzyga kolejność [PhotoTopic],
-     * dzień bez treningu dostaje całe ciało. Joga nie jest kategorią bazy, więc stoi za nią rozciąganie i oddech.
+     * Treningi dnia, z których liczy się temat zdjęcia. W ciągu dnia można trenować z kilku planów (D-42 pozwala
+     * przełączać), więc: z planu, z którego dziś był trening, bierzemy to, co z niego dziś zrobione; z planu aktywnego
+     * i z planów używanych w ostatnim tygodniu ([RECENT_DAYS]), z których dziś jeszcze nic nie było, następny trening
+     * z kolejki; do tego treningi spoza planów zrobione dziś. Zrobiony trening zostaje w składzie dnia, więc zdjęcie
+     * nie zmienia się po treningu. Id mogą się powtarzać: trening zrobiony dwa razy liczy się dwa razy.
      */
-    fun topicOf(exercises: List<Exercise>): PhotoTopic {
-        if (exercises.isEmpty()) return PhotoTopic.FULL_BODY
-        val counts = exercises.groupingBy(::topicOf).eachCount()
-        return PhotoTopic.entries.maxBy { counts[it] ?: 0 }
+    fun todaysWorkoutIds(programs: List<Program>, sessions: List<Session>, today: LocalDate, zone: ZoneId): List<String> {
+        fun dayOf(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+        val ids = mutableListOf<String>()
+        for (program in programs) {
+            val done = PlanSessions.done(sessions, program)
+            val doneToday = done.filter { dayOf(it.startedAt) == today }
+            if (doneToday.isNotEmpty()) {
+                ids += doneToday.mapNotNull { it.workoutId }
+                continue
+            }
+            val recent = done.any { !dayOf(it.startedAt).isBefore(today.minusDays(RECENT_DAYS)) }
+            if (program.active || recent) PlanSessions.progress(sessions, program).next?.workoutId?.let { ids += it }
+        }
+        ids += sessions
+            .filter { s -> s.status == SessionStatus.DONE && dayOf(s.startedAt) == today && programs.none { PlanSessions.belongsTo(s, it) } }
+            .mapNotNull { it.workoutId }
+        return ids
     }
+
+    /**
+     * Do [TOP_TOPICS] tematów dnia z liczbą ćwiczeń, od największej; remis rozstrzyga kolejność [PhotoTopic].
+     * Joga nie jest kategorią bazy, więc stoi za nią rozciąganie i oddech. Dzień bez treningów = pusta lista.
+     */
+    fun topTopics(exercises: List<Exercise>): List<Pair<PhotoTopic, Int>> =
+        exercises.groupingBy(::topicOf).eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<PhotoTopic, Int>> { it.value }.thenBy { it.key.ordinal })
+            .take(TOP_TOPICS)
+            .map { it.key to it.value }
 
     /** Kardio i plyometria to kardio, rozciąganie i oddech to joga, siła idzie za partiami głównymi. */
     fun topicOf(exercise: Exercise): PhotoTopic = when (exercise.category) {
@@ -86,19 +127,31 @@ object PhotoPicker {
     }
 
     /**
-     * Zdjęcie tematu dla wybranych osób. Losowe, ale to samo dla tego samego ziarna (dzień i trening), żeby tło
-     * nie zmieniało się z ekranu na ekran. Brak zdjęć tematu = całe ciało, a gdy i tego brak, dowolne pasujące osobami.
+     * Zdjęcie dnia dla wybranych osób: temat losowany spośród [topics] z wagą liczby ćwiczeń, potem zdjęcie tego tematu.
+     * Tło ma tylko nawiązywać do dnia, nie ogłaszać partii, więc nawet temat, którego jest najwięcej, nie wygrywa zawsze.
+     * Losowanie zależy tylko od [seed] (numer dnia), więc przez dzień zdjęcie się nie zmienia. Temat bez zdjęć dla tych
+     * osób odpada; dzień bez treningów albo bez pasujących tematów losuje z wszystkich zdjęć tych osób.
      */
-    fun pick(photos: List<BackgroundPhoto>, topic: PhotoTopic, people: PhotoPeople, seed: String): BackgroundPhoto? {
-        val allowed = photos.filter { people.allows(it.sex) }
-        val pool = allowed.filter { it.topic == topic }
-            .ifEmpty { allowed.filter { it.topic == PhotoTopic.FULL_BODY } }
-            .ifEmpty { allowed }
-            .sortedBy { it.id }
-        if (pool.isEmpty()) return null
-        return pool[Math.floorMod(seed.hashCode(), pool.size)]
+    fun pick(photos: List<BackgroundPhoto>, topics: List<Pair<PhotoTopic, Int>>, people: PhotoPeople, seed: Long): BackgroundPhoto? {
+        val allowed = photos.filter { people.allows(it.sex) }.sortedBy { it.id }
+        if (allowed.isEmpty()) return null
+        val random = Random(seed)
+        val candidates = topics.filter { (topic, count) -> count > 0 && allowed.any { it.topic == topic } }
+        val pool = if (candidates.isEmpty()) {
+            allowed
+        } else {
+            val topic = weighted(candidates, random)
+            allowed.filter { it.topic == topic }
+        }
+        return pool[random.nextInt(pool.size)]
     }
 
-    /** Ziarno losowania: nowy dzień albo kolejny trening z kolejki dają nowe zdjęcie. */
-    fun seed(epochDay: Long, workoutId: String?): String = "$epochDay/${workoutId.orEmpty()}"
+    private fun weighted(topics: List<Pair<PhotoTopic, Int>>, random: Random): PhotoTopic {
+        var draw = random.nextInt(topics.sumOf { it.second })
+        for ((topic, count) in topics) {
+            if (draw < count) return topic
+            draw -= count
+        }
+        return topics.last().first
+    }
 }

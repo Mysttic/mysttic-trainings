@@ -1070,3 +1070,13 @@ Uzupełnienie (2026-11-05): właściciel ocenił zdjęcia z SD-Turbo jako złe i
 dostał sekcję „Zdjęcia tła”: dodawanie z tematem i płcią, podmiana w to samo id (przycisk albo upuszczenie pliku),
 usuwanie bez zostawiania tematu i płci bez zdjęcia oraz podgląd w kolorach motywów tym samym pasmem co aplikacja.
 Nowe zdjęcia wejdą do bazy 11, dopóki ta nie wyjdzie, a po wydaniu do kolejnego numeru.
+
+Uzupełnienie (2026-11-05, reguła wyboru): w ciągu dnia można trenować z kilku planów i z kilku partii naraz, a tło
+ma tylko nawiązywać do dnia, nie ogłaszać „dziś trenujesz nogi”. Zamiast następnego treningu aktywnego planu skład
+dnia (`PhotoPicker.todaysWorkoutIds`) to: z planu, z którego dziś był trening, to, co z niego dziś zrobione; z planu
+aktywnego i z planów używanych w ostatnim tygodniu, z których dziś jeszcze nic nie było, następny trening z kolejki;
+do tego treningi spoza planów zrobione dziś. Z jego ćwiczeń `PhotoPicker.topTopics` bierze trzy najliczniejsze tematy,
+a `pick` losuje jeden z wagą liczby ćwiczeń, potem zdjęcie tematu, z ziarnem równym numerowi dnia: zdjęcie jest stałe
+przez dzień i nie zmienia się po zrobionym treningu, bo zrobiony trening zostaje w składzie dnia. Dzień bez treningów
+losuje z wszystkich zdjęć. Żaden napis w aplikacji nie mówi o partii dnia; opis w Ustawieniach mówi tylko o „klimacie
+dzisiejszych treningów”.

@@ -15,7 +15,7 @@ bez Robolectrica, bez zegara systemowego. To tam mieszkają reguły, które da s
 | `domain/reminder` | najbliższy termin przypomnienia i warunek „czy w ogóle przypominać” |
 | `domain/update` | porównanie numerów wersji, decyzja o wydaniu, parsowanie odpowiedzi GitHuba |
 | `domain/health` | co kwalifikuje się do zapisu w Health Connect |
-| `domain/background` | zdjęcie dnia (D-51): temat z ćwiczeń treningu (brzuch, joga, kardio…), remisy, osoby z Ustawień, losowanie stałe przez dzień, zastępstwa przy brakach w bazie |
+| `domain/background` | zdjęcie dnia (D-51): skład dnia z kilku planów (zrobione dziś, następne z planów w użyciu, treningi spoza planów), tematy z ćwiczeń, trzy najliczniejsze, losowanie z wagą stałe przez dzień, osoby z Ustawień, braki w bazie |
 | `service` | treść powiadomienia (`NotificationContent`) i zbocze zgody na powiadomienia (`NotificationGate`, D-43), oba czysty Kotlin |
 | `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39); każde tło motywu w każdym punkcie gradientu (pary na `surface` i `background`, jasność zgodna z `dark`), warianty i ich identyfikatory (D-50); pasmo zdjęcia dnia ze szklanymi kartami w 8 bitach na kanał (D-51) |
 | `ui/player` | saver opinii z podsumowania — czy przeżywają obrót ekranu |
@@ -75,10 +75,11 @@ sprawdzane ręcznie na emulatorze albo telefonie. Lista rzeczy, które warto prz
    z panelem filtrów, szczegóły treningu, player z przerwą, edytory, Historia i szczegóły sesji), stoi w miejscu
    przy przewijaniu i przejściu między ekranami, nie układa się w pasy, a karty, pigułki i napisy są czytelne.
    Zmiana motywu i powrót do poprzedniego przywraca jego tło; tablet w poziomie ma gradient także pod szyną.
-10. Zdjęcie dnia (D-51): plan z dniem na brzuch, nogi, kardio i jogę (albo zmiana kolejnego treningu) daje zdjęcie
-    tego tematu, „Na zdjęciach” zmienia osoby, a zdjęcie nie zmienia się między ekranami. Karty na tle są szklane,
-    a menu planu, okna i paski kreatora pełne; napisy na kartach i obrysy przycisków czytelne nad jasnymi miejscami zdjęcia.
-    Bez planu jest zdjęcie całego ciała. Pobranie bazy 11 przez wersję 1.1.0 kończy się „najpierw zaktualizuj aplikację”.
+10. Zdjęcie dnia (D-51): z dwóch planów (aktywnego i drugiego, z którego był trening w tym tygodniu) zdjęcie bierze się
+    z tematów obu, przez cały dzień to samo, także po zrobionym treningu; następnego dnia się zmienia. „Na zdjęciach”
+    zmienia osoby. Nigdzie nie ma napisu o partii dnia. Karty na tle są szklane, a menu planu, okna i paski kreatora
+    pełne; napisy na kartach i obrysy przycisków czytelne nad jasnymi miejscami zdjęcia. Bez planu zdjęcie jest
+    z dowolnego tematu. Pobranie bazy 11 przez wersję 1.1.0 kończy się „najpierw zaktualizuj aplikację”.
 
 Na telefonie dochodzi to, czego emulator nie pokaże: słyszalność sygnałów, wibracja, zachowanie przy
 agresywnym oszczędzaniu baterii ([dontkillmyapp.com](https://dontkillmyapp.com)) i ikona na launcherze.

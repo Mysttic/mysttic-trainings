@@ -97,8 +97,8 @@ DataStore Preferences: `difficulty`, `ownedEquipment`, `countdownSec`, `soundEna
 `keepScreenOn`, `seedVersion`, `volumeKeyDone`, `reminderEnabled`/`reminderHour`/`reminderMinute`, `healthConnectEnabled`,
 `updateChecks`/`lastUpdateCheck`, `libraryTiles` (kafelki albo lista w bibliotece), `themeId` i `backgrounds`
 (motyw i tło każdego motywu, D-39, D-50), `photoPeople` (osoby na zdjęciu dnia, D-51). Zdjęcie dnia wybiera
-`data/background/BackgroundPhotoRepository`: zdjęcia z `tla.json` wczytanej bazy i temat z następnego treningu planu,
-regułą z `domain/background/PhotoPicker`. Zmiana poziomu z dowolnego ekranu
+`data/background/BackgroundPhotoRepository`: zdjęcia z `tla.json` wczytanej bazy i treningi dnia ze wszystkich planów
+w użyciu, regułą z `domain/background/PhotoPicker` (trzy najliczniejsze tematy, losowanie z wagą, stałe przez dzień). Zmiana poziomu z dowolnego ekranu
 (player, Ustawienia) zapisuje to samo pole.
 
 ## UI (`ui/`)

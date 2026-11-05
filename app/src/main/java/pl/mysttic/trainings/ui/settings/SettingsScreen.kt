@@ -184,7 +184,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
         Text(
             text = if (background.photo) {
-                "Zdjęcie pasuje do dzisiejszego treningu (brzuch, nogi, góra ciała, kardio, joga) i zmienia się raz dziennie. " +
+                "Zdjęcie losuje się raz dziennie, w klimacie dzisiejszych treningów ze wszystkich planów. " +
                     "Karty są wtedy szklane, żeby prześwitywało."
             } else {
                 "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło."

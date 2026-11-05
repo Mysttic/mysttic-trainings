@@ -22,10 +22,10 @@ import pl.mysttic.trainings.domain.background.PhotoPeople
 import pl.mysttic.trainings.domain.background.PhotoPicker
 import pl.mysttic.trainings.domain.background.PhotoSex
 import pl.mysttic.trainings.domain.background.PhotoTopic
-import pl.mysttic.trainings.domain.plan.PlanSessions
 import pl.mysttic.trainings.domain.update.DatabaseUpdate
 import java.io.File
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,7 +38,7 @@ data class PhotoFile(val photos: List<SeedPhoto> = emptyList())
 data class SeedPhoto(val id: String, val topic: PhotoTopic, val sex: PhotoSex)
 
 /**
- * Zdjęcie dnia w tle (D-51): zdjęcia aktywnej bazy ćwiczeń i wybór pod dzisiejszy trening. Aktywna baza to ta,
+ * Zdjęcie dnia w tle (D-51): zdjęcia aktywnej bazy ćwiczeń i wybór pod dzisiejsze treningi. Aktywna baza to ta,
  * którą wczytał `SeedImporter`: pobrana leży w `files/baza/<numer>/`, wbudowana w assetach APK. Zdjęcia nie idą do Room,
  * bo nic poza tłem o nich nie wie, a lista jest krótka.
  */
@@ -75,20 +75,23 @@ class BackgroundPhotoRepository @Inject constructor(
 
     /**
      * Ścieżka zdjęcia dnia (jak ilustracji ćwiczeń: asset albo plik pobranej bazy), null = brak zdjęć w bazie.
-     * Temat bierze się z następnego treningu w kolejce aktywnego planu, osoby z Ustawień, a losowanie jest stałe
-     * przez dzień i trening, więc zdjęcie nie zmienia się z ekranu na ekran.
+     * Skład dnia to treningi ze wszystkich planów w użyciu (`PhotoPicker.todaysWorkoutIds`), z nich trzy tematy,
+     * których jest najwięcej, a z nich losowanie z wagą liczby ćwiczeń, stałe przez dzień. Zdjęcie tylko nawiązuje
+     * do dnia: żaden napis nie mówi, jaką partię dziś ćwiczysz.
      */
     fun today(): Flow<String?> = combine(
-        programs.observeActive(),
+        programs.observeAll(),
         workouts.observeAll(),
         sessions.observeSessions(),
         settings.settings.map { PhotoPeople.fromId(it.photoPeople) to it.seedVersion }.distinctUntilChanged(),
-    ) { program, all, done, (people, _) ->
-        val nextId = program?.let { PlanSessions.progress(done, it).next?.workoutId }
-        val workout = nextId?.let { id -> all.firstOrNull { it.id == id } }
+    ) { plans, all, done, (people, _) ->
+        val day = LocalDate.now()
+        val byId = all.associateBy { it.id }
         val library = exercises.getMap()
-        val topic = PhotoPicker.topicOf(workout?.exerciseIds.orEmpty().mapNotNull { library[it] })
-        PhotoPicker.pick(photos(), topic, people, PhotoPicker.seed(LocalDate.now().toEpochDay(), nextId))?.image
+        val todays = PhotoPicker.todaysWorkoutIds(plans, done, day, ZoneId.systemDefault())
+            .mapNotNull { byId[it] }
+            .flatMap { workout -> workout.exerciseIds.mapNotNull { library[it] } }
+        PhotoPicker.pick(photos(), PhotoPicker.topTopics(todays), people, day.toEpochDay())?.image
     }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     companion object {

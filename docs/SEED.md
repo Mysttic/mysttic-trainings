@@ -61,8 +61,9 @@ przeszła po cichu (aplikacja nieznane pola pomija).
 | `topic` | `PhotoTopic`: `CORE` (brzuch), `LEGS` (nogi), `UPPER` (góra ciała), `FULL_BODY` (całe ciało), `CARDIO`, `YOGA` |
 | `sex` | `PhotoSex`: `FEMALE` albo `MALE` |
 
-Aplikacja wybiera temat z następnego treningu w kolejce (rozciąganie i oddech to joga, kardio i plyometria to kardio,
-siła idzie za przeważającą partią) i losuje zdjęcie tego tematu z osobami wybranymi w Ustawieniach, stałe przez dzień.
+Aplikacja liczy tematy w treningach dnia ze wszystkich planów w użyciu (rozciąganie i oddech to joga, kardio
+i plyometria to kardio, siła idzie za przeważającą partią główną), losuje jeden z trzech najliczniejszych z wagą
+liczby ćwiczeń, a potem zdjęcie tego tematu z osobami wybranymi w Ustawieniach; wynik jest stały przez dzień.
 Każdy temat ma mieć zdjęcie dla obu płci; pilnują tego `sprawdz` i `SeedIntegrityTest`.
 
 Zdjęcie dodaje `python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE`: kadr ze środka pod telefon (360×780),

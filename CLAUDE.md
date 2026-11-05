@@ -17,7 +17,7 @@ Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym com
 nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
 Liczby: baza ćwiczeń v11 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów,
-i 35 zdjęć tła, D-51), 446 testów jednostkowych w 50 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
+i 35 zdjęć tła, D-51), 449 testów jednostkowych w 50 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
 
 Weryfikacja stoi na emulatorze Pixel_9_Pro (API 37), dla dużych ekranów na AVD Pixel_Tablet_API_37 (D-42), i na skryptach
 `tools/przebieg*.py`. Decyzja właściciela z 2026-09-18: **telefon nie jest bramką wydania**, emulator wystarcza.
@@ -45,7 +45,8 @@ W 1.2.0 (niewydane, D-49, issue #1): nowy plan własny startuje dosłownie (prze
 a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do tego tło z gradientem (D-50, issue #6):
 każdy motyw ma tło jednolite i trzy gradienty (`ui/theme/Backgrounds.kt`), wybór osobno dla każdego motywu
 w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie. Czwarta opcja to zdjęcie dnia (D-51): rozmyte zdjęcie
-z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) dobrane do następnego treningu i do wyboru „Na zdjęciach”,
+z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) losowane raz dziennie z trzech tematów, których najwięcej
+w dzisiejszych treningach wszystkich planów, z osobami z „Na zdjęciach”; nic w aplikacji nie nazywa partii dnia,
 ze szklanymi kartami (`cardColor()`); baza 11 wymaga aplikacji 1.2.0. Obecne zdjęcia są tymczasowe (SD-Turbo):
 właściciel podmieni je na własne w sekcji „Zdjęcia tła” edytora bazy.
 
@@ -140,7 +141,7 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
 - `domain/` nie importuje Androida. Silnik to czysta funkcja `WorkoutEngine.reduce(state, event) -> (state, effects)`;
   zdarzenia niosą własne `now` (ms, zegar monotoniczny). Przejścia liczone z timestampów, tick tylko sprawdza, czy faza minęła.
 - Każda zmiana w `domain/` (engine, equipment, stats, editor, library, plan, plan/preset, coach, reminder, health, update,
-  background) = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 446 w 50 klasach.
+  background) = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 449 w 50 klasach.
 - `PlanGenerator` musi zostać deterministyczny (bez losowania): te same dane wejściowe = ten sam plan, inaczej testy tracą sens.
 - Plan rozliczamy kolejką, nie datami (D-21): dzień jest odhaczony przez ukończoną sesję tego treningu, niezależnie kiedy.
 - Plany (D-42): aktywny jest najwyżej jeden, pozostałe czekają z postępem; przełączyć wolno w każdej chwili. Trening należy
@@ -232,8 +233,10 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   Zdjęcie dnia (D-51): filtr kładzie każdy piksel zdjęcia na paśmie `PhotoBand` (dwa kolory motywu), a karty leżące
   na tle ekranu są nad nim szkłem: wypełnienie karty bierze się z `cardColor()`, nigdy wprost z `surfaceContainer`.
   Paski, menu, okna i miniatury zostają pełne. Pasmo i alfa szkła trzymają w każdym punkcie pary na tle i na karcie
-  (test i skrypt liczą w 8 bitach na kanał); zmiana któregokolwiek = zielony `check_contrast.py`. Temat zdjęcia liczy
-  tylko `PhotoPicker`, a zdjęcia dodaje `tools/baza.py tlo` (każdy temat dla obu płci, minApp jak przy nowym enumie).
+  (test i skrypt liczą w 8 bitach na kanał); zmiana któregokolwiek = zielony `check_contrast.py`. Skład dnia i temat
+  zdjęcia liczy tylko `PhotoPicker` (treningi dnia ze wszystkich planów w użyciu, trzy najliczniejsze tematy, losowanie
+  z wagą stałe przez dzień); żaden napis nie mówi, jaką partię dziś ćwiczysz. Zdjęcia dodaje `tools/baza.py tlo`
+  albo sekcja „Zdjęcia tła” edytora (każdy temat dla obu płci, minApp jak przy nowym enumie).
 - Wspólne komponenty w `ui/common/`: `DesignSystem.kt` (WorkoutCard, ExerciseRow, StatRow, PrimaryAction, ProgressionCard,
   FilterPill, SettingRow, ValueStepper, ScreenScaffold…) i `Components.kt` (ExerciseTile, ExerciseImage, ExerciseThumbnail, EmptyState,
   EquipmentTags, formatDuration…). Nowy ekran składa się z nich, zamiast rysować własne karty i przyciski.
