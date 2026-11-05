@@ -40,6 +40,10 @@ a `testy.yml` sprawdza ją przy PR-ze. Aplikacja pobiera nowszą bazę z Ustawie
 `DatabaseArchive`, `ExerciseDatabaseCheck`, import do `files/baza/<n>/`), a build debug wczytuje ją też z pliku;
 pobieranie przez sieć sprawdzone na emulatorze na wydaniu v10.
 
+W 1.2.0 (niewydane, D-49, issue #1): nowy plan własny startuje dosłownie (przełącznik „Dopasowuj cele…” wyłączony),
+„×2” przy treningu planu robi jego kopię w tym samym planie (`PlanEditing.copyName`, `PlanEditing.copyBlocks`),
+a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu.
+
 Zmiany idą do `CHANGELOG.md` pod wersją, do której wejdą; `docs/PLAN.md` nie prowadzimy (decyzja właściciela z 2026-10-28).
 
 ## Komendy

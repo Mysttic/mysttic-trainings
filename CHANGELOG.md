@@ -17,6 +17,8 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
 
 ## [Niewydane]
 
+## [1.2.0]
+
 ### Dodane
 - **Kopia treningu w edytorze planu.** „×2” przy treningu planu dokłada jego kopię, więc drugi trening układasz
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
@@ -435,6 +437,7 @@ przez trening i zapamiętuje, co zrobiłeś.
 - Biblioteka 81 ćwiczeń ze zdjęciami i polskimi instrukcjami (free-exercise-db
   w domenie publicznej, uzupełnione ilustracjami z wger na CC-BY-SA 4.0).
 
-[Niewydane]: https://github.com/Mysttic/mysttic-trainings/compare/v1.1.0...HEAD
+[Niewydane]: https://github.com/Mysttic/mysttic-trainings/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Mysttic/mysttic-trainings/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Mysttic/mysttic-trainings/releases/tag/v1.1.0
 [Baza 10]: https://github.com/Mysttic/mysttic-trainings/releases/tag/baza-v10

@@ -933,7 +933,7 @@ Uzupełnienie (2026-11-05): właściciel chce usunąć dawne repozytorium. Przed
 z APK i otwarte issue, a pełna historia (gałęzie i tagi) leży w kopii u właściciela. Klucz podpisu zostaje w sekretach
 tego repozytorium.
 
-## D-49 Nowy plan własny startuje dosłownie, a trening planu ma kopię w tym samym planie (2026-11-05)
+## D-49 Nowy plan własny startuje dosłownie, a trening planu ma kopię w tym samym planie (2026-11-05, wersja 1.2.0)
 
 Kontekst: issue #1, uwagi z przejścia `docs/poradnik-trenera.md` na emulatorze (1.0.0), potwierdzone na 1.1.0. Sama
 lista wielu planów z dodawaniem planu powstała w D-42. Nowy plan własny startował z włączonym „Dopasowuj cele do poziomu
