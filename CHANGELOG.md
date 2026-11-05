@@ -28,6 +28,13 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
   i trenera” jest w nowym planie wyłączony, więc plan dla kogoś nie wymaga już pamiętania o nim przed „Wyślij plan”.
   W planie dla siebie, który ma rosnąć z poziomem, trenerem i „Podbij cele”, włączasz go jednym ruchem.
   Zapisane plany zostają przy swoim ustawieniu.
+- **Kopia treningu do planu z celami dokładnie jak wpisane ma te liczby, które widziałeś.** Trening skopiowany z planu
+  dopasowanego do poziomu (na przykład z kreatora) wchodzi z wariantem ćwiczenia, celami i przerwami twojego poziomu
+  i sprzętu, a nie z bazowymi liczbami średniego poziomu.
+- **Wyjście z edycji planu pyta o zmiany także po dodaniu treningu.** Gdy w edycji zapisanego planu doszedł trening
+  (nowy, skopiowany albo „×2”), Wstecz pyta „Porzucić zmiany?”: „Porzuć” go zabiera, a „Zapisz plan” zostawia.
+  Wcześniej przy niezmienionych dniach Wstecz wychodził bez pytania, a niepotrzebnego treningu nie dało się
+  potem usunąć.
 - **Kod jest publiczny.** Repozytorium zaczyna od stanu 1.1.0, bez wcześniejszej historii (D-48). Kod jest
   na licencji MIT, a baza ćwiczeń (nazwy, opisy, instrukcje i ilustracje) na CC BY 4.0. W samej aplikacji
   nic się nie zmienia.

@@ -951,7 +951,15 @@ Decyzja:
   trening” (`ProgramRepository.copyWorkoutInto`, nowe id z prefiksem planu, tryb planu ze szkicu), jeden zapis kopii.
   Każda kopia do planu dostaje nazwę wolną wśród treningów planu (`PlanEditing.copyName`: „A (kopia)”, „A (kopia 2)”…),
   bo wybór treningu dnia pokazuje same nazwy. „Skopiuj trening” dalej pokazuje tylko treningi spoza planu, a jego puste
-  okno odsyła do „×2”.
+  okno odsyła do „×2”. Przy zablokowanym planie (trening z niego trwa) „×2” jest nieaktywne.
+- Kopia spoza planu do planu dosłownego bierze bloki tak, jak użytkownik widzi źródło (`PlanEditing.copyBlocks` przez
+  `WorkoutPlanner.shownBlocks`: wariant i cele jego poziomu i sprzętu, bez korekty trenera), tak samo jak plik planu
+  (D-42). Bez tego trening z kreatora, który początkujący widzi jako pompki na kolanach, wchodził do planu dosłownego
+  surowym szablonem INTERMEDIATE, a nowy domyślny tryb zrobiłby z tego częstą ścieżkę. Kopia z tego samego planu bierze
+  bloki oryginału, bo przy zapisie planu oryginał dostaje ten sam tryb.
+- Wyjście z edycji zapisanego planu pyta „Porzucić zmiany?” także wtedy, gdy w tej edycji doszedł trening (nowy, kopia,
+  „×2”), a rozkład dni się nie zmienił. Trening jest w bazie od razu, a bez pytania zostawał w planie bez dnia i bez
+  sposobu na usunięcie; „Porzuć” go zabiera, „Zapisz plan” zostawia.
 
 Odrzucone: treningi tego planu w oknie „Skopiuj trening” (okno miesza wtedy treningi planu z cudzymi, a przycisk przy
 treningu stoi tam, gdzie się go szuka, jak „×2” przy dniu i bloku); kopia, która od razu otwiera edytor treningu (kopię
@@ -959,5 +967,6 @@ widać na liście, edytor otwiera jedno tapnięcie, a nawigacja po zapisie w tle
 
 Konsekwencje: zmienia zdanie D-42, że plan własny domyślnie dopasowuje się do poziomu i trenera. Ryzyko z projektu D-42
 („`fixed` domyślnie zabija progresję planu własnego”) wraca w łagodniejszej postaci: plan dla siebie bez włączonego
-przełącznika nie rośnie z „Podbij cele” ani trenerem. Porzucenie edycji kasuje kopie z tej edycji jak każdy trening
-dodany w edycji. Opis zmian: `docs/guide.md`, `docs/poradnik-trenera.md`, `docs/testing.md`, `CHANGELOG.md`.
+przełącznika nie rośnie z „Podbij cele” ani trenerem. Kopia z planu dosłownego do planu dopasowanego dalej dostaje
+skalowanie poziomem na liczbach, które były dosłowne (odwrotnego przeliczenia nie ma); z nowym domyślnym trybem to rzadka
+ścieżka. Porzucenie edycji kasuje kopie z tej edycji jak każdy trening dodany w edycji. Opis zmian: `docs/guide.md`, `docs/poradnik-trenera.md`, `docs/testing.md`, `CHANGELOG.md`.

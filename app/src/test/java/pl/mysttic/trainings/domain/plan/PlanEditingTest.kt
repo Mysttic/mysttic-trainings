@@ -1,8 +1,16 @@
 package pl.mysttic.trainings.domain.plan
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.mysttic.trainings.domain.engine.DifficultyProfile
+import pl.mysttic.trainings.domain.engine.TestFixtures
+import pl.mysttic.trainings.domain.model.Block
+import pl.mysttic.trainings.domain.model.BlockItem
+import pl.mysttic.trainings.domain.model.BlockKind
+import pl.mysttic.trainings.domain.model.Difficulty
+import pl.mysttic.trainings.domain.model.TargetKind
 
 class PlanEditingTest {
 
@@ -164,5 +172,38 @@ class PlanEditingTest {
         assertEquals("Full body A", PlanEditing.copyName("  Full body A ", emptyList()))
         assertEquals("full body a (kopia)", PlanEditing.copyName("full body a", listOf(" Full Body A")))
         assertEquals("Trening (kopia)", PlanEditing.copyName(" ", listOf("Trening")))
+    }
+
+    private val adaptive = listOf(
+        Block(kind = BlockKind.SETS, items = listOf(BlockItem("pushups", TargetKind.REPS, targetValue = 12, sets = 3))),
+    )
+
+    private fun copy(blocks: List<Block>, literal: Boolean, fromSamePlan: Boolean) = PlanEditing.copyBlocks(
+        blocks = blocks,
+        literal = literal,
+        fromSamePlan = fromSamePlan,
+        difficulty = Difficulty.BEGINNER,
+        exercises = TestFixtures.exercises,
+        owned = emptySet(),
+    )
+
+    @Test
+    fun `kopia spoza planu do planu doslownego niesie wariant i cele, ktore uzytkownik widzial`() {
+        val item = copy(adaptive, literal = true, fromSamePlan = false).single().also { assertTrue(it.fixed) }.items.single()
+
+        // Początkujący widzi w źródle pompki na kolanach z mniejszą liczbą powtórzeń, nie szablon INTERMEDIATE.
+        assertEquals("knee-pushups", item.exerciseId)
+        assertEquals(DifficultyProfile.scaleReps(12, Difficulty.BEGINNER), item.targetValue)
+        assertNotEquals(12, item.targetValue)
+    }
+
+    @Test
+    fun `kopia z tego samego planu i kopia do planu dopasowanego biora bloki zrodla`() {
+        // „×2” w planie dosłownym: oryginał dostanie przy zapisie ten sam tryb, więc kopia ma te same liczby co on.
+        assertEquals(adaptive.map { it.copy(fixed = true) }, copy(adaptive, literal = true, fromSamePlan = true))
+        assertEquals(adaptive, copy(adaptive, literal = false, fromSamePlan = false))
+        // Stały blok (gotowy program, plan dosłowny) nie przechodzi drugi raz przez poziom.
+        val fixed = adaptive.map { it.copy(fixed = true) }
+        assertEquals(fixed, copy(fixed, literal = true, fromSamePlan = false))
     }
 }

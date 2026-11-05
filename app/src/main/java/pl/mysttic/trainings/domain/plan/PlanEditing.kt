@@ -1,6 +1,12 @@
 package pl.mysttic.trainings.domain.plan
 
 import kotlinx.serialization.Serializable
+import pl.mysttic.trainings.domain.editor.WorkoutEditing
+import pl.mysttic.trainings.domain.engine.WorkoutPlanner
+import pl.mysttic.trainings.domain.model.Block
+import pl.mysttic.trainings.domain.model.Difficulty
+import pl.mysttic.trainings.domain.model.Equipment
+import pl.mysttic.trainings.domain.model.Exercise
 
 /**
  * Dzień w edytorze planu. `key` jest stały przez całą edycję (przesunięcia nie zmieniają tożsamości dnia),
@@ -76,6 +82,27 @@ object PlanEditing {
         return generateSequence(1) { it + 1 }
             .map { n -> if (n == 1) "$base (kopia)" else "$base (kopia $n)" }
             .first { it.lowercase() !in used }
+    }
+
+    /**
+     * Bloki kopii treningu w planie (D-49): tryb planu ze szkicu (`literal` = bloki `fixed`), jak „Nowy trening”.
+     * Kopia spoza planu do planu dosłownego bierze bloki tak, jak użytkownik widzi źródło
+     * ([WorkoutPlanner.shownBlocks]: wariant i cele jego poziomu i sprzętu, bez korekty trenera), jak plik planu (D-42).
+     * Surowy szablon INTERMEDIATE z planu dopasowanego pokazałby w planie dosłownym inne ćwiczenie i inne liczby.
+     * Kopia z tego samego planu (`fromSamePlan`, „×2”) bierze bloki oryginału: przy zapisie planu oryginał dostaje
+     * ten sam tryb, więc oba treningi mają się zgadzać.
+     */
+    fun copyBlocks(
+        blocks: List<Block>,
+        literal: Boolean,
+        fromSamePlan: Boolean,
+        difficulty: Difficulty,
+        exercises: Map<String, Exercise>,
+        owned: Set<Equipment>,
+        planner: WorkoutPlanner = WorkoutPlanner(),
+    ): List<Block> {
+        val base = if (literal && !fromSamePlan) planner.shownBlocks(blocks, difficulty, exercises, owned) else blocks
+        return WorkoutEditing.setFixed(base, literal)
     }
 
     private const val DEFAULT_WORKOUT_NAME = "Trening"

@@ -2,7 +2,9 @@
 
 Jak w Mysttic Trainings ułożyć plan dla klienta i wysłać mu go jako plik. Przykład przez cały poradnik: **Full body,
 3 treningi w tygodniu przez 4 tygodnie**, z dwoma treningami na zmianę (A siłowy, B w obwodzie). Ułożenie takiego planu
-zajmuje kilkanaście minut. Opis dotyczy wersji 1.0.0.
+zajmuje kilkanaście minut. Opis dotyczy wersji wydanej po 1.1.0. W 1.1.0 i starszych nowy plan startuje
+z włączonym przełącznikiem „Dopasowuj cele do poziomu i trenera” (wyłącz go, krok 2), a przy treningu planu
+nie ma „×2” (drugi trening układasz przez **Nowy trening**).
 
 Plan układasz w aplikacji na swoim telefonie. Klient dostaje plik, otwiera go w swojej aplikacji i ćwiczy dokładnie
 to, co wpisałeś. Po kilku tygodniach może odesłać Ci raport PDF z przebiegu planu.
