@@ -34,15 +34,19 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -85,6 +89,34 @@ import pl.mysttic.trainings.ui.theme.Overline as OverlineStyle
  * a zrobione rysujemy ogniem, resztki kolorem outlineVariant.
  * Elewacje są zerowe: warstwy rozdziela stopień surfaceContainer i linia włosowa.
  */
+
+/**
+ * Scaffold ekranu na tle aplikacji (D-50): bez własnego wypełnienia, bo zasłoniłby tło, które maluje korzeń
+ * nawigacji (jednolite albo gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
+ * więc `contentColorFor` oddałby domyślną czerń zamiast `onSurface`.
+ */
+@Composable
+fun ScreenScaffold(
+    modifier: Modifier = Modifier,
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = topBar,
+        bottomBar = bottomBar,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        content = content,
+    )
+}
+
+/** Pasek tytułu nad tłem aplikacji (D-50): bez wypełnienia, jak `ScreenScaffold`, tytuł i ikony bez zmian. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun screenTopBarColors(): TopAppBarColors =
+    TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
 
 /** Nagłówek sekcji, etykieta stanu playera, data: wersaliki w kolorze żaru. */
 @Composable
@@ -439,7 +471,10 @@ fun BlockHeader(title: String, param: String, modifier: Modifier = Modifier, fir
     }
 }
 
-/** Pigułka filtra: wybrana wypełniona ogniem, reszta na obwódce. `trailingIcon` (np. strzałka) dla pigułki, która coś rozwija. */
+/**
+ * Pigułka filtra: wybrana wypełniona ogniem, reszta na obwódce. `trailingIcon` (np. strzałka) dla pigułki, która coś rozwija.
+ * Niewybrana jest przezroczysta, jak `SecondaryAction`: na gradiencie tła (D-50) wypełnienie `surface` byłoby łatą.
+ */
 @Composable
 fun FilterPill(
     text: String,
@@ -453,7 +488,7 @@ fun FilterPill(
         onClick = onClick,
         modifier = modifier.height(34.dp),
         shape = Pill,
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
         border = if (selected) null else BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
     ) {
         Row(

@@ -1,6 +1,5 @@
 package pl.mysttic.trainings.ui.screenshot
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,12 +29,15 @@ import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.StatCellData
 import pl.mysttic.trainings.ui.common.StatRow
 import pl.mysttic.trainings.ui.common.WorkoutCard
+import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
+import pl.mysttic.trainings.ui.theme.appBackground
 
 /**
  * Zrzuty motywów bez emulatora (D-40): Robolectric rysuje natywnie, Roborazzi zapisuje PNG.
- * Nie zastępują telefonu — pokazują, jak każdy motyw trzyma komponenty systemu,
+ * Nie zastępują telefonu — pokazują, jak każdy motyw i każde jego tło (D-50) trzyma komponenty systemu,
  * i sprawiają, że zmiana odcienia jest widoczna w diffie zamiast dopiero po instalacji.
  *
  * - `./gradlew testDebugUnitTest` — rysuje i nic nie porównuje (tyle robi CI),
@@ -60,6 +62,18 @@ class ThemeScreenshotTest {
             }
         }
     }
+
+    /** Gradienty tła (D-50): te same komponenty na każdym wariancie, jednolite tło pokazuje test wyżej. */
+    @Test
+    fun `kazde tlo z gradientem`() {
+        AppBackground.entries.filter { it.gradient }.forEach { tlo ->
+            captureRoboImage(filePath = "src/test/screenshots/${tlo.theme.id}-${tlo.id}.png") {
+                TrainingsTheme(theme = tlo.theme, background = tlo) {
+                    Sampler(tlo.theme.labelPl, "tło ${tlo.labelPl}")
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -72,7 +86,7 @@ private fun Sampler(nazwa: String, motyw: String) {
     Column(
         modifier = Modifier
             .width(360.dp)
-            .background(MaterialTheme.colorScheme.surface)
+            .appBackground(LocalAppBackground.current, MaterialTheme.colorScheme.surface)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

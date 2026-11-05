@@ -95,7 +95,8 @@ a `ui/common/exerciseImageModel` zamienia je na plik zamiast assetu.
 
 DataStore Preferences: `difficulty`, `ownedEquipment`, `countdownSec`, `soundEnabled`, `ttsEnabled`, `vibrationEnabled`,
 `keepScreenOn`, `seedVersion`, `volumeKeyDone`, `reminderEnabled`/`reminderHour`/`reminderMinute`, `healthConnectEnabled`,
-`updateChecks`/`lastUpdateCheck`, `libraryTiles` (kafelki albo lista w bibliotece). Zmiana poziomu z dowolnego ekranu
+`updateChecks`/`lastUpdateCheck`, `libraryTiles` (kafelki albo lista w bibliotece), `themeId` i `backgrounds`
+(motyw i tło każdego motywu, D-39, D-50). Zmiana poziomu z dowolnego ekranu
 (player, Ustawienia) zapisuje to samo pole.
 
 ## UI (`ui/`)

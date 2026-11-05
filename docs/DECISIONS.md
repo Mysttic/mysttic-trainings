@@ -970,3 +970,48 @@ Konsekwencje: zmienia zdanie D-42, że plan własny domyślnie dopasowuje się d
 przełącznika nie rośnie z „Podbij cele” ani trenerem. Kopia z planu dosłownego do planu dopasowanego dalej dostaje
 skalowanie poziomem na liczbach, które były dosłowne (odwrotnego przeliczenia nie ma); z nowym domyślnym trybem to rzadka
 ścieżka. Porzucenie edycji kasuje kopie z tej edycji jak każdy trening dodany w edycji. Opis zmian: `docs/guide.md`, `docs/poradnik-trenera.md`, `docs/testing.md`, `CHANGELOG.md`.
+
+## D-50 Tło z gradientem w każdym motywie, liczone pod karty motywu (2026-11-05, wersja 1.2.0)
+
+Kontekst: issue #6. Właściciel chce wybierać tło z gradientem w motywach, a każdy motyw ma mieć kilka wariantów
+kolorów. Tło ekranów było dotąd jednym kolorem `surface` motywu (D-32, D-39), malowanym naraz w korzeniu nawigacji,
+w Scaffoldach ekranów, w dolnym pasku i w szynie. Niewybrane pigułki i „−”/„+” w playerze miały wypełnienie `surface`,
+więc wyglądały na przezroczyste tylko dlatego, że tło było jednolite.
+
+Decyzja:
+- Motyw zostaje jedną decyzją z D-39, a pod nim jest drugie, mniejsze ustawienie: tło. Każdy motyw ma tło jednolite
+  (pierwsze i domyślne, czyli wygląd sprzed D-50) i trzy gradienty z góry na dół w kolorach swojego motywu.
+  „Ogień i Krew”: Żar (czerwień tli się od dołu), Łuna (karmazyn u góry gaśnie w czerń), Wino (śliwka u dołu).
+  „Papier i Ogień”: Świt, Róża, Pergamin. „Stal i Bursztyn”: Granat, Głębia, Zmrok, same chłodne odcienie, bo bursztyn
+  jest tam akcją. Warianty i ich kolory stoją w `ui/theme/Backgrounds.kt` (`AppBackground`). Wybór jest w Ustawieniach
+  → Wygląd → Tło, pigułkami jak motyw i bez miniatur, z tego samego powodu co w D-39.
+- Gradient leży pod tymi samymi kartami i napisami co tło jednolite, więc w każdym swoim punkcie trzyma wszystkie pary
+  kontrastu, w których tłem jest `surface` albo `background`, z niezmienionymi progami. Najciaśniejszy jest próg paska
+  (`surfaceContainer` wobec tła, 1,04:1): w ciemnych motywach gradient nie jaśnieje ponad kartę, tylko zmienia odcień
+  i schodzi w czerń, a w jasnym nie ciemnieje do karty. Dlatego gradienty są spokojne. Mocniejszy wymagałby osobnych
+  kart dla każdego wariantu.
+- Tło maluje tylko korzeń nawigacji: `appBackground` z `LocalAppBackground`, który podaje `TrainingsTheme`. Scaffold
+  korzenia, dolny pasek, szyna i Scaffoldy ekranów (`ScreenScaffold` i `screenTopBarColors` w `DesignSystem.kt`) są
+  przezroczyste, więc gradient stoi w miejscu przy przewijaniu i przejściach między ekranami. Przezroczysty kontener
+  dostaje kolor treści wprost (`onSurface`), bo `contentColorFor(Color.Transparent)` oddaje domyślną czerń. Niewybrana
+  `FilterPill` i „−”/„+” w playerze są przezroczyste jak `SecondaryAction`. Gradient rysuje się z ditheringiem, bo ciemne
+  przejścia inaczej układają się w pasy, a pędzel powstaje raz na rozmiar. Tło okna w `MainActivity` to ten sam gradient
+  (`GradientDrawable`).
+- Wybór jest osobny dla każdego motywu. DataStore trzyma zbiór wpisów „motyw=tło” (`backgrounds`, `BackgroundChoices`),
+  więc powrót do motywu przywraca jego tło, a tło jednego motywu nigdy nie trafia pod schemat innego
+  (`AppBackground.resolve` spada wtedy na jednolite). Kopia zapasowa w wersji 5 niesie ten zbiór, a kopia sprzed 5
+  nie rusza wybranych teł (`BACKGROUNDS_SINCE`, tak jak imię autora w D-42).
+
+Odrzucone: dowolny kolor albo gradient z próbnika (nie da się zagwarantować kontrastu kart i napisów); osobne karty
+i obrysy dla każdego wariantu (warianty stałyby się nowymi motywami: dwanaście schematów po 35 ról zamiast trzech);
+wspólne warianty dla wszystkich motywów („Wino” pod „Papierem” złamałoby kontrast); gradient ukośny albo radialny
+(na razie wystarcza jeden kierunek, a pionowy tak samo rysuje tło okna); tło animowane (player tyka co sekundę,
+a tło ma nie przeszkadzać).
+
+Konsekwencje: `ThemeContractTest` i `tools/check_contrast.py` próbkują każdy gradient tak, jak rysuje go Android
+(64 punkty na odcinek, liniowo w sRGB), i sprawdzają pary na `surface` i `background`. Test pilnuje też, że gradient
+nie przechodzi na drugą stronę jasności, bo `AppTheme.dark` steruje ikonami pasków systemu. Nowy wariant to kolory
+i wpis w `AppBackground`, zielony skrypt i test. Nowy ekran z własnym Scaffoldem bierze `ScreenScaffold`, bo wypełnienie
+`surface` pod treścią zasłoni gradient. `ThemeScreenshotTest` rysuje też każdy gradient. Zastrzeżenie z D-39 zostaje:
+pierwsza klatka po starcie bierze tło okna z `res/values(-night)/colors.xml`, zanim `MainActivity` ustawi gradient.
+Kopii z 1.2.0 nie wczyta wersja 1.1.0. Opis zmian: `docs/guide.md`, `docs/testing.md`, `docs/DATABASE.md`, `CHANGELOG.md`.

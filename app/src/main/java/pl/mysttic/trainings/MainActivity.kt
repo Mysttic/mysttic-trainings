@@ -2,6 +2,8 @@ package pl.mysttic.trainings
 
 import android.content.Intent
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
@@ -26,6 +28,7 @@ import pl.mysttic.trainings.data.settings.UserSettings
 import pl.mysttic.trainings.service.PlayerController
 import pl.mysttic.trainings.service.WorkoutService
 import pl.mysttic.trainings.ui.navigation.TrainingsRoot
+import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
 import pl.mysttic.trainings.ui.theme.schemeFor
@@ -58,16 +61,18 @@ class MainActivity : ComponentActivity() {
             // Motyw jest ustawieniem (D-39), więc zmiana w Ustawieniach przemalowuje aplikację od razu.
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(initialValue = UserSettings())
             val theme = AppTheme.fromId(settings.themeId)
+            // Tło tego motywu (D-50): każdy motyw pamięta swoje, więc zmiana motywu przywraca jego wybór.
+            val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
             val view = LocalView.current
-            LaunchedEffect(theme) {
+            LaunchedEffect(theme, background) {
                 // Wygląd nie idzie za systemem, więc ikony pasków i tło okna muszą iść za wyborem.
-                window.setBackgroundDrawable(ColorDrawable(schemeFor(theme).surface.toArgb()))
+                window.setBackgroundDrawable(windowBackground(theme, background))
                 WindowCompat.getInsetsController(window, view).apply {
                     isAppearanceLightStatusBars = !theme.dark
                     isAppearanceLightNavigationBars = !theme.dark
                 }
             }
-            TrainingsTheme(theme = theme) {
+            TrainingsTheme(theme = theme, background = background) {
                 TrainingsRoot(openPlayer = openPlayerRequests.receiveAsFlow(), openPlanFile = planShare.incoming)
             }
         }
@@ -88,6 +93,19 @@ class MainActivity : ComponentActivity() {
         val volumeKey = keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP
         if (volumeKey && volumeKeyDone && player.isActive) return true
         return super.onKeyUp(keyCode, event)
+    }
+
+    /**
+     * Tło okna takie jak tło ekranów: widać je, zanim Compose narysuje klatkę. Gradient z tymi samymi kolorami
+     * rozłożonymi równo z góry na dół, tak samo jak `appBackground`.
+     */
+    private fun windowBackground(theme: AppTheme, background: AppBackground): Drawable {
+        val colors = background.colors(schemeFor(theme)).map { it.toArgb() }
+        return if (colors.size < 2) {
+            ColorDrawable(colors.first())
+        } else {
+            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors.toIntArray())
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

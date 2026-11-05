@@ -45,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -587,14 +588,17 @@ private fun Controls(
     }
 }
 
-/** „−” i „+” przy liczbie powtórzeń: 58 x 62 dp, obwódka, bez wypełnienia (to nie jest akcja główna). */
+/**
+ * „−” i „+” przy liczbie powtórzeń: 58 x 62 dp, obwódka, bez wypełnienia (to nie jest akcja główna).
+ * Przezroczyste, a nie w kolorze `surface`, bo pod playerem może leżeć gradient tła (D-50).
+ */
 @Composable
 private fun StepperButton(text: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         modifier = Modifier.size(width = Dimens.playerStepper, height = Dimens.playerAction),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
         border = androidx.compose.foundation.BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
     ) {
         Box(contentAlignment = Alignment.Center) {

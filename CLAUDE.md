@@ -17,7 +17,7 @@ Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym com
 nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
 Liczby: baza ćwiczeń v10 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów),
-424 testy jednostkowe w 48 klasach, Room v6, kopia zapasowa v4, jedenaście gotowych programów.
+434 testy jednostkowe w 49 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
 
 Weryfikacja stoi na emulatorze Pixel_9_Pro (API 37), dla dużych ekranów na AVD Pixel_Tablet_API_37 (D-42), i na skryptach
 `tools/przebieg*.py`. Decyzja właściciela z 2026-09-18: **telefon nie jest bramką wydania**, emulator wystarcza.
@@ -42,7 +42,9 @@ pobieranie przez sieć sprawdzone na emulatorze na wydaniu v10.
 
 W 1.2.0 (niewydane, D-49, issue #1): nowy plan własny startuje dosłownie (przełącznik „Dopasowuj cele…” wyłączony),
 „×2” przy treningu planu robi jego kopię w tym samym planie (`PlanEditing.copyName`, `PlanEditing.copyBlocks`),
-a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu.
+a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do tego tło z gradientem (D-50, issue #6):
+każdy motyw ma tło jednolite i trzy gradienty (`ui/theme/Backgrounds.kt`), wybór osobno dla każdego motywu
+w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie.
 
 Zmiany idą do `CHANGELOG.md` pod wersją, do której wejdą; `docs/PLAN.md` nie prowadzimy (decyzja właściciela z 2026-10-28).
 
@@ -100,7 +102,7 @@ app/src/main/java/pl/mysttic/trainings/
   data/repo/ProgramRepository  cykle treningowe: zapis wygenerowanego planu, aktywny cykl (D-20)
   data/repo/CoachRepository    pamięć trenera: opinie, wykluczenie z podmianą w aktywnym cyklu, zerowanie (D-35)
   data/share/PlanShareRepository  plik planu: eksport do okna udostępniania i SAF, odbiór z intencji, podgląd, import (D-42)
-  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały
+  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały, motyw i tło każdego motywu (`BackgroundChoices`, D-50)
   data/repo/         repozytoria + mapowanie encja ↔ domena
   service/           PlayerController (stan silnika w procesie, D-16), WorkoutService (FGS: tick, wake lock, powiadomienie),
                      PlayerNotifications + NotificationContent (treść powiadomienia, czysty Kotlin), Cues (SoundPool/wibracja/TTS + audio focus), MonotonicClock
@@ -114,7 +116,8 @@ app/src/main/java/pl/mysttic/trainings/
                      stats (statystyki planu, PdfReportRenderer), presets (wybór gotowego programu), library, workout, editor, player (cienki widok
                      na PlayerController), history, settings; navigation (trasy typowane); adaptive (AppLayout, szyna, czytelna szerokość, D-42)
   ui/common/         DesignSystem.kt (karty, przyciski, steppery), Components.kt (ExerciseTile, ExerciseImage, EmptyState…), Charts.kt (wykresy na Canvas)
-  ui/theme/          Color.kt (motyw domyślny), Themes.kt (dwa pozostałe + AppTheme), Theme.kt (trzy schematy po 35 ról), Type.kt (Sora), Shape.kt
+  ui/theme/          Color.kt (motyw domyślny), Themes.kt (dwa pozostałe + AppTheme), Theme.kt (trzy schematy po 35 ról), Type.kt (Sora), Shape.kt,
+                     Backgrounds.kt (warianty tła każdego motywu: `AppBackground`, `appBackground`, D-50)
 app/src/test/        testy JUnit4: domain, service, data (kopia, seed, sprzątanie treningów na Room w pamięci), ui (motyw, zrzuty D-40, układ, saver opinii)
 baza/                baza ćwiczeń (D-47): exercises.json + images/<id>.jpg, jedyne źródło prawdy; Gradle podpina katalog jako assety APK,
                      więc leżą w nim wyłącznie dane
@@ -131,7 +134,7 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
 - `domain/` nie importuje Androida. Silnik to czysta funkcja `WorkoutEngine.reduce(state, event) -> (state, effects)`;
   zdarzenia niosą własne `now` (ms, zegar monotoniczny). Przejścia liczone z timestampów, tick tylko sprawdza, czy faza minęła.
 - Każda zmiana w `domain/` (engine, equipment, stats, editor, library, plan, plan/preset, coach, reminder, health, update)
-  = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 424 w 48 klasach.
+  = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 434 w 49 klasach.
 - `PlanGenerator` musi zostać deterministyczny (bez losowania): te same dane wejściowe = ten sam plan, inaczej testy tracą sens.
 - Plan rozliczamy kolejką, nie datami (D-21): dzień jest odhaczony przez ukończoną sesję tego treningu, niezależnie kiedy.
 - Plany (D-42): aktywny jest najwyżej jeden, pozostałe czekają z postępem; przełączyć wolno w każdej chwili. Trening należy
@@ -184,7 +187,7 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   `WorkoutEditing.MAX_TARGET_SECONDS` (godzina), a krok w edytorze liczą `nextTarget`/`previousTarget`.
 - Notatki do ćwiczeń w planie (D-44): tabela `plan_exercise_notes`, klucz plan i ćwiczenie pokazane na ekranie.
   Zapis tylko przez `ProgramRepository.setNote` (tekst przez `PlanNotes.clean`); kopia i powtórka planu, plik planu
-  (`SharedPlan.notes`) i kopia zapasowa (v4) je niosą, `ProgramRepository.delete` je kasuje. Silnik i szablony
+  (`SharedPlan.notes`) i kopia zapasowa (od v4) je niosą, `ProgramRepository.delete` je kasuje. Silnik i szablony
   treningów o notatkach nie wiedzą: player czyta je w `PlayerViewModel`, nie w `PlayerController`.
 - Seed nie wozi szablonów treningów (od v7, D-43): kolejkę układa kreator, gotowy program albo plan własny (D-42).
   Wbudowane treningi z historią zostają w bazie i dalej są tylko do kopiowania (D-19 w domenie, `WorkoutEditing.canEdit`).
@@ -214,8 +217,14 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   Trzy reguły, których trzyma się każdy ekran: wypełnienie `primary` znaczy akcję, `tertiary` niesie informację i nigdy nie trafia
   na przycisk, zrobione rysujemy ogniem, a resztki kolorem `outlineVariant`. Elewacje zerowe — warstwy rozdziela stopień
   `surfaceContainer` i linia włosowa. Bez `dynamicColor`.
+  Tło ekranów (D-50): jednolite `surface` albo gradient z `ui/theme/Backgrounds.kt` (`AppBackground`, warianty osobno
+  dla każdego motywu). Maluje je tylko korzeń nawigacji, a wszystko nad nim jest przezroczyste: ekran z własnym
+  Scaffoldem bierze `ScreenScaffold` (pasek tytułu `screenTopBarColors()`), nigdy `containerColor = surface`, i nie kładzie
+  pod treścią wypełnienia `surface`. Gradient trzyma w każdym punkcie pary, w których tłem jest `surface` albo
+  `background`: nowy wariant = kolory, wpis w `AppBackground` i zielony `check_contrast.py`, który próbkuje gradient
+  tak samo jak `ThemeContractTest`.
 - Wspólne komponenty w `ui/common/`: `DesignSystem.kt` (WorkoutCard, ExerciseRow, StatRow, PrimaryAction, ProgressionCard,
-  FilterPill, SettingRow, ValueStepper…) i `Components.kt` (ExerciseTile, ExerciseImage, ExerciseThumbnail, EmptyState,
+  FilterPill, SettingRow, ValueStepper, ScreenScaffold…) i `Components.kt` (ExerciseTile, ExerciseImage, ExerciseThumbnail, EmptyState,
   EquipmentTags, formatDuration…). Nowy ekran składa się z nich, zamiast rysować własne karty i przyciski.
 - Typografia: Sora z `res/font/sora.ttf` (wariant zmienny, wagi z osi `wght`, wymaga API 26). Skala i style w `ui/theme/Type.kt`;
   liczby playera (208/176/132 sp) są policzone pod czytanie z półtora metra — nie zmniejszać.

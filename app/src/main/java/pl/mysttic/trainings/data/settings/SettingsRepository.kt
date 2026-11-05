@@ -49,6 +49,11 @@ data class UserSettings(
      * nie zaglądała do interfejsu; mapuje go `AppTheme.fromId`.
      */
     val themeId: String = "fire",
+    /**
+     * Tło wybrane w każdym motywie (D-50): id motywu → id wariantu tła, więc powrót do motywu przywraca jego tło.
+     * Brak wpisu = tło jednolite. Też identyfikatory, z tego samego powodu co `themeId`; mapuje je `AppBackground.resolve`.
+     */
+    val backgrounds: Map<String, String> = emptyMap(),
     /** Imię na planach wysyłanych innym i na raportach (D-42); puste = bez podpisu. */
     val authorName: String = "",
 )
@@ -74,6 +79,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val libraryTiles = booleanPreferencesKey("library_tiles")
         val themeId = stringPreferencesKey("theme_id")
+        val backgrounds = stringSetPreferencesKey("backgrounds")
         val authorName = stringPreferencesKey("author_name")
     }
 
@@ -99,6 +105,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
             lastUpdateCheck = p[Keys.lastUpdateCheck] ?: 0L,
             libraryTiles = p[Keys.libraryTiles] ?: true,
             themeId = p[Keys.themeId] ?: "fire",
+            backgrounds = BackgroundChoices.decode(p[Keys.backgrounds].orEmpty()),
             authorName = p[Keys.authorName] ?: "",
         )
     }
@@ -137,6 +144,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     suspend fun setLibraryTiles(tiles: Boolean) = store.edit { it[Keys.libraryTiles] = tiles }
 
     suspend fun setThemeId(id: String) = store.edit { it[Keys.themeId] = id }
+
+    /** Tło jednego motywu (D-50); tła pozostałych motywów zostają, jakie były. */
+    suspend fun setBackground(themeId: String, backgroundId: String) = store.edit {
+        val choices = BackgroundChoices.decode(it[Keys.backgrounds].orEmpty())
+        it[Keys.backgrounds] = BackgroundChoices.encode(choices + (themeId to backgroundId))
+    }
+
+    /** Tła wszystkich motywów naraz, z kopii zapasowej. */
+    suspend fun setBackgrounds(choices: Map<String, String>) = store.edit { it[Keys.backgrounds] = BackgroundChoices.encode(choices) }
 
     suspend fun setAuthorName(name: String) = store.edit { it[Keys.authorName] = name.trim().take(60) }
 

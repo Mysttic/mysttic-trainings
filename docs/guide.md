@@ -231,6 +231,10 @@ Historia pokazuje wszystkie treningi razem, ze wszystkich planów. Przebieg jedn
 - **Poziom trudności** i **mój sprzęt** — te same, których używa kreator i player.
 - **Wygląd**: jeden z trzech motywów, „Ogień i Krew” (domyślny), jasny „Papier i Ogień” albo „Stal i Bursztyn”.
   Aplikacja trzyma wybrany motyw i nie przełącza się sama za trybem jasnym czy ciemnym systemu.
+  Pod motywami jest **Tło**: jednolite (domyślne) albo jeden z trzech gradientów w kolorach motywu: Żar, Łuna
+  i Wino w „Ogniu i Krwi”, Świt, Róża i Pergamin w „Papierze i Ogniu”, Granat, Głębia i Zmrok w „Stali
+  i Bursztynie”. Gradient leży pod wszystkimi ekranami, a karty i napisy zostają tak samo czytelne. Każdy motyw
+  pamięta swoje tło, więc po powrocie do motywu wraca też jego gradient.
 - **Odliczanie przed startem** — 0, 3, 5 albo 10 sekund.
 - **Sygnały** — dźwięk, głos (TTS), wibracja, „nie gaś ekranu w trakcie treningu”.
 - **Przycisk głośności potwierdza serię** — opisany wyżej skrót; da się wyłączyć.

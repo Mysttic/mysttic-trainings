@@ -40,7 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -90,6 +89,7 @@ import pl.mysttic.trainings.ui.common.SearchField
 import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.TextInput
 import pl.mysttic.trainings.ui.common.formatDuration
+import pl.mysttic.trainings.ui.common.ScreenScaffold
 import pl.mysttic.trainings.ui.theme.Dimens
 import kotlinx.serialization.json.Json
 
@@ -195,8 +195,7 @@ fun WorkoutEditorScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+    ScreenScaffold(
         bottomBar = {
             Row(
                 modifier = Modifier
@@ -213,11 +212,11 @@ fun WorkoutEditorScreen(
     ) { padding ->
         if (state.notFound) {
             EmptyState("Nie znaleziono treningu.", Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         state.readOnly?.let { reason ->
             EmptyState(reason, Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         // Na tablecie treść w czytelnej szerokości (D-42), na telefonie bez zmian.
         ReadableBox(modifier = Modifier.padding(padding)) {

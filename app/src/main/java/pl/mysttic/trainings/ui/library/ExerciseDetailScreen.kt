@@ -16,7 +16,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +36,7 @@ import pl.mysttic.trainings.ui.common.ExerciseImagePair
 import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.AppSwitch
+import pl.mysttic.trainings.ui.common.ScreenScaffold
 import pl.mysttic.trainings.domain.coach.Coach
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,10 +49,10 @@ fun ExerciseDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exercise = state.exercise
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.surface) { padding ->
+    ScreenScaffold { padding ->
         if (exercise == null) {
             if (!state.loading) EmptyState("Nie znaleziono ćwiczenia.", Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         // Na tablecie kolumna 640 dp: ilustracja na pełną szerokość zajmowała cały pierwszy ekran i była rozmyta.
         ReadableBox(modifier = Modifier.padding(padding)) {

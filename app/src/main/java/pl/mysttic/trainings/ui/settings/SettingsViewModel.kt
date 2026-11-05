@@ -204,6 +204,7 @@ class SettingsViewModel @Inject constructor(
     fun setKeepScreenOn(on: Boolean) = viewModelScope.launch { repo.setKeepScreenOn(on) }
     fun setVolumeKeyDone(on: Boolean) = viewModelScope.launch { repo.setVolumeKeyDone(on) }
     fun setTheme(id: String) = viewModelScope.launch { repo.setThemeId(id) }
+    fun setBackground(themeId: String, backgroundId: String) = viewModelScope.launch { repo.setBackground(themeId, backgroundId) }
     fun setAuthorName(name: String) = viewModelScope.launch { repo.setAuthorName(name) }
 
     fun setReminderEnabled(on: Boolean) = viewModelScope.launch {

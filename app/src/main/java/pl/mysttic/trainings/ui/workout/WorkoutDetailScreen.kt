@@ -19,7 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.clickable
 import pl.mysttic.trainings.ui.common.TextInput
 import pl.mysttic.trainings.ui.common.formatKg
+import pl.mysttic.trainings.ui.common.ScreenScaffold
 import pl.mysttic.trainings.domain.plan.PlanNotes
 import androidx.compose.foundation.layout.Column
 
@@ -162,8 +162,7 @@ fun WorkoutDetailScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+    ScreenScaffold(
         bottomBar = {
             if (workout != null) {
                 Row(
@@ -202,7 +201,7 @@ fun WorkoutDetailScreen(
     ) { padding ->
         if (workout == null) {
             if (!state.loading) EmptyState("Nie znaleziono treningu.", Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         ReadableBox(modifier = Modifier.padding(padding)) {
             LazyColumn(

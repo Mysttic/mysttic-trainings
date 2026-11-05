@@ -5,13 +5,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 
 /*
  * Komplet 35 ról Material 3 na motyw (D-17, D-32). Pominięta rola spada na paletę bazową M3 (fiolet),
  * dlatego wszystkie są podane jawnie. Bez dynamicColor: wygląd to tożsamość produktu, nie tapeta systemu —
  * ale od D-39 użytkownik wybiera jeden z trzech motywów, a każdy z nich jest skończony: „Papier i Ogień”
  * jest jasny zawsze, pozostałe ciemne zawsze, niezależnie od ustawienia systemu.
- * Wartości „Ognia i Krwi” stoją w Color.kt, pozostałych w Themes.kt.
+ * Wartości „Ognia i Krwi” stoją w Color.kt, pozostałych w Themes.kt, a warianty tła każdego motywu (D-50)
+ * w Backgrounds.kt.
  */
 
 private val FireScheme = darkColorScheme(
@@ -136,15 +139,26 @@ fun schemeFor(theme: AppTheme): ColorScheme = when (theme) {
     AppTheme.STEEL -> SteelScheme
 }
 
+/**
+ * Tło ekranów wybrane w Ustawieniach (D-50). Maluje je raz korzeń nawigacji (`appBackground`), a Scaffoldy ekranów
+ * nad nim są przezroczyste, więc gradient przechodzi przez wszystkie ekrany i zostaje w miejscu przy przewijaniu.
+ */
+val LocalAppBackground = staticCompositionLocalOf { AppBackground.FIRE_SOLID }
+
 @Composable
 fun TrainingsTheme(
     theme: AppTheme = AppTheme.FIRE,
+    background: AppBackground = AppBackground.of(theme).first(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = schemeFor(theme),
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    // Tło innego motywu nie trzyma kontrastu z tym schematem, więc w takim wypadku zostaje jednolite.
+    val own = if (background.theme == theme) background else AppBackground.of(theme).first()
+    CompositionLocalProvider(LocalAppBackground provides own) {
+        MaterialTheme(
+            colorScheme = schemeFor(theme),
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

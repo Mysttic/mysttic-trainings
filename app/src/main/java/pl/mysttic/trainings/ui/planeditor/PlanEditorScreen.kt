@@ -28,7 +28,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +57,7 @@ import pl.mysttic.trainings.ui.common.PrimaryAction
 import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.TextInput
+import pl.mysttic.trainings.ui.common.ScreenScaffold
 import pl.mysttic.trainings.ui.theme.Dimens
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -137,8 +137,7 @@ fun PlanEditorScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+    ScreenScaffold(
         bottomBar = {
             Row(
                 modifier = Modifier

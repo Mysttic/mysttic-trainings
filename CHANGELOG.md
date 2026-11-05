@@ -20,6 +20,11 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
 ## [1.2.0]
 
 ### Dodane
+- **Tło z gradientem w każdym motywie.** Ustawienia → Wygląd → Tło: obok tła jednolitego każdy motyw ma trzy
+  gradienty. „Ogień i Krew”: Żar, Łuna i Wino, „Papier i Ogień”: Świt, Róża i Pergamin, „Stal i Bursztyn”: Granat,
+  Głębia i Zmrok. Gradient leży pod wszystkimi ekranami i stoi w miejscu przy przewijaniu, a karty, przyciski
+  i napisy zostają takie same i równie czytelne. Każdy motyw pamięta swoje tło, więc po powrocie do motywu wraca
+  też jego gradient. Domyślnie tło jest jednolite, jak dotąd.
 - **Kopia treningu w edytorze planu.** „×2” przy treningu planu dokłada jego kopię, więc drugi trening układasz
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
   „(kopia 2)”, „(kopia 3)”. Tak samo nazywa się trening skopiowany z innego planu, gdy plan ma już trening
@@ -37,6 +42,10 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
   (nowy, skopiowany albo „×2”), Wstecz pyta „Porzucić zmiany?”: „Porzuć” go zabiera, a „Zapisz plan” zostawia.
   Wcześniej przy niezmienionych dniach Wstecz wychodził bez pytania, a niepotrzebnego treningu nie dało się
   potem usunąć.
+- **Kopia zapasowa w wersji 5 niesie tło każdego motywu.** Starsze kopie wczytują się jak dotąd i nie zmieniają
+  wybranego tła; kopii z 1.2.0 nie wczyta wersja 1.1.0, więc na nowym telefonie najpierw zaktualizuj aplikację.
+- **Niewybrane pigułki filtrów i „−”/„+” w playerze są bez wypełnienia**, z samą obwódką, jak pozostałe przyciski
+  drugorzędne. Na tle jednolitym wyglądają jak dotąd, na kartach i w oknach biorą kolor karty.
 - **Kod jest publiczny.** Repozytorium zaczyna od stanu 1.1.0, bez wcześniejszej historii (D-48). Kod jest
   na licencji MIT, a baza ćwiczeń (nazwy, opisy, instrukcje i ilustracje) na CC BY 4.0. W samej aplikacji
   nic się nie zmienia.

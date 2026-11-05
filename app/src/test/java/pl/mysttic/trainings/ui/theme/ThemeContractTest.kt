@@ -8,14 +8,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
- * Kontrakt wyglądu (D-17, D-32, D-39) pilnowany testem, a nie tylko skryptem: `tools/check_contrast.py` trzeba
+ * Kontrakt wyglądu (D-17, D-32, D-39, D-50) pilnowany testem, a nie tylko skryptem: `tools/check_contrast.py` trzeba
  * pamiętać uruchomić, a to leci na CI przy każdej zmianie. Lista par jest ta sama co w skrypcie i obie mają
  * pozostać zgodne — skrypt zostaje do ręcznego przeglądu z wypisanymi liczbami.
  *
  * Test nie ogląda ekranów; sprawdza to, co da się sprawdzić bez telefonu: że każdy motyw ma komplet ról,
- * że żadna rola nie została na domyślnym fiolecie Material 3 i że pary tekst/tło trzymają progi WCAG.
+ * że żadna rola nie została na domyślnym fiolecie Material 3, że pary tekst/tło trzymają progi WCAG
+ * i że każde tło motywu (D-50) trzyma je w każdym punkcie gradientu.
  * Pierwsze uruchomienie na telefonie dalej jest potrzebne — kontrast to nie wszystko.
  */
 class ThemeContractTest {
@@ -124,6 +126,74 @@ class ThemeContractTest {
         }
     }
 
+    /**
+     * Tło ekranów (D-50) leży pod tymi samymi kartami i napisami co `surface`, więc w każdym swoim punkcie trzyma
+     * wszystkie pary, w których tłem jest `surface` albo `background`: tekst, obrysy, karta i pasek odróżnione od tła.
+     * Punkty liczymy tak, jak rysuje je Android: liniowo w sRGB między równo rozłożonymi kolorami. Sprawdzanie
+     * samych końców nie wystarcza — w jasnym motywie środek przejścia bywa ciemniejszy od obu końców.
+     */
+    @Test
+    fun `kazde tlo trzyma progi kontrastu swojego motywu`() {
+        val doTla = pary.filter { it.bg == "surface" || it.bg == "background" }
+        val bledy = mutableListOf<String>()
+        AppBackground.entries.forEach { tlo ->
+            val scheme = schemeFor(tlo.theme)
+            probki(tlo).forEach { punkt ->
+                val naTle = scheme.copy(surface = punkt, background = punkt)
+                doTla.forEach { para ->
+                    val ratio = kontrast(rola(naTle, para.fg), punkt)
+                    if (ratio < para.prog) {
+                        bledy += "${tlo.theme.id}/${tlo.id}: ${para.fg} na ${hex(punkt)} = %.3f:1 (min %.2f) — %s"
+                            .format(ratio, para.prog, para.opis)
+                    }
+                }
+            }
+        }
+        assertTrue(bledy.distinct().joinToString("\n"), bledy.isEmpty())
+    }
+
+    /** Ikony pasków systemu idą za `AppTheme.dark`, więc gradient nie może przejść na drugą stronę jasności. */
+    @Test
+    fun `tlo nie przechodzi na druga strone jasnosci motywu`() {
+        AppBackground.entries.forEach { tlo ->
+            probki(tlo).forEach { punkt ->
+                assertEquals("${tlo.theme.id}/${tlo.id}: ${hex(punkt)} kłamie o jasności", tlo.theme.dark, luminancja(punkt) < 0.2)
+            }
+        }
+    }
+
+    /** Issue #6: każdy motyw ma kilka wariantów tła; pierwszy jest jednolity, bo to wygląd sprzed D-50. */
+    @Test
+    fun `kazdy motyw ma tlo jednolite i kilka gradientow`() {
+        AppTheme.entries.forEach { theme ->
+            val tla = AppBackground.of(theme)
+            assertTrue("${theme.id}: pierwsze tło ma być jednolite", !tla.first().gradient)
+            assertEquals("${theme.id}: jedno tło jednolite", 1, tla.count { !it.gradient })
+            assertTrue("${theme.id}: za mało gradientów (${tla.count { it.gradient }})", tla.count { it.gradient } >= 3)
+            assertEquals("${theme.id}: identyfikatory tła powtarzają się", tla.size, tla.map { it.id }.toSet().size)
+            assertEquals("${theme.id}: dwa gradienty o tych samych kolorach", tla.size, tla.map { it.stops }.toSet().size)
+            tla.filter { it.gradient }.forEach { tlo ->
+                assertTrue("${theme.id}/${tlo.id}: gradient bez przejścia", tlo.stops.toSet().size > 1)
+            }
+        }
+    }
+
+    @Test
+    fun `tlo wraca z zapisu, a obce i smiec spadaja na jednolite`() {
+        AppBackground.entries.forEach { assertEquals(it, AppBackground.resolve(it.theme, it.id)) }
+        AppTheme.entries.forEach { theme ->
+            val jednolite = AppBackground.of(theme).first()
+            assertEquals(jednolite, AppBackground.resolve(theme, null))
+            assertEquals(jednolite, AppBackground.resolve(theme, "tęcza"))
+        }
+        // Tło innego motywu nie trzyma kontrastu z tym schematem: „Żar” z „Ognia i Krwi” nie wchodzi do „Stali”.
+        assertEquals(AppBackground.STEEL_SOLID, AppBackground.resolve(AppTheme.STEEL, AppBackground.FIRE_EMBER.id))
+        // Tło jednolite to dalej `surface` motywu, więc wygląd sprzed D-50 się nie zmienia.
+        AppTheme.entries.forEach { theme ->
+            assertEquals(listOf(schemeFor(theme).surface), AppBackground.of(theme).first().colors(schemeFor(theme)))
+        }
+    }
+
     @Test
     fun `identyfikatory wracaja z zapisu, a smiec spada na domyslny`() {
         AppTheme.entries.forEach { assertEquals(it, AppTheme.fromId(it.id)) }
@@ -143,6 +213,25 @@ class ThemeContractTest {
 
     private fun rola(scheme: ColorScheme, nazwa: String): Color =
         ROLE.getValue(nazwa)(scheme)
+
+    /** Punkty tła tak, jak rysuje je Android: liniowo w sRGB między równo rozłożonymi kolorami gradientu. */
+    private fun probki(tlo: AppBackground, naOdcinek: Int = 64): List<Color> {
+        val kolory = tlo.colors(schemeFor(tlo.theme))
+        if (kolory.size == 1) return kolory
+        return kolory.zipWithNext().flatMap { (a, b) ->
+            (0..naOdcinek).map { i ->
+                val t = i / naOdcinek.toFloat()
+                Color(
+                    red = a.red + (b.red - a.red) * t,
+                    green = a.green + (b.green - a.green) * t,
+                    blue = a.blue + (b.blue - a.blue) * t,
+                )
+            }
+        }
+    }
+
+    private fun hex(c: Color): String =
+        "#%02X%02X%02X".format((c.red * 255).roundToInt(), (c.green * 255).roundToInt(), (c.blue * 255).roundToInt())
 
     private fun luminancja(c: Color): Double {
         fun kanal(v: Float): Double {

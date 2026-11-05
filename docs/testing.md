@@ -16,9 +16,10 @@ bez Robolectrica, bez zegara systemowego. To tam mieszkają reguły, które da s
 | `domain/update` | porównanie numerów wersji, decyzja o wydaniu, parsowanie odpowiedzi GitHuba |
 | `domain/health` | co kwalifikuje się do zapisu w Health Connect |
 | `service` | treść powiadomienia (`NotificationContent`) i zbocze zgody na powiadomienia (`NotificationGate`, D-43), oba czysty Kotlin |
-| `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39) |
+| `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39); każde tło motywu w każdym punkcie gradientu (pary na `surface` i `background`, jasność zgodna z `dark`), warianty i ich identyfikatory (D-50) |
 | `ui/player` | saver opinii z podsumowania — czy przeżywają obrót ekranu |
 | `data/backup` | format pliku kopii: stara wersja wczytuje się z domyślnymi wartościami, dzisiejsza wraca w całości |
+| `data/settings` | tło każdego motywu w DataStore (`BackgroundChoices`, D-50): wybór wraca z zapisu, śmieć z kopii nie wywraca odczytu |
 | `data/db` | sprzątanie treningów w SQL na Room w pamięci (Robolectric): `ProgramRepository.delete` i dwa zapytania, które `SeedImporter` woła po aktualizacji (sieroty planów sprzed 0.9.1, wbudowane spoza seedu v7), D-43 |
 | `data/seed` | integralność seedu: unikalne id, obraz przy każdym ćwiczeniu, warianty istnieją i trzymają rodzaj celu, id zgodne z plikiem planu, seed bez szablonów treningów (D-43) |
 
@@ -36,7 +37,8 @@ do kodu, gdy zaczną padać — najpierw sprawdzamy, która strona ma rację.
 
 `app/src/test/.../ui/screenshot/ThemeScreenshotTest.kt` rysuje jeden ekran ze wszystkim, co niesie kolor
 (karta treningu z akcją, karta progresji, statystyki, chipy, linia włosowa, komunikat błędu) w każdym z trzech
-motywów. Robolectric rysuje natywnie, Roborazzi zapisuje PNG — bez telefonu i bez emulatora.
+motywów i na każdym gradiencie tła (D-50). Robolectric rysuje natywnie, Roborazzi zapisuje PNG — bez telefonu
+i bez emulatora.
 
 ```
 gradlew.bat testDebugUnitTest                              # rysuje, niczego nie porównuje (tyle robi CI)
@@ -67,6 +69,10 @@ sprawdzane ręcznie na emulatorze albo telefonie. Lista rzeczy, które warto prz
 8. Aktualizacja: „Sprawdź teraz”, karta wydania, pobranie i ekran systemowego instalatora.
    Pełną ścieżkę sprawdza się buildem zgłaszającym starszy numer: podmień numer w `VERSION.md`,
    `gradlew.bat installDebug`, przywróć plik. Wtedy „Sprawdź teraz” ma znaleźć wydanie ze strony.
+9. Wygląd (D-50): w każdym motywie każde tło z Ustawień. Gradient leży pod wszystkimi ekranami (Dziś, biblioteka
+   z panelem filtrów, szczegóły treningu, player z przerwą, edytory, Historia i szczegóły sesji), stoi w miejscu
+   przy przewijaniu i przejściu między ekranami, nie układa się w pasy, a karty, pigułki i napisy są czytelne.
+   Zmiana motywu i powrót do poprzedniego przywraca jego tło; tablet w poziomie ma gradient także pod szyną.
 
 Na telefonie dochodzi to, czego emulator nie pokaże: słyszalność sygnałów, wibracja, zachowanie przy
 agresywnym oszczędzaniu baterii ([dontkillmyapp.com](https://dontkillmyapp.com)) i ikona na launcherze.

@@ -93,6 +93,7 @@ class BackupRepository @Inject constructor(
                 libraryTiles = current.libraryTiles,
                 themeId = current.themeId,
                 authorName = current.authorName,
+                backgrounds = current.backgrounds,
             ),
             exercises = exerciseDao.allCustom().map { it.toBackup() },
             workouts = workoutDao.allUser().map { it.toBackup() },
@@ -182,6 +183,8 @@ class BackupRepository @Inject constructor(
         settings.setThemeId(s.themeId)
         // Pole nieobecne w starszej kopii to nie puste imię: wpisane ręcznie zostaje.
         if (version >= BackupFile.AUTHOR_NAME_SINCE) settings.setAuthorName(s.authorName)
+        // Tak samo tła motywów (D-50): kopia sprzed nich zostawia te, które są wybrane.
+        if (version >= BackupFile.BACKGROUNDS_SINCE) settings.setBackgrounds(s.backgrounds)
     }
 
     private fun ProgramEntity.toBackup(days: List<ProgramDayEntity>) = BackupProgram(

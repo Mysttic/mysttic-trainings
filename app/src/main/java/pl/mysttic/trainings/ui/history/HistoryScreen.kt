@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -55,6 +54,8 @@ import pl.mysttic.trainings.ui.theme.Dimens
 import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.VolumeBarChart
 import pl.mysttic.trainings.ui.common.formatDuration
+import pl.mysttic.trainings.ui.common.ScreenScaffold
+import pl.mysttic.trainings.ui.common.screenTopBarColors
 import pl.mysttic.trainings.domain.engine.Announcer
 import pl.mysttic.trainings.ui.adaptive.ReadableBox
 import java.time.Instant
@@ -259,9 +260,10 @@ fun SessionDetailScreen(
         }
     }
 
-    Scaffold(
+    ScreenScaffold(
         topBar = {
             TopAppBar(
+                colors = screenTopBarColors(),
                 title = { Text(session?.workoutName ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz") }
@@ -271,7 +273,7 @@ fun SessionDetailScreen(
     ) { padding ->
         if (session == null) {
             if (!state.loading) EmptyState("Nie znaleziono sesji.", Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         // Na tablecie w czytelnej szerokości (D-42): nazwy serii i wyniki nie rozjeżdżają się na 1280 dp.
         ReadableBox(modifier = Modifier.padding(padding)) {

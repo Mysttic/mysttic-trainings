@@ -67,6 +67,8 @@ import pl.mysttic.trainings.ui.plan.PlanWizardScreen
 import pl.mysttic.trainings.ui.player.PlayerScreen
 import pl.mysttic.trainings.ui.presets.PresetsScreen
 import pl.mysttic.trainings.ui.settings.SettingsScreen
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
+import pl.mysttic.trainings.ui.theme.appBackground
 import pl.mysttic.trainings.ui.today.TodayScreen
 import pl.mysttic.trainings.ui.workout.WorkoutDetailScreen
 
@@ -94,13 +96,13 @@ private val topLevel = listOf(
 /**
  * Dolny pasek bez ikon (D-32): sama etykieta, a nad aktywną wskaźnik 34 x 4 dp w kolorze ognia.
  * Player i kreator zakrywają nawigację, więc pasek pokazujemy tylko na czterech ekranach głównych.
+ * Bez własnego wypełnienia: leży na tle ekranów (D-50), od treści oddziela go linia włosowa.
  */
 @Composable
 private fun BottomNav(currentDestination: NavDestination?, navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding(),
     ) {
         Hairline()
@@ -145,10 +147,11 @@ private val railInsets: WindowInsets
  * Szyna nawigacji na tablecie i w poziomie (D-42): ten sam język co dolny pasek — etykiety bez ikon (D-32),
  * wskaźnik 34 x 4 dp nad aktywną — tylko w pionie, z linią włosową oddzielającą ją od treści.
  * Wcięcie od strony szyny (otwór aparatu, pasek nawigacji) poszerza szynę, a etykiety zostają poza nim.
+ * Jak dolny pasek leży na tle ekranów (D-50), bez własnego wypełnienia.
  */
 @Composable
 private fun NavRail(currentDestination: NavDestination?, navController: NavController) {
-    Row(modifier = Modifier.fillMaxHeight().background(MaterialTheme.colorScheme.surface)) {
+    Row(modifier = Modifier.fillMaxHeight()) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
@@ -226,14 +229,20 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
         }
     }
 
-    Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    // Tło ekranów (D-50) maluje tylko ten wiersz, pod szyną, paskami systemu i treścią; wszystko nad nim
+    // jest przezroczyste, więc gradient nie przesuwa się przy przewijaniu ani przy przejściu między ekranami.
+    val background = LocalAppBackground.current
+    Row(modifier = Modifier.fillMaxSize().appBackground(background, MaterialTheme.colorScheme.surface)) {
     if (rail) NavRail(currentDestination, navController)
     // Wcięcie od strony szyny już wzięła szyna: treść obok niej nie dolicza go drugi raz (Scaffold i paski ekranów).
     val railSide = if (rail) Modifier.consumeWindowInsets(railInsets.only(WindowInsetsSides.Start)) else Modifier
     Scaffold(
         modifier = Modifier.weight(1f).then(railSide),
         bottomBar = { if (showNav && !rail) BottomNav(currentDestination, navController) },
-        containerColor = MaterialTheme.colorScheme.surface,
+        // Przezroczysty kontener nie ma pary w schemacie, więc kolor treści trzeba podać wprost:
+        // `contentColorFor(Color.Transparent)` oddałby domyślną czerń.
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) { innerPadding ->
         NavHost(
             navController = navController,

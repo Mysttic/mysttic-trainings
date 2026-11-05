@@ -54,6 +54,7 @@ import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.TextInput
 import androidx.compose.runtime.saveable.rememberSaveable
+import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.Dimens
 
@@ -137,8 +138,36 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
         }
+        val theme = AppTheme.fromId(settings.themeId)
         Text(
-            text = AppTheme.fromId(settings.themeId).opisPl,
+            text = theme.opisPl,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        // Tło motywu (D-50): warianty tylko tego motywu, bo każdy gradient liczony jest pod jego karty i napisy.
+        // Bez miniatur, jak przy motywach (D-39): wybór przemalowuje od razu cały ekran, także ten.
+        Text(
+            text = "Tło",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+        )
+        val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AppBackground.of(theme).forEach { option ->
+                FilterPill(
+                    text = option.labelPl,
+                    selected = option == background,
+                    onClick = { viewModel.setBackground(theme.id, option.id) },
+                )
+            }
+        }
+        Text(
+            text = "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),

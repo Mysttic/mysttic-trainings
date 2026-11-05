@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Sprawdza kontrast WCAG par kolorów we wszystkich schematach z ui/theme/Theme.kt (D-17, D-39).
+"""Sprawdza kontrast WCAG par kolorów we wszystkich schematach z ui/theme/Theme.kt (D-17, D-39) i tłach (D-50).
 
 Uruchom: python tools/check_contrast.py
 Od D-39 motywów jest kilka (Color.kt + Themes.kt), więc skrypt bierze każdy schemat, jaki znajdzie w Theme.kt:
 nowy motyw nie wjedzie bez kontroli kompletu 35 ról.
+Od D-50 każdy motyw ma też warianty tła (Backgrounds.kt). Gradient leży pod tymi samymi kartami i napisami
+co `surface`, więc w każdym swoim punkcie musi trzymać pary, w których tłem jest `surface` albo `background`.
+Punkty liczymy jak Android: liniowo w sRGB między równo rozłożonymi kolorami (tak samo ThemeContractTest).
 Kod wyjścia 1, jeśli któraś para nie spełnia progu — do wpięcia w CI, gdyby motyw zaczął się psuć.
 
 Progi: 4.5:1 dla tekstu, 3:1 dla elementów interfejsu (obrysy, ikony).
@@ -16,7 +19,13 @@ from pathlib import Path
 
 THEME_DIR = Path(__file__).resolve().parent.parent / "app/src/main/java/pl/mysttic/trainings/ui/theme"
 THEME = THEME_DIR / "Theme.kt"
-PALETTE_FILES = (THEME_DIR / "Color.kt", THEME_DIR / "Themes.kt")
+BACKGROUNDS = THEME_DIR / "Backgrounds.kt"
+PALETTE_FILES = (THEME_DIR / "Color.kt", THEME_DIR / "Themes.kt", BACKGROUNDS)
+
+# Role, które tło ekranu zastępuje: pary z nimi jako tłem sprawdzamy w każdym punkcie gradientu.
+BACKDROP_ROLES = ("surface", "background")
+# Punktów na odcinek między dwoma kolorami gradientu; tyle samo bierze ThemeContractTest.
+POINTS_PER_SEGMENT = 64
 
 # (tekst, tło, próg, opis)
 PAIRS = [
@@ -54,15 +63,20 @@ PAIRS = [
 ]
 
 
+def parse_palette(palette_text):
+    """Nazwane stałe kolorów (`val FireDark = Color(0xFFFF6A21)`) jako {nazwa: '#RRGGBB'}."""
+    return {
+        name: "#" + hex_value.upper()
+        for name, hex_value in re.findall(r"val\s+(\w+)\s*=\s*Color\(0x[fF]{2}([0-9a-fA-F]{6})\)", palette_text)
+    }
+
+
 def parse_theme(text, palette_text):
     """Zwraca [(nazwa schematu, {rola: '#RRGGBB'})] dla każdego wywołania light/darkColorScheme w Theme.kt.
 
     Role wskazują nazwane stałe z Color.kt i Themes.kt (np. `primary = FireDark`), więc najpierw czytamy paletę.
     """
-    palette = {
-        name: "#" + hex_value.upper()
-        for name, hex_value in re.findall(r"val\s+(\w+)\s*=\s*Color\(0x[fF]{2}([0-9a-fA-F]{6})\)", palette_text)
-    }
+    palette = parse_palette(palette_text)
     schemes = []
     for match in re.finditer(r"val\s+(\w+)\s*=\s*(light|dark)ColorScheme\(", text):
         start = match.end()
@@ -80,13 +94,52 @@ def parse_theme(text, palette_text):
     return schemes
 
 
-def luminance(hex_color):
-    def channel(value):
-        c = int(value, 16) / 255
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+def parse_backgrounds(text, palette):
+    """Zwraca [(motyw, id tła, ['#RRGGBB', ...])] z `enum class AppBackground` w Backgrounds.kt.
+
+    Wpis wygląda tak: `FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberBottom))`;
+    `emptyList()` to tło jednolite, czyli `surface` schematu, który i tak sprawdzają pary wyżej.
+    """
+    entries = re.findall(
+        r"\w+\(\s*AppTheme\.(\w+),\s*\"([^\"]+)\",\s*\"[^\"]*\",\s*(?:emptyList\(\)|listOf\(([^)]*)\))\s*\)",
+        text,
+    )
+    return [
+        (theme, background_id, [palette[name.strip()] for name in stops.split(",") if name.strip()])
+        for theme, background_id, stops in entries
+    ]
+
+
+def parse_scheme_for(text):
+    """Które schematy należą do których motywów: gałęzie `AppTheme.FIRE -> FireScheme` w `schemeFor`."""
+    return dict(re.findall(r"AppTheme\.(\w+)\s*->\s*(\w+)", text))
+
+
+def rgb(hex_color):
     h = hex_color.lstrip("#")
-    r, g, b = channel(h[0:2]), channel(h[2:4]), channel(h[4:6])
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def luminance(color):
+    """Względna jasność WCAG; kolor jako '#RRGGBB' albo krotka (r, g, b) w zakresie 0..1."""
+    def channel(c):
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(c) for c in (rgb(color) if isinstance(color, str) else color))
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def gradient_points(stops):
+    """Punkty gradientu tak, jak rysuje go Android: liniowo w sRGB między równo rozłożonymi kolorami."""
+    colors = [rgb(stop) for stop in stops]
+    return [
+        tuple(a[k] + (b[k] - a[k]) * i / POINTS_PER_SEGMENT for k in range(3))
+        for a, b in zip(colors, colors[1:])
+        for i in range(POINTS_PER_SEGMENT + 1)
+    ]
+
+
+def as_hex(color):
+    return "#" + "".join(f"{round(c * 255):02X}" for c in color)
 
 
 def contrast(a, b):
@@ -94,9 +147,48 @@ def contrast(a, b):
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 
+def check_backgrounds(theme_text, palette_text, schemes):
+    """Każdy gradient z Backgrounds.kt wobec ról swojego motywu; zwraca liczbę złamanych par."""
+    if not BACKGROUNDS.exists():
+        return 0
+    backgrounds = parse_backgrounds(BACKGROUNDS.read_text(encoding="utf-8"), parse_palette(palette_text))
+    owner = parse_scheme_for(theme_text)
+    by_name = dict(schemes)
+    pairs = [pair for pair in PAIRS if pair[1] in BACKDROP_ROLES]
+    failures = 0
+    print(f"\n=== Tła (D-50): pary na {' i '.join(BACKDROP_ROLES)} w każdym punkcie gradientu")
+    for theme, background_id, stops in backgrounds:
+        if len(stops) < 2:
+            continue
+        scheme_name = owner.get(theme)
+        scheme = by_name.get(scheme_name)
+        if scheme is None:
+            print(f"  BRAK SCHEMATU  {theme}/{background_id}")
+            failures += 1
+            continue
+        worst = None
+        for fg, bg, threshold, label in pairs:
+            ratio, point = min(
+                ((contrast(scheme[fg], point), point) for point in gradient_points(stops)),
+                key=lambda item: item[0],
+            )
+            if ratio < threshold:
+                failures += 1
+                print(f"  BŁĄD {ratio:5.2f}:1 (min {threshold})  {theme.lower()}/{background_id}: {fg} na {as_hex(point)} — {label}")
+            if worst is None or ratio / threshold < worst[0] / worst[1]:
+                worst = (ratio, threshold, fg, point)
+        ratio, threshold, fg, point = worst
+        print(
+            f"  {'ok  ' if ratio >= threshold else 'BŁĄD'} {theme.lower()}/{background_id} ({' → '.join(stops)}): "
+            f"najciaśniej {fg} na {as_hex(point)} {ratio:.3f}:1 (min {threshold})"
+        )
+    return failures
+
+
 def main():
     palette_text = "\n".join(path.read_text(encoding="utf-8") for path in PALETTE_FILES if path.exists())
-    schemes = parse_theme(THEME.read_text(encoding="utf-8"), palette_text)
+    theme_text = THEME.read_text(encoding="utf-8")
+    schemes = parse_theme(theme_text, palette_text)
     if not schemes:
         print("Nie znalazłem ani jednego schematu w Theme.kt")
         return 1
@@ -112,6 +204,7 @@ def main():
             ok = ratio >= threshold
             failures += not ok
             print(f"  {'ok  ' if ok else 'BŁĄD'} {ratio:5.2f}:1 (min {threshold})  {fg} na {bg} — {label}")
+    failures += check_backgrounds(theme_text, palette_text, schemes)
     print(f"\nSchematów: {len(schemes)}, problemów: {failures}")
     return 1 if failures else 0
 
