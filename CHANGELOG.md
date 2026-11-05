@@ -13,7 +13,7 @@ On też stoi w VERSION.md, ale bazę wydaje osobny workflow po zmianie w `baza/`
 a numeracja to kolejne liczby, bez wersjonowania semantycznego.
 
 Repozytorium jest publiczne od 2026-11-05 i zaczyna od stanu 1.1.0 (D-48). Wersje do 1.0.0
-zostają tu opisane, ale bez odnośników: ich tagi i historia zostały w prywatnym archiwum.
+zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do tego repozytorium.
 
 ## [Niewydane]
 

@@ -43,8 +43,8 @@ projektów, więc bez prefiksu aplikacja wzięłaby cudze wydanie za swoje.
 
 Stronę <https://mysttic.github.io/Mysttic/mysttic-trainings/> z przyciskiem pobierania i wydanie
 `mysttic-trainings-v<numer>` w publicznym `Mysttic/Mysttic`. Na stronie stoi zawsze jedna wersja: najnowsza.
-Pełna historia wydań zostaje w repozytorium kodu jako `v<numer>`, od 1.1.0; starsze tagi zostały
-w prywatnym archiwum (D-48).
+Pełna historia wydań zostaje w repozytorium kodu jako `v<numer>`, od 1.1.0; starszych tagów i wydań
+tu nie ma (D-48).
 
 Instalacja pierwszej wersji jest ręczna (sideload). Kolejne wersje aplikacja umie pobrać sama:
 Ustawienia → Aktualizacje → „Sprawdź teraz”, a potem „Pobierz i zainstaluj”, które oddaje plik

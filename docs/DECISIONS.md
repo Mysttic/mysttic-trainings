@@ -924,6 +924,11 @@ przez pull requesty, a zdjęcia z wger w historii wymagałyby atrybucji); publik
 Konsekwencje: zdania o prywatnym kodzie w D-12 i D-33 przestają obowiązywać, ale umowa wydań z D-33 zostaje bez zmian:
 wydania jadą na stronę `Mysttic/Mysttic` i stamtąd aplikacja się aktualizuje. Uzasadnienie D-41 (płatne minuty Actions)
 znika, bo publiczne repozytorium ma darmowe minuty; zasada szkicu PR-a zostaje, dopóki właściciel jej nie zmieni.
-Historia sprzed 1.1.0, wydania w repozytorium kodu do 1.1.0 i dawne issue zostają w archiwum, więc w `CHANGELOG.md`
-wersje do 1.0.0 nie mają odnośników. Problemy bezpieczeństwa zgłasza się prywatnie przez GitHub (`docs/SECURITY.md`),
-a w repozytorium działają skanowanie sekretów i blokada wypchnięcia z sekretem.
+Historia sprzed 1.1.0, starsze wydania i dawne issue nie przechodzą do nowego repozytorium (poza wydaniem 1.1.0
+z APK i otwartymi issue), więc w `CHANGELOG.md` wersje do 1.0.0 nie mają odnośników. Problemy bezpieczeństwa zgłasza
+się prywatnie przez GitHub (`docs/SECURITY.md`), a w repozytorium działają skanowanie sekretów i blokada wypchnięcia
+z sekretem.
+
+Uzupełnienie (2026-11-05): właściciel chce usunąć dawne repozytorium. Przed usunięciem przeszły z niego wydanie 1.1.0
+z APK i otwarte issue, a pełna historia (gałęzie i tagi) leży w kopii u właściciela. Klucz podpisu zostaje w sekretach
+tego repozytorium.

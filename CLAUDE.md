@@ -13,8 +13,8 @@ ma kafelki i panel filtrów (D-38). Wygląd to jeden z trzech motywów do wyboru
 Wydania jadą na publiczną stronę `Mysttic/Mysttic` i stamtąd aplikacja sama się aktualizuje (D-33). Ostatnie wydanie
 to 1.1.0 z bazą ćwiczeń v10 (2026-10-28): baza ćwiczeń rozwijana i wydawana niezależnie od aplikacji (D-47).
 Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym commitem z tagami `v1.1.0` i `baza-v10`
-(D-48): kod na MIT, baza ćwiczeń na CC BY 4.0. Historia sprzed 1.1.0, dawne issue i pull requesty zostały
-w prywatnym archiwum `Mysttic/mysttic-trainings-archiwum`.
+(D-48): kod na MIT, baza ćwiczeń na CC BY 4.0. Historia sprzed 1.1.0, dawne pull requesty i zamknięte issue
+nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
 Liczby: baza ćwiczeń v10 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów),
 419 testów jednostkowych w 48 klasach, Room v6, kopia zapasowa v4, jedenaście gotowych programów.
