@@ -3,12 +3,15 @@ package pl.mysttic.trainings.ui.history
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pl.mysttic.trainings.data.repo.ProgramRepository
@@ -23,7 +26,6 @@ import pl.mysttic.trainings.domain.stats.PeriodStats
 import pl.mysttic.trainings.domain.stats.ProgressStats
 import pl.mysttic.trainings.domain.stats.SessionStats
 import pl.mysttic.trainings.domain.stats.WeekVolume
-import pl.mysttic.trainings.ui.navigation.SessionDetailRoute
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -83,8 +85,8 @@ class HistoryViewModel @Inject constructor(
 
     fun setPeriod(value: HistoryPeriod) { period.value = value }
 
-    /** Ponowne kliknięcie zaznaczonego statusu zdejmuje filtr. */
-    fun setStatus(value: SessionStatus?) { status.value = if (status.value == value) null else value }
+    /** Stan listy z segmentów nad nią (D-54): null = wszystkie. */
+    fun setStatus(value: SessionStatus?) { status.value = value }
 }
 
 data class SessionDetailUiState(
@@ -96,55 +98,82 @@ data class SessionDetailUiState(
     val deleted: Boolean = false,
 )
 
+/**
+ * Szczegóły sesji. Z trasy `SessionDetailRoute` id przychodzi od razu; w Historii na tablecie (D-54) ten sam ViewModel
+ * siedzi w panelu obok listy i dostaje wybór przez [select], jak szczegół ćwiczenia w bibliotece (D-52). Klucz
+ * w `SavedStateHandle` to nazwa pola trasy, więc wybór w panelu przetrwa odtworzenie procesu.
+ */
 @HiltViewModel
 class SessionDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val sessionRepo: SessionRepository,
 ) : ViewModel() {
 
-    private val route = savedStateHandle.toRoute<SessionDetailRoute>()
-    private val session = MutableStateFlow<Session?>(null)
-    private val previousLogs = MutableStateFlow<List<SetLog>>(emptyList())
-    private val deleted = MutableStateFlow(false)
+    private val handle = savedStateHandle
+    private val selectedId = savedStateHandle.getStateFlow<String?>(KEY_SESSION_ID, null)
 
-    init {
-        viewModelScope.launch {
-            val current = sessionRepo.getSession(route.sessionId)
-            session.value = current
-            previousLogs.value = current?.workoutId
-                ?.let { sessionRepo.previousDone(it, current.startedAt) }
-                ?.let { sessionRepo.setLogs(it.id) }
-                .orEmpty()
+    /** Id pokazanej sesji; null = panel jeszcze nic nie pokazuje. */
+    val selected: StateFlow<String?> get() = selectedId
+
+    /** Id sesji usuniętej z tego ekranu: `deleted` dotyczy tylko jej, nie kolejnego wyboru w panelu. */
+    private val deletedId = MutableStateFlow<String?>(null)
+
+    fun select(sessionId: String) {
+        handle[KEY_SESSION_ID] = sessionId
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val logs = selectedId.flatMapLatest { id ->
+        if (id == null) flowOf(emptyList()) else sessionRepo.observeSetLogs(id)
+    }
+
+    /** Serie poprzedniego ukończonego wykonania tego treningu, do Δ; liczone raz na wybraną sesję. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val previousLogs = selectedId.flatMapLatest { id ->
+        flow {
+            val current = id?.let { sessionRepo.getSession(it) }
+            emit(
+                current?.workoutId
+                    ?.let { sessionRepo.previousDone(it, current.startedAt) }
+                    ?.let { sessionRepo.setLogs(it.id) }
+                    .orEmpty(),
+            )
         }
     }
 
     val uiState: StateFlow<SessionDetailUiState> = combine(
-        session,
-        sessionRepo.observeSetLogs(route.sessionId),
+        selectedId,
+        // Obserwowana lista sesji: ocena i notatka po „Zapisz” wracają same, bez ponownego czytania.
+        sessionRepo.observeSessions(),
+        logs,
         previousLogs,
-        deleted,
-    ) { s, logs, previous, isDeleted ->
+        deletedId,
+    ) { id, sessions, sessionLogs, previous, deleted ->
         SessionDetailUiState(
             loading = false,
-            session = s,
-            logs = logs,
-            deltas = if (logs.isEmpty()) emptyList() else SessionStats.perExercise(logs, previous),
-            deleted = isDeleted,
+            session = sessions.firstOrNull { it.id == id },
+            logs = sessionLogs,
+            deltas = if (sessionLogs.isEmpty()) emptyList() else SessionStats.perExercise(sessionLogs, previous),
+            deleted = id != null && id == deleted,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SessionDetailUiState())
 
     fun saveFeedback(rpe: Int?, note: String) {
+        val id = selectedId.value ?: return
+        viewModelScope.launch { sessionRepo.updateFeedback(id, rpe, note) }
+    }
+
+    /** Usuwa sesję z seriami; ekran zamyka się po `deleted`, a panel na tablecie przechodzi do innej sesji. */
+    fun delete() {
+        val id = selectedId.value ?: return
         viewModelScope.launch {
-            sessionRepo.updateFeedback(route.sessionId, rpe, note)
-            session.value = sessionRepo.getSession(route.sessionId)
+            sessionRepo.deleteSession(id)
+            deletedId.value = id
         }
     }
 
-    /** Usuwa sesję z seriami; ekran zamyka się po `deleted`. */
-    fun delete() {
-        viewModelScope.launch {
-            sessionRepo.deleteSession(route.sessionId)
-            deleted.value = true
-        }
+    companion object {
+        /** Nazwa pola `SessionDetailRoute.sessionId`: pod nią nawigacja kładzie id z trasy. */
+        const val KEY_SESSION_ID = "sessionId"
     }
 }

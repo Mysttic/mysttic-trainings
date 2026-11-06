@@ -19,6 +19,7 @@ import pl.mysttic.trainings.data.seed.SeedImporter
 import pl.mysttic.trainings.data.settings.SettingsRepository
 import pl.mysttic.trainings.domain.background.BackgroundPhoto
 import pl.mysttic.trainings.domain.background.PhotoPeople
+import pl.mysttic.trainings.domain.model.Gender
 import pl.mysttic.trainings.domain.background.PhotoPicker
 import pl.mysttic.trainings.domain.background.PhotoSex
 import pl.mysttic.trainings.domain.background.PhotoTopic
@@ -83,7 +84,7 @@ class BackgroundPhotoRepository @Inject constructor(
         programs.observeAll(),
         workouts.observeAll(),
         sessions.observeSessions(),
-        settings.settings.map { PhotoPeople.fromId(it.photoPeople) to it.seedVersion }.distinctUntilChanged(),
+        settings.settings.map { PhotoPeople.of(Gender.fromId(it.gender)) to it.seedVersion }.distinctUntilChanged(),
     ) { plans, all, done, (people, _) ->
         val day = LocalDate.now()
         val byId = all.associateBy { it.id }

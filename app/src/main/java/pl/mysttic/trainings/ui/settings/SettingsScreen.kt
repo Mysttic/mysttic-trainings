@@ -43,7 +43,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.mysttic.trainings.BuildConfig
 import pl.mysttic.trainings.data.settings.UserSettings
-import pl.mysttic.trainings.domain.background.PhotoPeople
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.reminder.ReminderSchedule
@@ -61,6 +60,10 @@ import pl.mysttic.trainings.ui.common.CategoryGroup
 import pl.mysttic.trainings.ui.common.CategoryRow
 import pl.mysttic.trainings.ui.common.DifficultySelector
 import pl.mysttic.trainings.ui.common.FilterPill
+import pl.mysttic.trainings.domain.model.Gender
+import pl.mysttic.trainings.domain.plan.TrainingProfile
+import pl.mysttic.trainings.data.settings.SettingsRepository
+import kotlin.math.roundToInt
 import pl.mysttic.trainings.ui.common.InfoCard
 import pl.mysttic.trainings.ui.common.PrimaryAction
 import pl.mysttic.trainings.ui.common.ScreenTitle
@@ -68,6 +71,8 @@ import pl.mysttic.trainings.ui.common.SecondaryAction
 import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.common.TextInput
+import pl.mysttic.trainings.ui.common.ValueStepper
+import pl.mysttic.trainings.ui.common.formatKg
 import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.Dimens
@@ -116,7 +121,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             setVolumeKeyDone = viewModel::setVolumeKeyDone,
             setTheme = viewModel::setTheme,
             setBackground = { themeId, backgroundId -> viewModel.setBackground(themeId, backgroundId) },
-            setPhotoPeople = { viewModel.setPhotoPeople(it) },
+            setGender = { viewModel.setGender(it) },
+            setHeightCm = { viewModel.setHeightCm(it) },
+            setWeightKg = { viewModel.setWeightKg(it) },
             setReminderEnabled = viewModel::setReminderEnabled,
             setReminderTime = viewModel::setReminderTime,
             setHealthConnectEnabled = viewModel::setHealthConnectEnabled,
@@ -132,6 +139,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             importBackup = { viewModel.clearStatus(); importFile.launch(arrayOf("application/json", "text/plain", "*/*")) },
         )
     }
+    val signingKey by viewModel.signingKey.collectAsStateWithLifecycle()
     SettingsContent(
         state = SettingsState(
             settings = settings,
@@ -141,6 +149,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             healthGranted = healthGranted,
             versionName = BuildConfig.VERSION_NAME,
             debug = BuildConfig.DEBUG,
+            signingKey = signingKey,
         ),
         actions = actions,
     )
@@ -155,6 +164,8 @@ data class SettingsState(
     val healthGranted: Boolean = false,
     val versionName: String = "",
     val debug: Boolean = false,
+    /** Odcisk klucza, którym telefon podpisuje plany (D-58); null, dopóki się liczy. */
+    val signingKey: String? = null,
 )
 
 /** Zmiany ustawień i akcje plikowe; domyślnie nic nie robią (zrzuty). */
@@ -169,7 +180,9 @@ class SettingsActions(
     val setVolumeKeyDone: (Boolean) -> Unit = {},
     val setTheme: (String) -> Unit = {},
     val setBackground: (themeId: String, backgroundId: String) -> Unit = { _, _ -> },
-    val setPhotoPeople: (String) -> Unit = {},
+    val setGender: (String) -> Unit = {},
+    val setHeightCm: (Int) -> Unit = {},
+    val setWeightKg: (Double) -> Unit = {},
     val setReminderEnabled: (Boolean) -> Unit = {},
     val setReminderTime: (Int, Int) -> Unit = { _, _ -> },
     val setHealthConnectEnabled: (Boolean) -> Unit = {},
@@ -232,7 +245,7 @@ fun SettingsContent(state: SettingsState, actions: SettingsActions, initialSecti
     }
 }
 
-/** Sześć kategorii w dwóch grupach i stopka o wersji i źródłach danych. */
+/** „O mnie” osobno, potem kategorie w dwóch grupach i stopka o wersji i źródłach danych. */
 @Composable
 private fun SettingsCategories(state: SettingsState, selected: SettingsSection?, onSelect: (SettingsSection) -> Unit) {
     val settings = state.settings
@@ -273,6 +286,7 @@ private fun SettingsCategories(state: SettingsState, selected: SettingsSection?,
 
 private val SettingsSection.icon: ImageVector
     get() = when (this) {
+        SettingsSection.ABOUT_ME -> AppIcons.Person
         SettingsSection.TRAINING -> AppIcons.Timer
         SettingsSection.EQUIPMENT -> AppIcons.Exercises
         SettingsSection.REMINDER -> AppIcons.Bell
@@ -282,11 +296,12 @@ private val SettingsSection.icon: ImageVector
     }
 
 private fun summaryOf(section: SettingsSection, state: SettingsState): String = when (section) {
+    SettingsSection.ABOUT_ME -> SettingsSummary.aboutMe(state.settings)
     SettingsSection.TRAINING -> SettingsSummary.training(state.settings)
     SettingsSection.EQUIPMENT -> SettingsSummary.equipment(state.settings.ownedEquipment)
     SettingsSection.REMINDER -> SettingsSummary.reminder(state.settings)
     SettingsSection.APPEARANCE -> SettingsSummary.appearance(state.settings)
-    SettingsSection.DATA -> SettingsSummary.data(state.settings, state.healthAvailable)
+    SettingsSection.DATA -> SettingsSummary.data(state.healthAvailable)
     SettingsSection.UPDATES -> SettingsSummary.updates(state.versionName, state.settings.seedVersion)
 }
 
@@ -298,6 +313,7 @@ private fun updatesAccent(update: UpdateUiState): String? = SettingsSummary.upda
 @Composable
 private fun SectionBody(section: SettingsSection, state: SettingsState, actions: SettingsActions) {
     when (section) {
+        SettingsSection.ABOUT_ME -> AboutMeSection(state.settings, state.signingKey, actions)
         SettingsSection.TRAINING -> TrainingSection(state.settings, actions)
         SettingsSection.EQUIPMENT -> EquipmentSection(state.settings, actions)
         SettingsSection.REMINDER -> ReminderSection(state.settings, actions)
@@ -305,6 +321,74 @@ private fun SectionBody(section: SettingsSection, state: SettingsState, actions:
         SettingsSection.DATA -> DataSection(state, actions)
         SettingsSection.UPDATES -> UpdatesSection(state, actions)
     }
+}
+
+/**
+ * „O mnie” (D-57): imię na planach i raportach, płeć do zdjęcia dnia oraz wzrost i waga, od których startuje kreator.
+ * Imię mieszkało w „Dane i kopia” (D-42); płeć zastępuje „Na zdjęciach” z „Wyglądu” (D-51), bo to cecha użytkownika,
+ * a nie ustawienie tła.
+ */
+@Composable
+private fun AboutMeSection(settings: UserSettings, signingKey: String?, actions: SettingsActions) {
+    // Lokalny tekst, a nie klucz z ustawień: zapis przycina spacje, więc spacja między imieniem a nazwiskiem
+    // znikałaby w trakcie pisania.
+    var author by rememberSaveable { mutableStateOf<String?>(null) }
+    Spacer(Modifier.height(8.dp))
+    TextInput(
+        label = "Imię",
+        value = author ?: settings.authorName,
+        onValueChange = { text ->
+            author = text.take(60)
+            actions.setAuthorName(text.take(60))
+        },
+    )
+    Hint("Podpis na planach, które wyślesz innym, i na raportach z przebiegu planu.")
+    if (signingKey != null) {
+        SectionTitle("Klucz podpisu")
+        Text(signingKey, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Hint(
+            "Telefon podpisuje nim plany, które wysyłasz. Odbiorca widzi ten sam ciąg przy imporcie: " +
+                "jeśli się zgadza, plan na pewno jest od Ciebie. Nowy telefon to nowy klucz.",
+        )
+    }
+
+    SectionTitle("Płeć")
+    val gender = Gender.fromId(settings.gender)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Gender.entries.forEach { option ->
+            FilterPill(text = option.labelPl, selected = option == gender, onClick = { actions.setGender(option.id) })
+        }
+    }
+    Hint("Na zdjęciu dnia w tle są osoby twojej płci, a bez wyboru obie. Plan i cele od tego nie zależą.")
+
+    Spacer(Modifier.height(Dimens.sectionGap))
+    val height = settings.heightCm ?: TrainingProfile().heightCm
+    val weight = settings.weightKg ?: TrainingProfile().weightKg
+    val heightRange = SettingsRepository.HEIGHT_RANGE
+    ValueStepper(
+        label = "Wzrost",
+        value = "$height cm",
+        fraction = (height - heightRange.first).toFloat() / (heightRange.last - heightRange.first),
+        onLess = { actions.setHeightCm(height - 1) },
+        onMore = { actions.setHeightCm(height + 1) },
+        onFraction = { actions.setHeightCm((heightRange.first + (heightRange.last - heightRange.first) * it).roundToInt()) },
+    )
+    Spacer(Modifier.height(Dimens.sectionGap))
+    ValueStepper(
+        label = "Waga",
+        value = formatKg(weight),
+        fraction = ((weight - SettingsRepository.WEIGHT_MIN) / (SettingsRepository.WEIGHT_MAX - SettingsRepository.WEIGHT_MIN)).toFloat(),
+        onLess = { actions.setWeightKg(weight - 1) },
+        onMore = { actions.setWeightKg(weight + 1) },
+        onFraction = {
+            actions.setWeightKg((SettingsRepository.WEIGHT_MIN + (SettingsRepository.WEIGHT_MAX - SettingsRepository.WEIGHT_MIN) * it).roundToInt().toDouble())
+        },
+        hint = if (settings.heightCm == null || settings.weightKg == null) {
+            "Jeszcze nie podane. Kreator planu zacznie od tych liczb i zapisze tu to, co w nim poprawisz."
+        } else {
+            "Kreator planu zaczyna od tych liczb i zapisuje tu to, co w nim poprawisz."
+        },
+    )
 }
 
 @Composable
@@ -400,8 +484,8 @@ private fun AppearanceSection(settings: UserSettings, actions: SettingsActions) 
     val theme = AppTheme.fromId(settings.themeId)
     Hint(theme.opisPl)
 
-    // Tło motywu (D-50): warianty tylko tego motywu, bo każdy gradient liczony jest pod jego karty i napisy.
-    // Bez miniatur, jak przy motywach (D-39): wybór przemalowuje od razu cały ekran, także ten.
+    // Tło motywu (D-50, D-55): zawsze zdjęcie dnia, a na nim do wyboru gradient tego motywu, bo każdy gradient
+    // liczony jest pod jego karty i napisy. Bez miniatur, jak przy motywach (D-39): wybór przemalowuje od razu cały ekran.
     SectionTitle("Tło")
     val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -409,23 +493,9 @@ private fun AppearanceSection(settings: UserSettings, actions: SettingsActions) 
             FilterPill(text = option.labelPl, selected = option == background, onClick = { actions.setBackground(theme.id, option.id) })
         }
     }
-    if (background.photo) {
-        // Zdjęcie dnia (D-51): aplikacja nie zna płci użytkownika, więc pyta, kogo pokazywać.
-        SectionTitle("Na zdjęciach")
-        val people = PhotoPeople.fromId(settings.photoPeople)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PhotoPeople.entries.forEach { option ->
-                FilterPill(text = option.labelPl, selected = option == people, onClick = { actions.setPhotoPeople(option.id) })
-            }
-        }
-    }
     Hint(
-        if (background.photo) {
-            "Zdjęcie losuje się raz dziennie, w klimacie dzisiejszych treningów ze wszystkich planów. " +
-                "Karty są wtedy szklane, żeby prześwitywało."
-        } else {
-            "Gradient leży pod wszystkimi ekranami, a karty i napisy zostają takie same. Każdy motyw pamięta swoje tło."
-        },
+        "Pod ekranami zawsze leży zdjęcie, losowane raz dziennie w klimacie dzisiejszych treningów ze wszystkich planów; " +
+            "karty są szklane, żeby prześwitywało. Gradient zabarwia zdjęcie kolorem motywu, a każdy motyw pamięta swój wybór.",
     )
 }
 
@@ -456,19 +526,6 @@ private fun DataSection(state: SettingsState, actions: SettingsActions) {
         }
     }
 
-    Spacer(Modifier.height(20.dp))
-    // Lokalny tekst, a nie klucz z ustawień: zapis przycina spacje, więc spacja między imieniem a nazwiskiem
-    // znikałaby w trakcie pisania.
-    var author by rememberSaveable { mutableStateOf<String?>(null) }
-    TextInput(
-        label = "Podpis planów",
-        value = author ?: settings.authorName,
-        onValueChange = { text ->
-            author = text.take(60)
-            actions.setAuthorName(text.take(60))
-        },
-    )
-    Hint("Twoje imię trafia na plany, które wyślesz innym, i na raporty z przebiegu planu. Puste = bez podpisu.")
 }
 
 @Composable

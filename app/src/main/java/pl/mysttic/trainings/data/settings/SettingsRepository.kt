@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -16,8 +17,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Equipment
+import pl.mysttic.trainings.domain.model.Gender
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToInt
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -51,16 +54,19 @@ data class UserSettings(
     val themeId: String = "fire",
     /**
      * Tło wybrane w każdym motywie (D-50): id motywu → id wariantu tła, więc powrót do motywu przywraca jego tło.
-     * Brak wpisu = tło jednolite. Też identyfikatory, z tego samego powodu co `themeId`; mapuje je `AppBackground.resolve`.
+     * Brak wpisu = samo zdjęcie (D-55). Też identyfikatory, z tego samego powodu co `themeId`; mapuje je `AppBackground.resolve`.
      */
     val backgrounds: Map<String, String> = emptyMap(),
-    /**
-     * Kogo pokazywać na zdjęciu dnia w tle (D-51): `kobieta`, `mezczyzna` albo `oboje`; mapuje to `PhotoPeople.fromId`.
-     * Aplikacja nie zna płci użytkownika, więc bez wyboru pokazuje oboje.
-     */
-    val photoPeople: String = "oboje",
-    /** Imię na planach wysyłanych innym i na raportach (D-42); puste = bez podpisu. */
+    /** Imię na planach wysyłanych innym i na raportach (D-42); od D-57 w „O mnie”. Puste = trzeba podać przed wysyłką. */
     val authorName: String = "",
+    /**
+     * Płeć z „O mnie” (D-57): id jak w `Gender`, puste = nie podano. Wybiera osoby na zdjęciu dnia (`PhotoPeople.of`),
+     * nic więcej. Zastępuje „Na zdjęciach” z D-51.
+     */
+    val gender: String = "",
+    /** Wzrost i waga z „O mnie” (D-57); null = jeszcze nie podane. Kreator startuje od nich i zapisuje je z powrotem. */
+    val heightCm: Int? = null,
+    val weightKg: Double? = null,
 )
 
 @Singleton
@@ -85,8 +91,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val libraryTiles = booleanPreferencesKey("library_tiles")
         val themeId = stringPreferencesKey("theme_id")
         val backgrounds = stringSetPreferencesKey("backgrounds")
-        val photoPeople = stringPreferencesKey("photo_people")
+        /** Klucz z D-51 („Na zdjęciach”); czytany tylko jako zapas dla płci z kompilacji rozwojowych sprzed D-57. */
+        val legacyPhotoPeople = stringPreferencesKey("photo_people")
         val authorName = stringPreferencesKey("author_name")
+        val gender = stringPreferencesKey("gender")
+        val heightCm = intPreferencesKey("height_cm")
+        val weightKg = doublePreferencesKey("weight_kg")
     }
 
     private val store: DataStore<Preferences> get() = context.settingsDataStore
@@ -112,8 +122,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
             libraryTiles = p[Keys.libraryTiles] ?: true,
             themeId = p[Keys.themeId] ?: "fire",
             backgrounds = BackgroundChoices.decode(p[Keys.backgrounds].orEmpty()),
-            photoPeople = p[Keys.photoPeople] ?: "oboje",
             authorName = p[Keys.authorName] ?: "",
+            gender = p[Keys.gender] ?: Gender.fromId(p[Keys.legacyPhotoPeople]).id,
+            heightCm = p[Keys.heightCm],
+            weightKg = p[Keys.weightKg],
         )
     }
 
@@ -161,8 +173,25 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     /** Tła wszystkich motywów naraz, z kopii zapasowej. */
     suspend fun setBackgrounds(choices: Map<String, String>) = store.edit { it[Keys.backgrounds] = BackgroundChoices.encode(choices) }
 
-    /** Kto jest na zdjęciu dnia (D-51); id jak w `PhotoPeople`, przycięte, bo przychodzi też z kopii. */
-    suspend fun setPhotoPeople(id: String) = store.edit { it[Keys.photoPeople] = id.take(BackgroundChoices.MAX_ID_LENGTH) }
+    /** Płeć z „O mnie” (D-57); nieznany id (też z kopii) zapisuje się jako „nie podano”. */
+    suspend fun setGender(id: String) = store.edit {
+        it[Keys.gender] = Gender.fromId(id).id
+        it.remove(Keys.legacyPhotoPeople)
+    }
+
+    /** Wzrost w „O mnie” (D-57), w granicach kreatora. */
+    suspend fun setHeightCm(cm: Int) = store.edit { it[Keys.heightCm] = cm.coerceIn(HEIGHT_RANGE) }
+
+    /** Waga w „O mnie” (D-57), do dziesiątej części kilograma. */
+    suspend fun setWeightKg(kg: Double) = store.edit {
+        it[Keys.weightKg] = (kg.coerceIn(WEIGHT_MIN, WEIGHT_MAX) * 10).roundToInt() / 10.0
+    }
+
+    /** Wzrost i waga naraz: kopia zapasowa i kreator; null zostawia to, co jest. */
+    suspend fun setBody(heightCm: Int?, weightKg: Double?) {
+        heightCm?.let { setHeightCm(it) }
+        weightKg?.let { setWeightKg(it) }
+    }
 
     suspend fun setAuthorName(name: String) = store.edit { it[Keys.authorName] = name.trim().take(60) }
 
@@ -171,5 +200,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     suspend fun setReminderTime(hour: Int, minute: Int) = store.edit {
         it[Keys.reminderHour] = hour.coerceIn(0, 23)
         it[Keys.reminderMinute] = minute.coerceIn(0, 59)
+    }
+
+    companion object {
+        /** Granice wzrostu i wagi: te same co suwaki kreatora i „O mnie” (D-57). */
+        val HEIGHT_RANGE = 140..210
+        const val WEIGHT_MIN = 40.0
+        const val WEIGHT_MAX = 150.0
     }
 }

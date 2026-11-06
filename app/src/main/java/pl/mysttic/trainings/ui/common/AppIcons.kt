@@ -64,6 +64,27 @@ object AppIcons {
     /** Plik planu od kogoś (D-42). */
     val File: ImageVector by lazy { icon("file", "M7 3.5h6.5l4 4v13H7zM13.5 3.5v4h4M9.5 13h5M9.5 16.5h5") }
 
+    // Ikony edytorów, historii i podglądu planu (D-54): ta sama siatka i kreska, żeby ekrany przebudowane
+    // po D-52 nie wracały do glifów Materiala.
+
+    /** Zrobione: dzień planu, seria w celu. */
+    val Check: ImageVector by lazy { icon("check", "M5 12.5l4.5 4.5L19 7.5", 2f) }
+    /** Usunięcie dnia, ćwiczenia, bloku. */
+    val Trash: ImageVector by lazy { icon("trash", "M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5") }
+    /** Edycja treningu w planie. */
+    val Edit: ImageVector by lazy { icon("edit", "M15 5l4 4L9 19H5v-4zM13 7l4 4") }
+    val ChevronUp: ImageVector by lazy { icon("chevron-up", "M5.5 14.5L12 8l6.5 6.5") }
+    /** Uchwyt przeciągania pozycji w bloku. */
+    val Drag: ImageVector by lazy { icon("drag", "M5 9.5h14M5 14.5h14", 2f) }
+    /** Sylwetka i poziom w kreatorze. */
+    val Person: ImageVector by lazy { icon("person", "M15 7.5a3 3 0 1 1-6 0a3 3 0 1 1 6 0zM5.5 20c.6-3.7 3.2-6 6.5-6s5.9 2.3 6.5 6") }
+    /** Cel planu w kreatorze. */
+    val Target: ImageVector by lazy {
+        icon("target", "M20 12a8 8 0 1 1-16 0a8 8 0 1 1 16 0zM15.5 12a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0z")
+    }
+    /** Dni planu i tygodnie. */
+    val Calendar: ImageVector by lazy { icon("calendar", "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4") }
+
     /** Wszystkie ikony z nazwami — dla testu, który pilnuje, że każda ścieżka się parsuje. */
     val all: Map<String, ImageVector>
         get() = mapOf(
@@ -72,6 +93,8 @@ object AppIcons {
             "Back" to Back, "More" to More, "Pause" to Pause, "Next" to Next, "Previous" to Previous, "Play" to Play,
             "Plus" to Plus, "Minus" to Minus, "Close" to Close, "Timer" to Timer, "Bell" to Bell, "Palette" to Palette,
             "Data" to Data, "Update" to Update, "Plans" to Plans, "ArrowRight" to ArrowRight, "Spark" to Spark, "File" to File,
+            "Check" to Check, "Trash" to Trash, "Edit" to Edit, "ChevronUp" to ChevronUp, "Drag" to Drag,
+            "Person" to Person, "Target" to Target, "Calendar" to Calendar,
         )
 }
 

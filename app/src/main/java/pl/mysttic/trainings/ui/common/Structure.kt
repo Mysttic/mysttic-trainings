@@ -26,13 +26,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -328,6 +334,66 @@ fun SegmentedText(options: List<String>, selectedIndex: Int, onSelect: (Int) -> 
                 }
             }
         }
+    }
+}
+
+/** Pozycja menu ⋮: etykieta, czerwona przy kasowaniu. */
+class MenuAction(val label: String, val onClick: () -> Unit, val destructive: Boolean = false)
+
+/**
+ * Menu ⋮ (D-52, D-54): akcje, które nie zasługują na przycisk na ekranie (usuwanie, przesuwanie, duplikat).
+ * Pusta lista nie rysuje przycisku. Opis „Więcej” czytają czytnik ekranu i skrypty przebiegów.
+ */
+@Composable
+fun OverflowMenu(actions: List<MenuAction>, modifier: Modifier = Modifier, contentDescription: String = "Więcej") {
+    if (actions.isEmpty()) return
+    var open by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        IconButton(onClick = { open = true }) {
+            Icon(AppIcons.More, contentDescription = contentDescription, tint = MaterialTheme.colorScheme.onSurface)
+        }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            actions.forEach { action ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = action.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (action.destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                    onClick = {
+                        open = false
+                        action.onClick()
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Cichy odsyłacz (D-52): druga droga pod akcją główną, bez obwódki i wypełnienia, opcjonalnie z ikoną z przodu.
+ * Ten sam wygląd co „Co jest w treningu” na karcie dnia.
+ */
+@Composable
+fun QuietLink(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    TextButton(onClick = onClick, modifier = modifier) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text, style = MaterialTheme.typography.labelMedium, color = color)
     }
 }
 

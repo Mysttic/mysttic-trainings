@@ -1,32 +1,30 @@
 # Zrzuty ekranu
 
-> Uwaga (2026-11-05): te zrzuty pokazują wygląd sprzed nowego interfejsu (D-52, D-53) — bez ikon w nawigacji, bez
-> zakładki Plany, z Ustawieniami na jednej stronie. Aktualny układ głównych ekranów na telefonie i tablecie rysuje
-> `LayoutScreenshotTest` do [`app/src/test/screenshots/uklad`](../../app/src/test/screenshots/uklad); zrzuty
-> z emulatora odświeżymy przy najbliższym przejściu `tools/przebieg*.py`.
-
-Emulator Pixel_9_Pro (API 37), stan z 2026-09-07 po przejściu na system wizualny „Ogień i Krew” (D-32).
-Motyw ciemny, bo tak aplikacja wygląda domyślnie przy wieczornym treningu; jeden zrzut pokazuje motyw jasny.
-Plan wygenerowany na 45 minut, poziom początkujący, cel redukcja.
+Emulator Pixel_9_Pro (API 37), stan z 2026-11-06: nowy interfejs (D-52, D-53, D-54) w motywie „Ogień i Krew” z tłem
+jednolitym, jeden zrzut w motywie jasnym. Plan z kreatora: początkujący, 2 dni w tygodniu, 15 minut, bez sprzętu
+(`tools/przebieg.py`). Gotowe programy z `tools/przebieg_preset.py`, biblioteka z `tools/przebieg_biblioteka.py`.
+Zamknięty cykl pochodzi z AVD tabletu w pionie, bo tam był cykl z kreatora doprowadzony do końca.
+Układ tych samych ekranów z fiksturami, na telefonie i tablecie, rysuje też `LayoutScreenshotTest`
+do [`app/src/test/screenshots/uklad`](../../app/src/test/screenshots/uklad).
 
 | Plik | Co pokazuje |
 |---|---|
-| [dzis.png](dzis.png) | Ekran główny: data, zdanie o dzisiejszym treningu, pasek trzech statystyk i jedna karta dnia z przyciskiem Start. Bez listy treningów do wybierania |
-| [dzis-jasny.png](dzis-jasny.png) | Ten sam ekran w motywie jasnym — ogień ciemnieje do karminu, żar do złota, żeby trzymać kontrast na papierze |
+| [dzis.png](dzis.png) | Ekran główny: data, zdanie o dzisiejszym treningu i jedna karta dnia z miniaturami ćwiczeń, paskiem tygodnia, Startem i dwoma cichymi odsyłaczami. Bez listy treningów do wybierania |
+| [dzis-jasny.png](dzis-jasny.png) | Ten sam ekran w motywie jasnym „Papier i Ogień”: ogień ciemnieje do karminu, żar do złota, żeby trzymać kontrast na papierze |
 | [trening.png](trening.png) | Co jest w treningu: chipy poziomu, nagłówek bloku z rundami i przerwą, wiersze ćwiczeń z miniaturą i celem |
-| [player.png](player.png) | Player: wielka liczba powtórzeń z jednostką, zdjęcie ćwiczenia, triada „−/Zrobione/+” i drugi rząd akcji |
-| [plan.png](plan.png) | Cykl jako kolejka: odhaczone przygaszone, odpoczynek wyszarzony, następny dzień jako jedyna karta z własnym Startem |
-| [kreator.png](kreator.png) | Kreator w czterech krokach, tu krok trzeci: dni w tygodniu, długość treningu i cyklu, a w stopce podgląd planu |
-| [cwiczenia.png](cwiczenia.png) | Biblioteka (D-38, 2026-09-16): przełącznik kafelki / lista, szukanie, pasek „Filtry” i „Mój sprzęt” z licznikiem, kafelki z ilustracjami |
-| [podsumowanie.png](podsumowanie.png) | Podsumowanie po treningu: liczby zamiast pochwał, ocena wysiłku RPE i pole notatki |
-| [cykl-zamkniety.png](cykl-zamkniety.png) | Zamknięty cykl: siatka statystyk i pytanie „jak poszedł ten cykl”, które ustawia trudność następnego |
-| [historia.png](historia.png) | Historia: statystyki okresu, wykres wolumenu tygodniowego i kalendarz aktywności — zrobione ogniem, resztki krwiste |
-| [ustawienia.png](ustawienia.png) | Ustawienia: nagłówki sekcji w żarze, wiersze z opisem i przełącznikiem |
+| [player.png](player.png) | Player: pozycja w żarze, nazwa ćwiczenia, wielka liczba powtórzeń, ilustracja, triada „−/Zrobione/+” i ciche Wstecz, Pauza, Pomiń; poziom i przerwanie w menu ⋮ |
+| [plan.png](plan.png) | Cykl jako kolejka: postęp, karta następnego dnia ze Startem i rozkład tygodniami; rozwinięty tydzień z następnym treningiem, kolejne odpoczynki jednym wierszem (D-54) |
+| [kreator.png](kreator.png) | Kreator w czterech krokach, tu krok trzeci: dni w tygodniu, długość treningu i cyklu, a w stopce podgląd planu; × zamyka kreator z każdego kroku |
+| [cwiczenia.png](cwiczenia.png) | Biblioteka: tytuł, pole szukania z lejkiem filtrów i kafelki z ilustracjami (D-52) |
+| [podsumowanie.png](podsumowanie.png) | Podsumowanie po treningu: liczby zamiast pochwał, opinie do ćwiczeń, ocena wysiłku RPE i pole notatki |
+| [cykl-zamkniety.png](cykl-zamkniety.png) | Zamknięty cykl (tablet w pionie): siatka statystyk i pytanie „jak poszedł ten cykl”, które ustawia trudność następnego |
+| [historia.png](historia.png) | Historia: okres i jego statystyki, rozwinięty „Postęp” z wolumenem tygodniowym i kalendarzem aktywności, segmenty stanu nad listą (D-54) |
+| [ustawienia.png](ustawienia.png) | Ustawienia: sześć kategorii z ikoną i streszczeniem stanu (D-52) |
 | [health-connect.png](health-connect.png) | Wpis z ukończonego treningu w Health Connect (D-31) |
-| [gotowe-programy.png](gotowe-programy.png) | Gotowe programy (D-37, 2026-09-16): katalog, długość i poziom, karta „Dziś” z etapem Tabaty, podgląd cyklu |
-| [gotowe-programy-player.png](gotowe-programy-player.png) | Player w stałym protokole: tabata z numerem rundy, oddech w rytmie, zatrzymanie bez limitu, podsumowanie bez „Więcej/Mniej” |
+| [gotowe-programy.png](gotowe-programy.png) | Gotowe programy (D-37): katalog, ustawienia programu, karta „Dziś” z etapem Tabaty, podgląd cyklu |
+| [gotowe-programy-player.png](gotowe-programy-player.png) | Player w stałym protokole: Tabata z numerem rundy, oddech w rytmie, zatrzymanie bez limitu, podsumowanie bez „Więcej/Mniej” |
 | [motywy.png](motywy.png) | Trzy motywy do wyboru (D-39, 2026-09-19) na ekranie „Dziś”: Ogień i Krew, Papier i Ogień, Stal i Bursztyn. Jedyny obrazek w tym katalogu rysowany kodem, nie zrzut z telefonu — pokazuje kolory w rolach, nie dokładny układ ekranu |
-| [biblioteka.png](biblioteka.png) | Biblioteka (D-38, 2026-09-16): kafelki z ilustracjami, rozwinięty panel filtrów (sprzęt, rodzaj, poziom, partie), lista wierszy |
+| [biblioteka.png](biblioteka.png) | Biblioteka (D-52): kafelki, rozwinięty panel filtrów („Tylko mój sprzęt”, widok, sprzęt, rodzaj, poziom, partie), lista wierszy |
 
 `health-connect.png` pochodzi z aplikacji Health Connect, nie z naszego interfejsu.
 

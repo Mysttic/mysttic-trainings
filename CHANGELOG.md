@@ -34,16 +34,24 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
 ### Dodane
 - **Zakładka Plany.** Lista planów jest w dolnym pasku, obok „Dziś”: aktywny plan, czekające i zakończone, a w nagłówku
   „Nowy plan” z czterema drogami — kreator, gotowy program, własny plan i plan z pliku od kogoś (issue #1, D-53).
-- **Tło z gradientem w każdym motywie.** Ustawienia → Wygląd → Tło: obok tła jednolitego każdy motyw ma trzy
-  gradienty. „Ogień i Krew”: Żar, Łuna i Wino, „Papier i Ogień”: Świt, Róża i Pergamin, „Stal i Bursztyn”: Granat,
-  Głębia i Zmrok. Gradient leży pod wszystkimi ekranami i stoi w miejscu przy przewijaniu, a karty, przyciski
-  i napisy zostają takie same i równie czytelne. Każdy motyw pamięta swoje tło, więc po powrocie do motywu wraca
-  też jego gradient. Domyślnie tło jest jednolite, jak dotąd.
-- **Zdjęcie dnia w tle.** Ostatnia opcja w Ustawienia → Wygląd → Tło: rozmyte zdjęcie w klimacie dzisiejszych
-  treningów ze wszystkich planów, z osobami wybranymi w „Na zdjęciach” (kobieta, mężczyzna albo oboje). Losuje się
-  raz dziennie spośród trzech tematów, których dziś najwięcej, więc tylko nawiązuje do dnia, a nie ogłasza, co ćwiczysz.
-  Karty są przy nim szklane, żeby zdjęcie prześwitywało, a napisy i obrysy przycisków trzymają ten sam kontrast co
-  zawsze. Zdjęcia przychodzą z bazą ćwiczeń 11.
+- **Zdjęcie dnia w tle, a na nim gradient do wyboru.** Pod wszystkimi ekranami leży rozmyte zdjęcie w klimacie
+  dzisiejszych treningów ze wszystkich planów, z osobami twojej płci z „O mnie” (bez wyboru obie). Losuje się raz
+  dziennie spośród trzech tematów, których dziś najwięcej, więc tylko nawiązuje do dnia, a nie ogłasza, co ćwiczysz.
+  W Ustawienia → Wygląd → Tło wybierasz, co leży na zdjęciu: samo zdjęcie (domyślnie) albo jeden z trzech gradientów
+  motywu, który zdjęcie zabarwia, ale go nie zasłania. „Ogień i Krew”: Żar, Łuna i Wino, „Papier i Ogień”: Świt, Róża
+  i Pergamin, „Stal i Bursztyn”: Granat, Głębia i Zmrok, „Brzoza i Mech”: Mgła, Paproć i Wrzos. Karty są szklane,
+  żeby zdjęcie prześwitywało, a napisy i obrysy przycisków trzymają ten sam kontrast co zawsze. Tło stoi w miejscu przy
+  przewijaniu, a każdy motyw pamięta swoje. Zdjęcia przychodzą z bazą ćwiczeń 11 (D-50, D-51, D-55).
+- **Motyw „Brzoza i Mech”.** Czwarty motyw, jasny jak kora brzozy, z zielenią mchu na akcji i żywicą w podpowiedziach
+  (D-56).
+- **O mnie.** Pierwsza kategoria Ustawień: imię, którym podpisujesz plany i raporty, płeć (od niej zależą osoby
+  na zdjęciu dnia), wzrost i waga, od których startuje kreator, oraz klucz podpisu planów. Wybór osób na zdjęciu zniknął
+  z „Wyglądu” (D-57).
+- **Plan podpisany, z hasłem na życzenie.** Wysłany plan jest podpisany twoim imieniem i kluczem tego telefonu: kto
+  zmieni w pliku autora albo treść, ten zepsuje podpis i plik się nie wczyta. Odbiorca widzi w podglądzie odcisk
+  klucza i porówna go z tym, który autor ma w „O mnie”. **Chroń hasłem** zamyka plik hasłem: bez niego pliku nie otworzy
+  nikt, także aplikacja. Plany z wcześniejszych wersji wchodzą jak dotąd, oznaczone „Bez podpisu”; plik z 1.2.0
+  wersja 1.1.0 odeśle do aktualizacji (D-58).
 - **Zdjęcia tła w edytorze bazy (dla właściciela).** `python tools/baza.py` ma sekcję „Zdjęcia tła”: dodawanie
   zdjęcia z tematem i płcią, podmiana w to samo miejsce, usuwanie i podgląd w kolorach każdego motywu, takich jak
   w aplikacji. Edytor sam kadruje zdjęcie pod telefon, odbarwia je i rozmywa.
@@ -61,10 +69,30 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
     stoją pod kartą, gdy jest już jakaś historia;
   - w bibliotece nad listą jest tylko szukanie z przyciskiem filtrów; „Tylko mój sprzęt” i widok kafelki / lista są
     w panelu filtrów, a wyniki, warianty, zamienniki i trener w szczegółach ćwiczenia zwijają się do jednej linii;
-  - Ustawienia to sześć kategorii z podsumowaniem zamiast jednej długiej strony; motyw, tło i osoby na zdjęciu dnia
-    są razem w „Wygląd”;
+  - Ustawienia to siedem kategorii z podsumowaniem zamiast jednej długiej strony; motyw i tło są razem w „Wygląd”,
+    a imię, płeć, wzrost i waga w „O mnie”;
   - player jest prostszy: nazwa ćwiczenia dużym tytułem, poziom trudności i „Przerwij trening” w menu ⋮, a Wstecz,
     Pauza i Pomiń jako ciche przyciski z ikoną.
+- **Nowy wygląd także w Historii, podglądzie planu, kreatorze i edytorach (issue #5, D-54).** Cała aplikacja mówi
+  teraz jednym językiem:
+  - Historia przed pierwszym treningiem nie straszy zerami; potem wykresy czekają w zwiniętym „Postępie”, nad listą
+    wybierasz wszystkie, ukończone albo przerwane, a sesje idą miesiącami. W szczegółach sesji są trzy liczby,
+    porównanie z poprzednim razem, zwinięta lista serii i **Zapisz ocenę**; usunięcie przeszło do menu ⋮;
+  - podgląd planu pokazuje kartę następnego treningu i rozkład tygodniami: rozwinięty jest tydzień z następnym
+    treningiem, a kolejne dni odpoczynku stoją jednym wierszem;
+  - kreator da się zamknąć z każdego kroku, sprzęt zaznaczasz pigułkami, a ostatni krok streszcza odpowiedzi
+    i jednym tapnięciem wraca do wybranego kroku;
+  - w edytorze planu dni są pogrupowane tygodniami, przy dniu zostały strzałki, a duplikat i usunięcie dnia są
+    w menu ⋮; w edytorze treningu ustawienia bloku zwijają się do jednej linii, akcje bloku są w jego menu ⋮,
+    a zamiana, duplikat i usunięcie ćwiczenia w arkuszu po tapnięciu w ćwiczenie;
+  - na tablecie w poziomie Historia stoi jako lista i szczegół sesji obok siebie, a podgląd planu, kreator
+    i edytor planu mają dwie kolumny.
+- **Kreator zaczyna od sprzętu.** Pierwszy krok to sprzęt, który masz, z licznikiem, z ilu ćwiczeń kreator ułoży
+  plan; drugi to wzrost, waga i poziom, wpisane z „O mnie” i tam zapisywane z powrotem; potem cel i czas (D-57).
+- **„Dziś” nie mówi, jaką partię ćwiczysz.** Nagłówek „Dziś trenujesz całe ciało” ustąpił „Trening na dziś”, bo zdjęcie
+  dnia ma tylko nawiązywać do treningu (D-55).
+- **Kopia planu od kogoś zachowuje autora.** Skopiowany plan od kogoś dalej podaje jego autora, także w wysłanym
+  pliku, a ty jesteś w nim jako przekazujący (D-58).
 - **Nowy plan własny zaczyna od celów dokładnie takich, jak wpisane.** Przełącznik „Dopasowuj cele do poziomu
   i trenera” jest w nowym planie wyłączony, więc plan dla kogoś nie wymaga już pamiętania o nim przed „Wyślij plan”.
   W planie dla siebie, który ma rosnąć z poziomem, trenerem i „Podbij cele”, włączasz go jednym ruchem.
@@ -76,10 +104,10 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
   (nowy, skopiowany albo „×2”), Wstecz pyta „Porzucić zmiany?”: „Porzuć” go zabiera, a „Zapisz plan” zostawia.
   Wcześniej przy niezmienionych dniach Wstecz wychodził bez pytania, a niepotrzebnego treningu nie dało się
   potem usunąć.
-- **Kopia zapasowa w wersji 5 niesie tło każdego motywu i wybór osób na zdjęciu dnia.** Starsze kopie wczytują się
+- **Kopia zapasowa w wersji 5 niesie tło każdego motywu oraz płeć, wzrost i wagę z „O mnie”.** Starsze kopie wczytują się
   jak dotąd i nie zmieniają wybranego tła; kopii z 1.2.0 nie wczyta wersja 1.1.0, więc na nowym telefonie najpierw zaktualizuj aplikację.
 - **Niewybrane pigułki filtrów i „−”/„+” w playerze są bez wypełnienia**, z samą obwódką, jak pozostałe przyciski
-  drugorzędne. Na tle jednolitym wyglądają jak dotąd, na kartach i w oknach biorą kolor karty.
+  drugorzędne; na kartach i w oknach biorą kolor karty.
 - **Kod jest publiczny.** Repozytorium zaczyna od stanu 1.1.0, bez wcześniejszej historii (D-48). Kod jest
   na licencji MIT, a baza ćwiczeń (nazwy, opisy, instrukcje i ilustracje) na CC BY 4.0. W samej aplikacji
   nic się nie zmienia.

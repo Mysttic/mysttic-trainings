@@ -1,5 +1,7 @@
 package pl.mysttic.trainings.domain.background
 
+import pl.mysttic.trainings.domain.model.Gender
+
 import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.domain.model.ExerciseCategory
 import pl.mysttic.trainings.domain.model.MuscleGroup
@@ -48,6 +50,13 @@ enum class PhotoPeople(val id: String, val labelPl: String) {
     companion object {
         /** Bez wyboru i przy nieznanym id pokazujemy oboje: aplikacja nie zna płci użytkownika, dopóki jej nie poda. */
         fun fromId(id: String?): PhotoPeople = entries.firstOrNull { it.id == id } ?: BOTH
+
+        /** Osoby na zdjęciu dnia z płci w „O mnie” (D-57): bez wyboru oboje, bo aplikacja nie zgaduje. */
+        fun of(gender: Gender): PhotoPeople = when (gender) {
+            Gender.FEMALE -> WOMEN
+            Gender.MALE -> MEN
+            Gender.UNSPECIFIED -> BOTH
+        }
     }
 }
 

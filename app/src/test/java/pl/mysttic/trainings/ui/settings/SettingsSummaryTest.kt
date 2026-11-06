@@ -52,8 +52,8 @@ class SettingsSummaryTest {
 
     @Test
     fun `dane z podpisem autora i bez Health Connect, gdy go nie ma`() {
-        assertEquals("Kopia zapasowa, Health Connect, podpis planów", SettingsSummary.data(UserSettings(), healthAvailable = true))
-        assertEquals("Kopia zapasowa, podpis: Ola", SettingsSummary.data(UserSettings(authorName = " Ola "), healthAvailable = false))
+        assertEquals("Kopia zapasowa, Health Connect", SettingsSummary.data(healthAvailable = true))
+        assertEquals("Kopia zapasowa", SettingsSummary.data(healthAvailable = false))
     }
 
     @Test
@@ -71,19 +71,32 @@ class SettingsSummaryTest {
     }
 
     @Test
-    fun `wyglad dopisuje tlo, gdy nie jest jednolite`() {
+    fun `wyglad dopisuje gradient, a samo zdjecie to sam motyw`() {
         assertEquals("Ogień i Krew · Żar", SettingsSummary.appearance(UserSettings(themeId = "fire", backgrounds = mapOf("fire" to "zar"))))
+        assertEquals("Ogień i Krew", SettingsSummary.appearance(UserSettings(themeId = "fire", backgrounds = mapOf("fire" to "zdjecie"))))
+        // „Jednolite” sprzed D-55 to dziś samo zdjęcie.
         assertEquals("Ogień i Krew", SettingsSummary.appearance(UserSettings(themeId = "fire", backgrounds = mapOf("fire" to "jednolite"))))
         // Tło zapisane dla innego motywu nie zmienia streszczenia bieżącego.
         assertEquals("Stal i Bursztyn", SettingsSummary.appearance(UserSettings(themeId = "steel", backgrounds = mapOf("fire" to "zar"))))
         assertEquals(
-            "Stal i Bursztyn · Zdjęcie dnia",
-            SettingsSummary.appearance(UserSettings(themeId = "steel", backgrounds = mapOf("steel" to "zdjecie"))),
+            "Stal i Bursztyn · Granat",
+            SettingsSummary.appearance(UserSettings(themeId = "steel", backgrounds = mapOf("steel" to "granat"))),
         )
     }
 
     @Test
-    fun `kategorie w dwoch grupach obejmuja wszystkie sekcje raz`() {
+    fun `kategorie w grupach obejmuja wszystkie sekcje raz, O mnie pierwsze`() {
         assertEquals(SettingsSection.entries.toList(), SettingsSection.groups.flatten())
+        assertEquals(SettingsSection.ABOUT_ME, SettingsSection.groups.first().first())
+    }
+
+    @Test
+    fun `O mnie mowi to, co wpisane, a bez niczego co da sie podac`() {
+        assertEquals("Imię, płeć, wzrost i waga", SettingsSummary.aboutMe(UserSettings()))
+        assertEquals(
+            "Marta · kobieta · 168 cm · 62,5 kg",
+            SettingsSummary.aboutMe(UserSettings(authorName = " Marta ", gender = "kobieta", heightCm = 168, weightKg = 62.5)),
+        )
+        assertEquals("180 cm", SettingsSummary.aboutMe(UserSettings(gender = "nieznana", heightCm = 180)))
     }
 }

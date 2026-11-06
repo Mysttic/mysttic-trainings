@@ -9,7 +9,7 @@ Bez reklam, bez konta, bez sieci. Jeden użytkownik (właściciel repo), jeden t
 
 Aplikacja robi wszystko, co miała robić: kreator planu (D-20) albo gotowy program (D-37) układa cykl, player prowadzi
 przez trening w foreground service (D-16), historia liczy statystyki i wykresy, trener koryguje cele (D-35), biblioteka
-ma kafelki i panel filtrów (D-38). Wygląd to jeden z trzech motywów do wyboru, domyślnie „Ogień i Krew” (D-32, D-39).
+ma kafelki i panel filtrów (D-38). Wygląd to jeden z czterech motywów do wyboru, domyślnie „Ogień i Krew” (D-32, D-39, D-56).
 Wydania jadą na publiczną stronę `Mysttic/Mysttic` i stamtąd aplikacja sama się aktualizuje (D-33). Ostatnie wydanie
 to 1.1.0 z bazą ćwiczeń v10 (2026-10-28): baza ćwiczeń rozwijana i wydawana niezależnie od aplikacji (D-47).
 Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym commitem z tagami `v1.1.0` i `baza-v10`
@@ -17,7 +17,7 @@ Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym com
 nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
 Liczby: baza ćwiczeń v11 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów,
-i 35 zdjęć tła, D-51), 480 testów jednostkowych w 53 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
+i 35 zdjęć tła, D-51), 509 testów jednostkowych w 55 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
 
 Weryfikacja stoi na emulatorze Pixel_9_Pro (API 37), dla dużych ekranów na AVD Pixel_Tablet_API_37 (D-42), i na skryptach
 `tools/przebieg*.py`. Decyzja właściciela z 2026-09-18: **telefon nie jest bramką wydania**, emulator wystarcza.
@@ -42,19 +42,23 @@ pobieranie przez sieć sprawdzone na emulatorze na wydaniu v10.
 
 W 1.2.0 (niewydane, D-49, issue #1): nowy plan własny startuje dosłownie (przełącznik „Dopasowuj cele…” wyłączony),
 „×2” przy treningu planu robi jego kopię w tym samym planie (`PlanEditing.copyName`, `PlanEditing.copyBlocks`),
-a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do tego tło z gradientem (D-50, issue #6):
-każdy motyw ma tło jednolite i trzy gradienty (`ui/theme/Backgrounds.kt`), wybór osobno dla każdego motywu
-w Ustawieniach → Wygląd → Tło, kopia zapasowa v5 go niesie. Czwarta opcja to zdjęcie dnia (D-51): rozmyte zdjęcie
-z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) losowane raz dziennie z trzech tematów, których najwięcej
-w dzisiejszych treningach wszystkich planów, z osobami z „Na zdjęciach”; nic w aplikacji nie nazywa partii dnia,
-ze szklanymi kartami (`cardColor()`); baza 11 wymaga aplikacji 1.2.0. Obecne zdjęcia są tymczasowe (SD-Turbo):
-właściciel podmieni je na własne w sekcji „Zdjęcia tła” edytora bazy.
+a Wstecz z edycji zapisanego planu pyta o zmiany także po dodaniu treningu. Do tego tło (issue #6): pod ekranami
+zawsze leży zdjęcie dnia (D-51, D-55), rozmyte zdjęcie z bazy ćwiczeń 11 (`baza/tla.json`, `baza/tla/`) losowane raz
+dziennie z trzech tematów, których najwięcej w dzisiejszych treningach wszystkich planów, z osobami płci z „O mnie”;
+nic w aplikacji nie nazywa partii dnia, a karty są szklane (`cardColor()`). Na zdjęciu leży do wyboru jeden z trzech
+gradientów motywu (D-50) z kryciem 0,4 albo nic („Samo zdjęcie”, domyślne); wybór osobno dla każdego motywu
+(`ui/theme/Backgrounds.kt`), kopia zapasowa v5 go niesie; baza 11 wymaga aplikacji 1.2.0. Obecne zdjęcia są tymczasowe
+(SD-Turbo): właściciel podmieni je na własne w sekcji „Zdjęcia tła” edytora bazy. Czwarty motyw „Brzoza i Mech”
+(D-56) jest jasny, leśny. „O mnie” (D-57) zbiera imię, płeć, wzrost i wagę, a kreator zaczyna od sprzętu. Plik planu
+(D-58) jest podpisany kluczem telefonu z Android Keystore i imieniem z „O mnie”, na życzenie zamknięty hasłem.
 Także w 1.2.0 nowy interfejs z issue #5 (D-52): projekt w designerze (canvas „mysttic-trainings: nowy interfejs”),
 nawigacja z własnymi ikonami, „Dziś” z mniejszą ilością informacji na start, biblioteka z filtrami w polu szukania
-i zwijanymi szczegółami, Ustawienia w sześciu kategoriach (Wygląd zbiera motyw, tło i osoby na zdjęciu dnia), prostszy
+i zwijanymi szczegółami, Ustawienia w kategoriach (od D-57 siedmiu: „O mnie” pierwsze, Wygląd zbiera motyw i tło), prostszy
 player (poziom i przerwanie w menu ⋮), lista i szczegół obok siebie na tablecie — oraz reszta issue #1 (D-53): zakładka
-Plany w głównej nawigacji z „Nowy plan”. Układ sprawdzony zrzutami `LayoutScreenshotTest`; przejście na emulatorze
-(`docs/testing.md`, „Nowy interfejs”) i odświeżenie `docs/screenshots` jeszcze przed wydaniem.
+Plany w głównej nawigacji z „Nowy plan”. Resztę issue #5 domyka D-54: Historia (na tablecie lista i szczegół sesji),
+podgląd planu tygodniami, kreator ze streszczeniem i edytory planu i treningu w tym samym języku, z menu ⋮ na rzadsze
+akcje i bez glifów Materiala w `ui/`. Układ sprawdzają zrzuty `LayoutScreenshotTest`, a przejście na emulatorze
+(`docs/testing.md`, „Nowy interfejs”) i zrzuty w `docs/screenshots` są po D-54 (2026-11-06).
 
 Zmiany idą do `CHANGELOG.md` pod wersją, do której wejdą; `docs/PLAN.md` nie prowadzimy (decyzja właściciela z 2026-10-28).
 
@@ -99,7 +103,8 @@ app/src/main/java/pl/mysttic/trainings/
   domain/plan/       TrainingProfile, PlanGenerator, Program, PlanProgress, PlanProgression, SetProgression — kreator cyklu, kolejka, progresja, „Podbij cele” (czysty Kotlin, D-20..D-24)
   domain/plan/preset/ PresetId, PresetDefinition, Stages, PresetCatalog, PresetDefinitions — gotowe programy: tabele etapów i budowa cyklu (czysty Kotlin, D-37)
                      PlanSessions (sesja → plan), PlanCopy, PlanEditing, PlanList, PlanRhythm — lista planów i edytor planu (D-42)
-  domain/plan/share/ PlanFile, PlanFileCodec — plik planu do udostępniania: format v1, eksport, wrogi odczyt, ćwiczenia z pliku (D-42)
+  domain/plan/share/ PlanFile, PlanFileCodec — plik planu do udostępniania: treść, eksport, wrogi odczyt, ćwiczenia z pliku (D-42);
+                     PlanSeal — koperta formatu 2: podpis ECDSA, hasło AES-GCM, odcisk klucza (D-58)
   domain/report/     PlanReport, PlanReportBuilder, ReportPaginator — raport z przebiegu planu jako linie, podział na strony (D-42)
   domain/coach/      ExerciseFeedback, ExerciseTuning, Coach — trener: opinie z podsumowania, korekta celu, wykluczenia (czysty Kotlin, D-35)
   domain/reminder/   ReminderSchedule — kiedy i o czym przypomnieć (czysty Kotlin, D-29)
@@ -114,7 +119,8 @@ app/src/main/java/pl/mysttic/trainings/
   data/repo/ProgramRepository  cykle treningowe: zapis wygenerowanego planu, aktywny cykl (D-20)
   data/repo/CoachRepository    pamięć trenera: opinie, wykluczenie z podmianą w aktywnym cyklu, zerowanie (D-35)
   data/share/PlanShareRepository  plik planu: eksport do okna udostępniania i SAF, odbiór z intencji, podgląd, import (D-42)
-  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały, motyw i tło każdego motywu (`BackgroundChoices`, D-50), osoby na zdjęciu dnia (D-51)
+  data/share/PlanSigningKey  klucz podpisu planów w Android Keystore, nie wychodzi z telefonu (D-58)
+  data/settings/     DataStore: poziom, sprzęt, odliczanie, sygnały, motyw i tło każdego motywu (`BackgroundChoices`, D-50), „O mnie”: imię, płeć, wzrost, waga (D-57)
   data/background/   BackgroundPhotoRepository: zdjęcia tła z `tla.json` wczytanej bazy i zdjęcie dnia pod następny trening (D-51)
   data/repo/         repozytoria + mapowanie encja ↔ domena
   service/           PlayerController (stan silnika w procesie, D-16), WorkoutService (FGS: tick, wake lock, powiadomienie),
@@ -128,10 +134,11 @@ app/src/main/java/pl/mysttic/trainings/
   ui/                Compose + Hilt ViewModels: today, plan (kreator i podgląd cyklu), plans (zakładka Plany: lista i „Nowy plan”, D-53), planeditor, share (wysyłka i import planu),
                      stats (statystyki planu, PdfReportRenderer), presets (wybór gotowego programu), library, workout, editor, player (cienki widok
                      na PlayerController), history, settings (kategorie, SettingsSummary); navigation (trasy typowane, pasek i szyna z ikonami);
-                     adaptive (AppLayout, szyna, czytelna szerokość, D-42; TwoPane dla Ćwiczeń i Ustawień, D-52)
+                     adaptive (AppLayout, szyna, czytelna szerokość, D-42; TwoPane dla Ćwiczeń i Ustawień, D-52, i Historii, D-54)
   ui/common/         DesignSystem.kt (karty, przyciski, steppery), Components.kt (ExerciseTile, ExerciseImage, EmptyState…), Charts.kt (wykresy na Canvas),
-                     Structure.kt (zwijany wiersz, kategorie, pasek powrotu, znaczniki, D-52), AppIcons.kt (własne ikony kreskowe, D-52)
-  ui/theme/          Color.kt (motyw domyślny), Themes.kt (dwa pozostałe + AppTheme), Theme.kt (trzy schematy po 35 ról), Type.kt (Sora), Shape.kt,
+                     Structure.kt (zwijany wiersz, kategorie, pasek powrotu, znaczniki, D-52; menu ⋮ i cichy odsyłacz, D-54),
+                     AppIcons.kt (własne ikony kreskowe, D-52)
+  ui/theme/          Color.kt (motyw domyślny), Themes.kt (trzy pozostałe + AppTheme), Theme.kt (cztery schematy po 35 ról), Type.kt (Sora), Shape.kt,
                      Backgrounds.kt (warianty tła każdego motywu: `AppBackground`, `appBackground`, D-50)
 app/src/test/        testy JUnit4: domain, service, data (kopia, seed, sprzątanie treningów na Room w pamięci), ui (motyw, zrzuty D-40, układ, saver opinii)
 baza/                baza ćwiczeń (D-47): exercises.json + images/<id>.jpg, jedyne źródło prawdy; Gradle podpina katalog jako assety APK,
@@ -149,7 +156,7 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
 - `domain/` nie importuje Androida. Silnik to czysta funkcja `WorkoutEngine.reduce(state, event) -> (state, effects)`;
   zdarzenia niosą własne `now` (ms, zegar monotoniczny). Przejścia liczone z timestampów, tick tylko sprawdza, czy faza minęła.
 - Każda zmiana w `domain/` (engine, equipment, stats, editor, library, plan, plan/preset, coach, reminder, health, update,
-  background) = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 480 w 53 klasach.
+  background) = aktualizacja albo dopisanie testu w `app/src/test`. Dziś jest ich 509 w 55 klasach.
 - `PlanGenerator` musi zostać deterministyczny (bez losowania): te same dane wejściowe = ten sam plan, inaczej testy tracą sens.
 - Plan rozliczamy kolejką, nie datami (D-21): dzień jest odhaczony przez ukończoną sesję tego treningu, niezależnie kiedy.
 - Plany (D-42): aktywny jest najwyżej jeden, pozostałe czekają z postępem; przełączyć wolno w każdej chwili. Trening należy
@@ -158,7 +165,12 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   (nie kopiować reguły). Zrobione dni planu nie zmieniają się przy edycji i zostają na swoich numerach
   (`PlanEditing.validate`). Plan od kogoś wchodzi dosłownie (bloki `fixed`), więc eksport liczy bloki adaptacyjne
   przez `WorkoutPlanner.shownBlocks` (poziom i sprzęt autora, bez trenera), a nie wysyła surowego szablonu. Plik planu (`domain/plan/share`) to osobny format ze stałymi `@SerialName`: zmiana pola =
-  nowe pole z domyślną wartością, a plik wzorcowy w `app/src/test/resources` musi się dalej wczytywać.
+  nowe pole z domyślną wartością, a pliki wzorcowe w `app/src/test/resources` muszą się dalej wczytywać.
+  Od D-58 plik to koperta formatu 2 (`PlanSeal`): treść podpisana kluczem telefonu (`PlanSigningKey`, ECDSA P-256),
+  na życzenie zamknięta hasłem (AES-256-GCM, PBKDF2-HMAC-SHA256); podpis niezgodny z treścią blokuje import, plik
+  formatu 1 wchodzi jako niepodpisany. Eksport wymaga imienia z „O mnie” (`signer`), a autor planu od kogoś zostaje
+  w pliku, także w kopii planu (`ProgramRepository.copyOf`). Wzorce formatu 2 (`plan-podpisany`, `plan-z-haslem`
+  z hasłem `lesna-polana`) są umową jak `plan-wzorcowy`. Hasło nigdy nie trafia do `SavedStateHandle` ani na dysk.
 - Jeden trening na ekranie (D-26): „Dziś” pokazuje wyłącznie następną pozycję z kolejki. Nie dokładać list treningów do wyboru
   ani ustawień poza kreatorem; wybór parametrów dzieje się przy zakładaniu cyklu. Lista planów to zakładka Plany w głównej
   nawigacji (D-53), z „Nowy plan” (kreator, gotowy program, własny plan, plik); „Dziś” odsyła do niej tylko przed pierwszym
@@ -221,10 +233,10 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
 - `EngineState` jest serializowany do checkpointu; zmiana pól z domyślnymi wartościami jest bezpieczna, usunięcie pola — wyczyść tabelę `player_checkpoints` w migracji.
 - UI: Material 3, Compose, `hiltViewModel()`, `collectAsStateWithLifecycle()`, trasy `@Serializable` (`ui/navigation/Routes.kt`).
 - Wykresy rysujemy na `Canvas` w `ui/common/Charts.kt` (D-23), dane liczy `domain/stats/ProgressStats`; bez bibliotek wykresowych.
-- Wygląd: system „Ogień i Krew” (D-32), od D-39 jeden z trzech motywów do wyboru w Ustawieniach (ten jest domyślny).
-  Motyw to jeden skończony wygląd, nie para jasny/ciemny — aplikacja nie idzie za trybem systemu, bo „Papier i Ogień”
-  jest jasny zawsze. Kolory tylko z `MaterialTheme.colorScheme`, nigdy `Color(0x…)` w ekranie; wartości domyślnego
-  motywu stoją w `ui/theme/Color.kt`, pozostałych w `Themes.kt`, a trzy schematy (po 35 ról) w `Theme.kt` (D-17).
+- Wygląd: system „Ogień i Krew” (D-32), od D-39 jeden z motywów do wyboru w Ustawieniach (ten jest domyślny; od D-56
+  cztery). Motyw to jeden skończony wygląd, nie para jasny/ciemny: aplikacja nie idzie za trybem systemu, bo „Papier
+  i Ogień” i „Brzoza i Mech” są jasne zawsze. Kolory tylko z `MaterialTheme.colorScheme`, nigdy `Color(0x…)` w ekranie; wartości domyślnego
+  motywu stoją w `ui/theme/Color.kt`, pozostałych w `Themes.kt`, a cztery schematy (po 35 ról) w `Theme.kt` (D-17).
   Nowy motyw = wartości, schemat, pozycja w `AppTheme` i zielony `python tools/check_contrast.py` (chodzi po wszystkich
   schematach). Zmiana odcienia = ten sam skrypt. Te same progi pilnuje `ThemeContractTest` w `app/src/test/.../ui/theme`,
   więc CI zatrzyma motyw, o którego skrypcie ktoś zapomniał; oba są uruchamiane w `testy.yml`. Wygląd komponentów
@@ -233,23 +245,26 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   Trzy reguły, których trzyma się każdy ekran: wypełnienie `primary` znaczy akcję, `tertiary` niesie informację i nigdy nie trafia
   na przycisk, zrobione rysujemy ogniem, a resztki kolorem `outlineVariant`. Elewacje zerowe — warstwy rozdziela stopień
   `surfaceContainer` i linia włosowa. Bez `dynamicColor`.
-  Tło ekranów (D-50): jednolite `surface` albo gradient z `ui/theme/Backgrounds.kt` (`AppBackground`, warianty osobno
-  dla każdego motywu). Maluje je tylko korzeń nawigacji, a wszystko nad nim jest przezroczyste: ekran z własnym
-  Scaffoldem bierze `ScreenScaffold` (pasek tytułu `screenTopBarColors()`), nigdy `containerColor = surface`, i nie kładzie
-  pod treścią wypełnienia `surface`. Gradient trzyma w każdym punkcie pary, w których tłem jest `surface` albo
-  `background`: nowy wariant = kolory, wpis w `AppBackground` i zielony `check_contrast.py`, który próbkuje gradient
-  tak samo jak `ThemeContractTest`.
+  Tło ekranów (D-50, D-55): zawsze zdjęcie dnia, a na nim „Samo zdjęcie” (pierwszy wariant motywu, domyślny) albo
+  gradient motywu z kryciem `GRADIENT_OVER_PHOTO` z `ui/theme/Backgrounds.kt` (`AppBackground`, warianty osobno dla
+  każdego motywu, jedno pasmo `PhotoBand` na motyw). Tła jednolitego nie ma. Maluje je tylko korzeń nawigacji (dół
+  pasma, zdjęcie, gradient), a wszystko nad nim jest przezroczyste: ekran z własnym Scaffoldem bierze `ScreenScaffold`
+  (pasek tytułu `screenTopBarColors()`), nigdy `containerColor = surface`, i nie kładzie pod treścią wypełnienia
+  `surface`. Kontrast liczy siatka: każdy punkt pasma z każdym punktem gradientu; nowy wariant = kolory, wpis
+  w `AppBackground` i zielony `check_contrast.py`, który próbkuje tak samo jak `ThemeContractTest`.
   Zdjęcie dnia (D-51): filtr kładzie każdy piksel zdjęcia na paśmie `PhotoBand` (dwa kolory motywu), a karty leżące
   na tle ekranu są nad nim szkłem: wypełnienie karty bierze się z `cardColor()`, nigdy wprost z `surfaceContainer`.
   Paski, menu, okna i miniatury zostają pełne. Pasmo i alfa szkła trzymają w każdym punkcie pary na tle i na karcie
   (test i skrypt liczą w 8 bitach na kanał); zmiana któregokolwiek = zielony `check_contrast.py`. Skład dnia i temat
   zdjęcia liczy tylko `PhotoPicker` (treningi dnia ze wszystkich planów w użyciu, trzy najliczniejsze tematy, losowanie
-  z wagą stałe przez dzień); żaden napis nie mówi, jaką partię dziś ćwiczysz. Zdjęcia dodaje `tools/baza.py tlo`
+  z wagą stałe przez dzień); żaden napis nie mówi, jaką partię dziś ćwiczysz, także nagłówek „Dziś” (D-55). Osoby
+  na zdjęciu wynikają z płci w „O mnie” (`PhotoPeople.of`, D-57). Zdjęcia dodaje `tools/baza.py tlo`
   albo sekcja „Zdjęcia tła” edytora (każdy temat dla obu płci, minApp jak przy nowym enumie).
 - Wspólne komponenty w `ui/common/`: `DesignSystem.kt` (WorkoutCard, ExerciseRow, StatRow, PrimaryAction, ProgressionCard,
   FilterPill, SettingRow, ValueStepper, ScreenScaffold…), `Components.kt` (ExerciseTile, ExerciseImage, ExerciseIllustration,
   ExerciseThumbnail, ExercisePreviewStrip, EmptyState, formatDuration…) i `Structure.kt` (ScreenTitle, BackTopBar, DisclosureRow,
-  CategoryRow, TagChip, IconLabelButton, SegmentedText). Nowy ekran składa się z nich, zamiast rysować własne karty i przyciski.
+  CategoryRow, TagChip, IconLabelButton, SegmentedText, OverflowMenu, QuietLink). Nowy ekran składa się z nich, zamiast
+  rysować własne karty i przyciski; ikony tylko z `AppIcons` (od D-54 żaden ekran nie bierze glifów Materiala).
   Szczegół, który nie jest potrzebny co dzień, chowamy w `DisclosureRow` albo w kategorii, a nie usuwamy (D-52).
 - Ekrany główne (D-52) mają bezstanowe `*Content` i klasę `*Actions`, a `LayoutScreenshotTest` rysuje je z fiksturami
   na telefonie i tablecie: nowy stan ekranu głównego = fikstura w tym teście. Na tablecie w poziomie (`AppLayout.twoPane`)
@@ -257,9 +272,9 @@ docs/                PLAN, ARCHITECTURE, DATABASE (tabele, kolumny, klucze), DEC
   z wyborem przez `select`. Poziom trudności i „Przerwij trening” w playerze mieszkają w menu ⋮ (arkusz), nie nad liczbą.
 - Typografia: Sora z `res/font/sora.ttf` (wariant zmienny, wagi z osi `wght`, wymaga API 26). Skala i style w `ui/theme/Type.kt`;
   liczby playera (208/176/132 sp) są policzone pod czytanie z półtora metra — nie zmniejszać.
-  Ikony z `material-icons-core` albo własne kreskowe w `ui/common/AppIcons.kt` (D-52: ścieżki SVG w siatce 24, kreska 1,8,
-  te same co w projekcie z designera; nowa ikona = wpis w `AppIcons.all`, pilnuje go `AppIconsTest`); bez
-  `material-icons-extended`. Teksty UI po polsku inline (D-10).
+  Ikony tylko własne kreskowe z `ui/common/AppIcons.kt` (D-52, D-54: ścieżki SVG w siatce 24, kreska 1,8; nowa ikona =
+  wpis w `AppIcons.all`, pilnuje go `AppIconsTest`). Zależność `material-icons-core` została w Gradle, ale żaden ekran
+  z niej nie korzysta; bez `material-icons-extended`. Teksty UI po polsku inline (D-10).
 - Baza ćwiczeń (D-47): edytujesz w edytorze (`python tools/baza.py`) albo wprost `baza/exercises.json` i `baza/images/<id>.jpg`, podbijasz numer
   (`python tools/baza.py podbij`: `baza/exercises.json`, `VERSION.md` pod „# Wersja bazy ćwiczeń” i pusty nagłówek
   `## [Baza N]` w `CHANGELOG.md`), opisujesz wydanie w tej sekcji i sprawdzasz

@@ -1,6 +1,5 @@
 package pl.mysttic.trainings.ui.screenshot
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,7 +67,9 @@ import pl.mysttic.trainings.ui.settings.SettingsSection
 import pl.mysttic.trainings.ui.settings.SettingsState
 import pl.mysttic.trainings.ui.settings.UpdateUiState
 import pl.mysttic.trainings.ui.theme.AppTheme
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
+import pl.mysttic.trainings.ui.theme.appBackground
 import pl.mysttic.trainings.ui.today.ActiveCard
 import pl.mysttic.trainings.ui.today.PlanCard
 import pl.mysttic.trainings.ui.today.PlanCardState
@@ -76,6 +77,45 @@ import pl.mysttic.trainings.ui.today.StreakCard
 import pl.mysttic.trainings.ui.today.TodayActions
 import pl.mysttic.trainings.ui.today.TodayContent
 import pl.mysttic.trainings.ui.today.TodayUiState
+import pl.mysttic.trainings.domain.model.Block
+import pl.mysttic.trainings.domain.model.BlockItem
+import pl.mysttic.trainings.domain.model.BlockKind
+import pl.mysttic.trainings.domain.model.SetLog
+import pl.mysttic.trainings.domain.model.Workout
+import pl.mysttic.trainings.domain.plan.DraftDay
+import pl.mysttic.trainings.domain.plan.Goal
+import pl.mysttic.trainings.domain.plan.PlanDay
+import pl.mysttic.trainings.domain.plan.Program
+import pl.mysttic.trainings.domain.plan.TrainingProfile
+import pl.mysttic.trainings.domain.stats.DayHeat
+import pl.mysttic.trainings.domain.stats.ExerciseDelta
+import pl.mysttic.trainings.domain.stats.HistoryPeriod
+import pl.mysttic.trainings.domain.stats.PeriodStats
+import pl.mysttic.trainings.domain.stats.WeekVolume
+import pl.mysttic.trainings.ui.common.MenuAction
+import pl.mysttic.trainings.ui.editor.EditorUiState
+import pl.mysttic.trainings.ui.editor.WorkoutEditorActions
+import pl.mysttic.trainings.ui.editor.WorkoutEditorContent
+import pl.mysttic.trainings.ui.history.HistoryActions
+import pl.mysttic.trainings.ui.history.HistoryContent
+import pl.mysttic.trainings.ui.history.HistoryUiState
+import pl.mysttic.trainings.ui.history.SessionDetailActions
+import pl.mysttic.trainings.ui.history.SessionDetailContent
+import pl.mysttic.trainings.ui.history.SessionDetailUiState
+import pl.mysttic.trainings.ui.plan.PlanActions
+import pl.mysttic.trainings.ui.plan.PlanContent
+import pl.mysttic.trainings.ui.plan.PlanDayRow
+import pl.mysttic.trainings.ui.plan.PlanUiState
+import pl.mysttic.trainings.ui.plan.PlanWizardContent
+import pl.mysttic.trainings.ui.plan.WizardActions
+import pl.mysttic.trainings.ui.plan.WizardUiState
+import pl.mysttic.trainings.ui.planeditor.PlanDraft
+import pl.mysttic.trainings.ui.planeditor.PlanEditorActions
+import pl.mysttic.trainings.ui.planeditor.PlanEditorContent
+import pl.mysttic.trainings.ui.planeditor.PlanEditorUiState
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * Zrzuty układu (D-52, zapowiedziane w D-42): bezstanowe treści głównych ekranów z fiksturami, na telefonie w pionie
@@ -202,6 +242,18 @@ class LayoutScreenshotTest {
         SettingsContent(state = settingsState, actions = SettingsActions(), initialSection = SettingsSection.TRAINING)
     }
 
+    /** „O mnie” (D-57): imię, płeć, wzrost i waga, a pod imieniem klucz podpisu planów (D-58). */
+    @Test
+    fun `ustawienia o mnie`() = phone("ustawienia-o-mnie", nav = 4) {
+        SettingsContent(
+            state = settingsState.copy(
+                settings = settingsState.settings.copy(authorName = "Marta", gender = "kobieta", heightCm = 168, weightKg = 62.5),
+            ),
+            actions = SettingsActions(),
+            initialSection = SettingsSection.ABOUT_ME,
+        )
+    }
+
     @Test
     fun `ustawienia dane i kopia`() = phone("ustawienia-dane", nav = 4) {
         SettingsContent(
@@ -259,12 +311,86 @@ class LayoutScreenshotTest {
         PlayerContent(state = playerState(workStep), actions = PlayerActions(), onAbort = {}, onMenu = {})
     }
 
+    // --- D-54: Historia, podgląd planu, kreator i edytory w języku D-52 ------------------------------------------------
+
+    @Test
+    fun `historia`() = phone("historia", nav = 3) {
+        HistoryContent(state = historyState, actions = HistoryActions(), onOpenSession = {})
+    }
+
+    @Test
+    fun `historia bez treningow`() = phone("historia-pusta", nav = 3) {
+        HistoryContent(state = HistoryUiState(loading = false), actions = HistoryActions(), onOpenSession = {})
+    }
+
+    @Test
+    fun `historia na tablecie, lista i sesja`() = tablet("historia-tablet", nav = 3) {
+        TwoPane(
+            listWidth = 460.dp,
+            list = { HistoryContent(state = historyState, actions = HistoryActions(), onOpenSession = {}, selectedId = "s2") },
+            detail = {
+                SessionDetailContent(state = sessionDetail, rpe = 7, note = "", actions = SessionDetailActions(), onBack = null)
+            },
+        )
+    }
+
+    @Test
+    fun `szczegoly sesji`() = phone("sesja", nav = null) {
+        SessionDetailContent(
+            state = sessionDetail,
+            rpe = 7,
+            note = "Ostatnia runda ciężko, ale bez przerw.",
+            actions = SessionDetailActions(),
+            onBack = {},
+        )
+    }
+
+    @Test
+    fun `podglad planu`() = phone("plan", nav = null) {
+        PlanContent(state = planState, actions = PlanActions(menu = listOf(MenuAction("Usuń plan", {}, destructive = true))))
+    }
+
+    @Test
+    fun `podglad planu na tablecie`() = tablet("plan-tablet", nav = null) {
+        PlanContent(state = planState, actions = PlanActions())
+    }
+
+    @Test
+    fun `kreator, pierwszy krok`() = phone("kreator-1", nav = null) {
+        PlanWizardContent(state = wizardState, step = 1, onStep = {}, actions = WizardActions(), onClose = {})
+    }
+
+    @Test
+    fun `kreator, sprzet i streszczenie`() = phone("kreator-4", nav = null) {
+        PlanWizardContent(state = wizardState, step = 4, onStep = {}, actions = WizardActions(), onClose = {})
+    }
+
+    @Test
+    fun `kreator na tablecie`() = tablet("kreator-tablet", nav = null) {
+        PlanWizardContent(state = wizardState, step = 4, onStep = {}, actions = WizardActions(), onClose = {})
+    }
+
+    @Test
+    fun `edytor planu`() = phone("edytor-planu", nav = null) {
+        PlanEditorContent(state = planEditorState, actions = PlanEditorActions(), onBack = {})
+    }
+
+    @Test
+    fun `edytor planu na tablecie`() = tablet("edytor-planu-tablet", nav = null) {
+        PlanEditorContent(state = planEditorState, actions = PlanEditorActions(), onBack = {})
+    }
+
+    @Test
+    fun `edytor treningu`() = phone("edytor-treningu", nav = null) {
+        WorkoutEditorContent(state = workoutEditorState, estimatedMinutes = 38, actions = WorkoutEditorActions(), onBack = {})
+    }
+
     // --- ramy -------------------------------------------------------------------------------------------------------
 
     private fun phone(name: String, nav: Int?, content: @Composable () -> Unit) {
         RuntimeEnvironment.setQualifiers("w411dp-h891dp-port-xhdpi")
         capture(name, AppLayout(411, 891)) {
-            Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.fillMaxSize().appBackground(LocalAppBackground.current)) {
                 Box(modifier = Modifier.weight(1f).padding(top = 24.dp)) { content() }
                 if (nav != null) BottomNav(selectedIndex = nav, onSelect = {})
             }
@@ -274,7 +400,7 @@ class LayoutScreenshotTest {
     private fun tablet(name: String, nav: Int?, content: @Composable () -> Unit) {
         RuntimeEnvironment.setQualifiers("w1280dp-h800dp-land-mdpi")
         capture(name, AppLayout(1280, 800)) {
-            Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+            Row(modifier = Modifier.fillMaxSize().appBackground(LocalAppBackground.current)) {
                 if (nav != null) {
                     NavRail(selectedIndex = nav, onSelect = {})
                 } else {
@@ -454,6 +580,7 @@ class LayoutScreenshotTest {
             ),
             healthAvailable = true,
             versionName = "1.1.0",
+            signingKey = "3F2A 9C11 7B04 E2D5 0A1C",
         )
 
         val workStep = Step.Work(
@@ -467,6 +594,157 @@ class LayoutScreenshotTest {
             targetKind = TargetKind.REPS,
             targetValue = 8,
             roundsInBlock = 7,
+        )
+
+        // --- D-54 -------------------------------------------------------------------------------------------------
+
+        /** Czas w strefie maszyny: zrzut pokazuje te same godziny na każdym komputerze. */
+        fun at(month: Int, day: Int, hour: Int, minute: Int): Long =
+            LocalDateTime.of(2026, month, day, hour, minute).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+        val historySessions = listOf(
+            Session("s3", "w-gora-a", "Góra A", Difficulty.INTERMEDIATE, at(11, 5, 18, 4), at(11, 5, 18, 49), SessionStatus.DONE, rpe = 7),
+            Session("s2", "w-dol-a", "Dół A", Difficulty.INTERMEDIATE, at(11, 3, 7, 30), at(11, 3, 8, 12), SessionStatus.DONE, rpe = 8),
+            Session("s1", "w-gora-a", "Góra A", Difficulty.BEGINNER, at(11, 1, 19, 0), at(11, 1, 19, 14), SessionStatus.ABANDONED),
+            Session("s0", "w-dol-a", "Dół A", Difficulty.INTERMEDIATE, at(10, 29, 17, 45), at(10, 29, 18, 30), SessionStatus.DONE),
+        )
+
+        val historyState = HistoryUiState(
+            loading = false,
+            sessions = historySessions,
+            period = HistoryPeriod.MONTH,
+            stats = PeriodStats(sessions = 9, durationSec = 6 * 3600 + 25 * 60, sets = 182, reps = 1460, workSec = 2340),
+            totalCount = 14,
+            streak = 2,
+            bestStreak = 5,
+            weeks = (0 until 8).map { WeekVolume(LocalDate.of(2026, 9, 14).plusWeeks(it.toLong()), sessions = it % 3 + 1, reps = 300 + it * 45, workSec = 600) },
+            heatmap = (0 until 84).map { DayHeat(LocalDate.of(2026, 8, 14).plusDays(it.toLong()), if (it % 3 == 0) 1 else 0) },
+        )
+
+        private fun log(exerciseId: String, name: String, round: Int, actual: Int, target: Int, kind: TargetKind = TargetKind.REPS) = SetLog(
+            sessionId = "s2",
+            exerciseId = exerciseId,
+            exerciseName = name,
+            blockIndex = 0,
+            itemIndex = 0,
+            round = round,
+            setIndex = 1,
+            targetKind = kind,
+            targetValue = target,
+            actualValue = actual,
+            completedAt = 0L,
+        )
+
+        val sessionDetail = SessionDetailUiState(
+            loading = false,
+            session = historySessions[1],
+            logs = (1..3).flatMap { round ->
+                listOf(
+                    log("pushups", "Pompki", round, actual = if (round == 3) 9 else 10, target = 10),
+                    log("plank", "Deska (plank)", round, actual = 40, target = 40, kind = TargetKind.SECONDS),
+                )
+            },
+            deltas = listOf(
+                ExerciseDelta("pushups", "Pompki", TargetKind.REPS, sets = 3, total = 29, previousTotal = 26),
+                ExerciseDelta("plank", "Deska (plank)", TargetKind.SECONDS, sets = 3, total = 120, previousTotal = 135),
+                ExerciseDelta("bird-dog", "Bird dog", TargetKind.REPS, sets = 3, total = 30),
+            ),
+        )
+
+        private val planRows: List<PlanDayRow> = (1..30).map { day ->
+            val inWeek = (day - 1) % 7 + 1
+            val workout = when (inWeek) {
+                1, 5 -> "w-gora-a" to "Góra A"
+                3 -> "w-dol-a" to "Dół A"
+                else -> null
+            }
+            PlanDayRow(
+                dayIndex = day,
+                workoutId = workout?.first,
+                workoutName = workout?.second,
+                minutes = if (workout == null) 0 else 46,
+                isNext = day == 8,
+                done = workout != null && day < 8,
+                doneAt = if (workout != null && day < 8) at(11, day, 18, 0) else null,
+            )
+        }
+
+        val planState = PlanUiState(
+            loading = false,
+            program = Program(
+                id = "p1",
+                name = "Redukcja · 30 dni",
+                profile = TrainingProfile(goal = Goal.FAT_LOSS),
+                startedAt = at(11, 1, 8, 0),
+                cycleDays = 30,
+                createdAt = at(11, 1, 8, 0),
+                active = true,
+                days = planRows.map { PlanDay(it.dayIndex, it.workoutId) },
+            ),
+            days = planRows,
+            doneCount = 3,
+            totalCount = planRows.count { !it.isRest },
+            isActive = true,
+            subtitle = "Cykl 30 dni · redukcja · 3 razy w tygodniu · 45 min",
+        )
+
+        val wizardState = WizardUiState(
+            loading = false,
+            profile = TrainingProfile(
+                heightCm = 178,
+                weightKg = 82.0,
+                goal = Goal.CONDITION,
+                daysPerWeek = 3,
+                sessionMinutes = 30,
+                cycleDays = 30,
+                equipment = setOf(Equipment.DUMBBELLS, Equipment.PULL_UP_BAR),
+            ),
+        )
+
+        private val blockA = Block(
+            kind = BlockKind.SETS,
+            items = listOf(
+                BlockItem("pushups", TargetKind.REPS, 10),
+                BlockItem("bent-over-dumbbell-row", TargetKind.REPS, 12, weightKg = 10.0),
+            ),
+            fixed = true,
+        )
+        private val blockB = Block(
+            kind = BlockKind.CIRCUIT,
+            rounds = 3,
+            restBetweenRoundsSec = 75,
+            label = "Brzuch",
+            items = listOf(
+                BlockItem("plank", TargetKind.SECONDS, 40, restAfterItemSec = 20),
+                BlockItem("crunches", TargetKind.REPS, 15, restAfterItemSec = 20),
+                BlockItem("bird-dog", TargetKind.REPS, 10, restAfterItemSec = 20, note = "Powoli, bez skrętu bioder"),
+            ),
+            fixed = true,
+        )
+
+        val planEditorState = PlanEditorUiState(
+            loading = false,
+            draft = PlanDraft(
+                programId = "p9",
+                isNew = false,
+                name = "Siła dla Oli",
+                description = "Trzy razy w tygodniu, A i B na zmianę. Między treningami co najmniej dzień przerwy.",
+                literal = true,
+                days = (1..10).map { DraftDay("d$it", if (it % 2 == 1) (if (it % 4 == 1) "p9-a" else "p9-b") else null) },
+            ),
+            workouts = listOf(
+                Workout(id = "p9-a", name = "A: siła", blocks = listOf(blockA), createdAt = 0L, updatedAt = 0L),
+                Workout(id = "p9-b", name = "B: obwód", blocks = listOf(blockB), createdAt = 0L, updatedAt = 0L),
+            ),
+            lockedKeys = setOf("d1", "d3"),
+        )
+
+        val workoutEditorState = EditorUiState(
+            loading = false,
+            isNew = false,
+            name = "Góra A",
+            blocks = listOf(blockA, blockB),
+            exercises = byId,
         )
     }
 }

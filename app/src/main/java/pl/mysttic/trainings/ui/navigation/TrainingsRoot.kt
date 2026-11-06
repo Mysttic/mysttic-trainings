@@ -76,6 +76,7 @@ import pl.mysttic.trainings.ui.settings.SettingsScreen
 import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.LocalBackgroundPhoto
 import pl.mysttic.trainings.ui.theme.appBackground
+import pl.mysttic.trainings.ui.theme.gradientOverPhoto
 import pl.mysttic.trainings.ui.today.TodayScreen
 import pl.mysttic.trainings.ui.workout.WorkoutDetailScreen
 
@@ -241,13 +242,14 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
         }
     }
 
-    // Tło ekranów (D-50) maluje tylko ten wiersz, pod szyną, paskami systemu i treścią; wszystko nad nim
-    // jest przezroczyste, więc gradient nie przesuwa się przy przewijaniu ani przy przejściu między ekranami.
+    // Tło ekranów (D-50, D-55) maluje tylko ten wiersz, pod szyną, paskami systemu i treścią; wszystko nad nim
+    // jest przezroczyste, więc tło nie przesuwa się przy przewijaniu ani przy przejściu między ekranami.
+    // Warstwy od dołu: dół pasma (widać go, zanim zdjęcie się wczyta), zdjęcie dnia (D-51), gradient na zdjęciu.
     val background = LocalAppBackground.current
     val photo = LocalBackgroundPhoto.current
-    Box(modifier = Modifier.fillMaxSize().appBackground(background, MaterialTheme.colorScheme.surface)) {
-    // Zdjęcie dnia (D-51) leży tu, pod wszystkim, tak jak gradient: ekrany i paski nad nim są przezroczyste.
-    background.band?.let { band -> photo?.let { PhotoBackdrop(it, band) } }
+    Box(modifier = Modifier.fillMaxSize().appBackground(background)) {
+    photo?.let { PhotoBackdrop(it, background.band) }
+    Spacer(modifier = Modifier.fillMaxSize().gradientOverPhoto(background))
     Row(modifier = Modifier.fillMaxSize()) {
     if (rail) NavRail(selectedIndex, onSelect)
     // Wcięcie od strony szyny już wzięła szyna: treść obok niej nie dolicza go drugi raz (Scaffold i paski ekranów).

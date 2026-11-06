@@ -34,6 +34,7 @@ import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
 import pl.mysttic.trainings.ui.theme.appBackground
+import pl.mysttic.trainings.ui.theme.gradientOverPhoto
 
 /**
  * Zrzuty motywów bez emulatora (D-40): Robolectric rysuje natywnie, Roborazzi zapisuje PNG.
@@ -64,12 +65,12 @@ class ThemeScreenshotTest {
     }
 
     /**
-     * Gradienty tła (D-50) i zdjęcie dnia (D-51): te same komponenty na każdym wariancie, jednolite tło pokazuje test
-     * wyżej. Zdjęcie przychodzi z bazy asynchronicznie, więc zrzut pokazuje dół jego pasma i szklane karty nad nim.
+     * Tła (D-50, D-51, D-55): te same komponenty na każdym wariancie. Zdjęcie przychodzi z bazy asynchronicznie, więc
+     * zrzut pokazuje to, co widać przed jego wczytaniem: dół pasma, na nim gradient, a nad tym szklane karty.
      */
     @Test
-    fun `kazde tlo z gradientem i zdjecie dnia`() {
-        AppBackground.entries.filter { it.gradient || it.photo }.forEach { tlo ->
+    fun `kazde tlo`() {
+        AppBackground.entries.forEach { tlo ->
             captureRoboImage(filePath = "src/test/screenshots/${tlo.theme.id}-${tlo.id}.png") {
                 TrainingsTheme(theme = tlo.theme, background = tlo) {
                     Sampler(tlo.theme.labelPl, "tło ${tlo.labelPl}")
@@ -89,11 +90,12 @@ private fun Sampler(nazwa: String, motyw: String) {
     Column(
         modifier = Modifier
             .width(360.dp)
-            .appBackground(LocalAppBackground.current, MaterialTheme.colorScheme.surface)
+            .appBackground(LocalAppBackground.current)
+            .gradientOverPhoto(LocalAppBackground.current)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(nazwa, style = MaterialTheme.typography.headlineMedium)
+        Text(nazwa, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
         Overline("$motyw · seria 6 dni")
 
         WorkoutCard(

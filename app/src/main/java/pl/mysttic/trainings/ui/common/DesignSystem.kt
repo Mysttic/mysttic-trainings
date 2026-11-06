@@ -13,7 +13,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -93,7 +97,7 @@ import pl.mysttic.trainings.ui.theme.Overline as OverlineStyle
 
 /**
  * Scaffold ekranu na tle aplikacji (D-50): bez własnego wypełnienia, bo zasłoniłby tło, które maluje korzeń
- * nawigacji (jednolite albo gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
+ * nawigacji (zdjęcie dnia, na nim gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
  * więc `contentColorFor` oddałby domyślną czerń zamiast `onSurface`.
  */
 @Composable
@@ -114,15 +118,13 @@ fun ScreenScaffold(
 }
 
 /**
- * Wypełnienie karty leżącej na tle ekranu: `surfaceContainer`, a nad zdjęciem dnia (D-51) szkło, czyli `onSurface`
- * z alfą motywu, przez które zdjęcie prześwituje. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod
- * nimi przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` dla całego pasma zdjęcia.
+ * Wypełnienie karty leżącej na tle ekranu: szkło, czyli `onSurface` z alfą motywu, przez które prześwituje zdjęcie
+ * dnia (D-51), od D-55 obecne pod każdym tłem. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod nimi
+ * przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` w całym paśmie zdjęcia
+ * i w każdym punkcie gradientu.
  */
 @Composable
-fun cardColor(): Color {
-    val band = LocalAppBackground.current.band ?: return MaterialTheme.colorScheme.surfaceContainer
-    return MaterialTheme.colorScheme.onSurface.copy(alpha = band.glass)
-}
+fun cardColor(): Color = MaterialTheme.colorScheme.onSurface.copy(alpha = LocalAppBackground.current.band.glass)
 
 /** Pasek tytułu nad tłem aplikacji (D-50): bez wypełnienia, jak `ScreenScaffold`, tytuł i ikony bez zmian. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,10 +278,12 @@ fun SecondaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = Dimens.secondaryButton,
+    enabled: Boolean = true,
 ) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(height),
+        enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
@@ -876,6 +880,8 @@ fun TextInput(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    /** Pole hasła (D-58): znaki ukryte, klawiatura bez podpowiedzi słów. */
+    password: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Overline(label)
@@ -886,6 +892,8 @@ fun TextInput(
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,
             minLines = minLines,
+            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = if (password) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
             shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = TextFieldDefaults.colors(

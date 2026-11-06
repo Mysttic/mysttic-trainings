@@ -279,8 +279,10 @@ private fun PlayerMenu(
                     onSelect = onDifficulty,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // Silnik przelicza od razu wszystko, czego jeszcze nie zrobiono, także trwającą serię
+                // (`WorkoutPlanner.merge`, D-06); napis nie może obiecywać „od następnej serii”.
                 Text(
-                    text = "Zmienia cele i przerwy od następnej serii. Teraz: ${state.difficulty.labelPl.lowercase()}.",
+                    text = "Zrobione serie zostają, reszta, także ta seria, przelicza się od razu. Teraz: ${state.difficulty.labelPl.lowercase()}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

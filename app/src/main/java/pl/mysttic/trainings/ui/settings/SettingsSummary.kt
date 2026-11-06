@@ -1,5 +1,8 @@
 package pl.mysttic.trainings.ui.settings
 
+import pl.mysttic.trainings.domain.model.Gender
+import pl.mysttic.trainings.ui.common.formatKg
+
 import pl.mysttic.trainings.data.settings.UserSettings
 import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.reminder.ReminderSchedule
@@ -7,10 +10,11 @@ import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 
 /**
- * Kategorie Ustawień (D-52): zamiast jednej długiej strony sześć wierszy, a w każdym streszczenie tego, co jest
- * w środku. Kolejność to kolejność na ekranie, podział na grupy — [groups].
+ * Kategorie Ustawień (D-52): zamiast jednej długiej strony wiersze, a w każdym streszczenie tego, co jest w środku.
+ * Od D-57 pierwsza jest „O mnie”. Kolejność to kolejność na ekranie, podział na grupy: [groups].
  */
 enum class SettingsSection(val title: String) {
+    ABOUT_ME("O mnie"),
     TRAINING("Trening"),
     EQUIPMENT("Mój sprzęt"),
     REMINDER("Przypomnienie"),
@@ -20,8 +24,9 @@ enum class SettingsSection(val title: String) {
     ;
 
     companion object {
-        /** Najpierw to, jak aplikacja prowadzi trening, potem to, jak działa sama aplikacja. */
+        /** Najpierw ty, potem to, jak aplikacja prowadzi trening, na końcu to, jak działa sama aplikacja. */
         val groups: List<List<SettingsSection>> = listOf(
+            listOf(ABOUT_ME),
             listOf(TRAINING, EQUIPMENT, REMINDER),
             listOf(APPEARANCE, DATA, UPDATES),
         )
@@ -33,6 +38,17 @@ enum class SettingsSection(val title: String) {
  * Streszczenie mówi, co jest ustawione, nie co da się ustawić.
  */
 object SettingsSummary {
+
+    /** „Marta · kobieta · 168 cm · 62 kg”; bez niczego wpisanego mówi, co da się tu podać. */
+    fun aboutMe(settings: UserSettings): String {
+        val parts = listOfNotNull(
+            settings.authorName.trim().takeIf { it.isNotEmpty() },
+            Gender.fromId(settings.gender).takeIf { it != Gender.UNSPECIFIED }?.labelPl?.lowercase(),
+            settings.heightCm?.let { "$it cm" },
+            settings.weightKg?.let { formatKg(it) },
+        )
+        return if (parts.isEmpty()) "Imię, płeć, wzrost i waga" else parts.joinToString(" · ")
+    }
 
     fun training(settings: UserSettings): String = listOf(
         "Poziom ${settings.difficulty.level}",
@@ -77,10 +93,9 @@ object SettingsSummary {
         return if (background == AppBackground.of(theme).first()) theme.labelPl else "${theme.labelPl} · ${background.labelPl}"
     }
 
-    fun data(settings: UserSettings, healthAvailable: Boolean): String = listOfNotNull(
+    fun data(healthAvailable: Boolean): String = listOfNotNull(
         "Kopia zapasowa",
         "Health Connect".takeIf { healthAvailable },
-        settings.authorName.trim().takeIf { it.isNotEmpty() }?.let { "podpis: $it" } ?: "podpis planów",
     ).joinToString(", ")
 
     fun updates(versionName: String, seedVersion: Int): String = "$versionName · baza ćwiczeń v$seedVersion"

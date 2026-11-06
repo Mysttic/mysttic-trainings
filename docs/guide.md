@@ -14,20 +14,25 @@ czego proponować, więc zaczynasz od kreatora, od gotowego programu albo od zak
 od zera albo wczytasz plan z pliku od kogoś (opis niżej, w części „Plany”). Statystyk na start nie ma: pojawią się
 po pierwszym treningu.
 
-Kreator pyta o:
+Kreator pyta w czterech krokach:
 
-- **Sylwetkę** — wzrost i wagę. Wartość ustawisz przeciągnięciem po pasku albo klawiszami „−” / „+”
-  (przytrzymanie powtarza krok). Z nich wychodzi BMI, a przy wysokim BMI generator odpuszcza ćwiczenia
-  plyometryczne (skoki), żeby oszczędzić kolana.
-- **Cel** — siła, kondycja, redukcja albo mobilność. Cel decyduje o rodzaju bloków (serie proste kontra
-  obwód), długości przerw i tym, jakie ćwiczenia mają pierwszeństwo.
-- **Poziom** — początkujący, średniozaawansowany, zaawansowany. Szablony pisane są dla poziomu środkowego;
-  pozostałe skalują powtórzenia, czas i przerwy oraz podmieniają warianty ćwiczeń. Poziom trzyma też liczbę
-  rund i serii w ryzach (początkujący 2–3, średniozaawansowany 3–4, zaawansowany 3–5): dłuższy trening to
-  więcej ćwiczeń i przerw, nie więcej rund tego samego.
-- **Ile i jak długo** — dni w tygodniu, długość pojedynczego treningu (co 5 minut; górna granica zależy
-  od poziomu: 45, 60 albo 75 minut) i długość cyklu.
-- **Sprzęt** — zaznaczasz, co masz w domu. Generator nie zaproponuje niczego, czego nie zaznaczyłeś.
+1. **Sprzęt**: zaznaczasz pigułkami, co masz w domu (ta sama lista co **Mój sprzęt** w Ustawieniach). Generator
+   weźmie tylko ćwiczenia, które z tym sprzętem zrobisz, a pod pigułkami widać, z ilu ćwiczeń ułoży plan i ile
+   zostałoby bez sprzętu. Bez zaznaczenia plan jest z masy własnego ciała.
+2. **Sylwetka i poziom**: wzrost i waga przychodzą z **O mnie** w Ustawieniach, a to, co tu poprawisz, wraca tam
+   po ułożeniu planu. Wartość ustawisz przeciągnięciem po pasku albo klawiszami „−” / „+” (przytrzymanie powtarza
+   krok). Z nich wychodzi BMI, a przy wysokim BMI generator odpuszcza ćwiczenia plyometryczne (skoki), żeby oszczędzić
+   kolana. Poziom to początkujący, średniozaawansowany albo zaawansowany. Szablony pisane są dla poziomu środkowego;
+   pozostałe skalują powtórzenia, czas i przerwy oraz podmieniają warianty ćwiczeń. Poziom trzyma też liczbę rund
+   i serii w ryzach (początkujący 2 do 3, średniozaawansowany 3 do 4, zaawansowany 3 do 5): dłuższy trening to więcej
+   ćwiczeń i przerw, nie więcej rund tego samego.
+3. **Cel**: siła, kondycja, redukcja albo mobilność. Cel decyduje o rodzaju bloków (serie proste kontra obwód),
+   długości przerw i tym, jakie ćwiczenia mają pierwszeństwo.
+4. **Ile i jak długo**: dni w tygodniu, długość pojedynczego treningu (co 5 minut; górna granica zależy od poziomu:
+   45, 60 albo 75 minut) i długość cyklu.
+
+Ostatni krok streszcza odpowiedzi (sprzęt, sylwetka i poziom, cel): tapnięcie w wiersz wraca do jego kroku, bez
+cofania się krok po kroku. **×** w lewym górnym rogu zamyka kreator z każdego kroku.
 
 Na dole widać podgląd: ile treningów wypadnie w cyklu i ile to minut tygodniowo. **Ułóż plan** zapisuje cykl,
 robi go aktywnym i otwiera jego podgląd; „Wstecz” prowadzi na „Dziś”. Jeśli trwał inny plan, czeka na liście planów
@@ -92,8 +97,10 @@ przy **Zakończ**, więc do tego momentu można zmienić zdanie.
 
 ## Plan i progresja
 
-**Zobacz plan** pokazuje cały cykl: dni treningowe, dni odpoczynku i wyróżniony następny trening.
-Plan rozliczany jest kolejką, nie datami — jeśli ominiesz dzień, trening czeka, a nie przepada.
+**Zobacz plan** pokazuje cykl: postęp, kartę następnego treningu ze Startem i rozkład tygodniami. Rozwinięty jest
+tydzień z następnym treningiem; pozostałe zwijają się do jednej linii („3 treningi · zrobione 2”), a kolejne dni
+odpoczynku stoją jednym wierszem. Plan rozliczany jest kolejką, nie datami: jeśli ominiesz dzień, trening czeka,
+a nie przepada.
 Menu **⋮** w prawym górnym rogu podglądu ma akcje planu: statystyki, edycję, kopię, wysyłkę i usunięcie
 (opisane w części „Plany”).
 
@@ -170,19 +177,21 @@ Poradnik krok po kroku dla osoby, która układa plany dla innych: [poradnik-tre
 
 **Nowy plan → Własny plan** otwiera edytor planu: nazwa, opis (dla kogo, jak ćwiczyć), treningi planu i rozkład dni.
 Trening dodajesz jako nowy, kopiujesz z innego planu (**Skopiuj trening**) albo duplikujesz trening tego planu
-(**×2** przy treningu; kopia dostaje w nazwie „(kopia)”). Każdy dzień to trening albo odpoczynek;
-dni przesuwasz o jeden w górę lub w dół i usuwasz. **Rozpisz tygodnie** układa naraz kilka tygodni (na przykład
-4 tygodnie po 3 treningi): treningi idą po kolei (A, B, A…), a reszta dni to odpoczynek. **Kolejny tydzień jak ostatni**
-dokłada tydzień na wzór ostatniego.
+(**×2** przy treningu; kopia dostaje w nazwie „(kopia)”). Każdy dzień to trening albo odpoczynek; dni są pogrupowane
+tygodniami. Strzałki przy dniu przesuwają go o jeden wcześniej lub później, a menu **⋮** przy dniu ma **Duplikuj dzień**
+i **Usuń dzień**. **Rozpisz tygodnie** układa naraz kilka tygodni (na przykład 4 tygodnie po 3 treningi): treningi
+idą po kolei (A, B, A…), a reszta dni to odpoczynek. **Kolejny tydzień jak ostatni** dokłada tydzień na wzór ostatniego.
 
 Przełącznik **Dopasowuj cele do poziomu i trenera** decyduje, czy cele skalują się z poziomem trudności, korektą trenera
 i „Podbij cele”, czy zostają dokładnie takie, jak wpisane. W nowym planie jest wyłączony: plan dla kogoś jedzie
 z twoimi liczbami, a w planie dla siebie, który ma rosnąć razem z tobą, go włączasz. Dni już zrobione w aktywnym planie
 są zablokowane i zostają na swoich numerach. **Zapisz plan** zapisuje całość; nowy plan czeka na liście, aż ustawisz go jako aktywny.
 
-W edytorze treningu ćwiczenie ma cel, ciężar i wskazówkę do pozycji, którą player pokaże w trakcie serii. Blok może mieć
-nazwę i przerwę po bloku. **Zmień ćwiczenie** podmienia ćwiczenie z zachowaniem serii i przerw, a **Duplikuj** kopiuje
-pozycję albo cały blok.
+W edytorze treningu każdy blok jest kartą z listą ćwiczeń. Tapnięcie w ćwiczenie otwiera jego arkusz: cel, serie,
+przerwy, ciężar i wskazówkę, którą player pokaże w trakcie serii, a pod nimi **Zmień ćwiczenie** (z zachowaniem serii
+i przerw), **Duplikuj** i **Usuń z bloku**. Kolejność ćwiczeń zmieniasz, przeciągając za uchwyt z lewej. Nazwa bloku,
+rodzaj (serie albo obwód), rundy i przerwy czekają w zwiniętym wierszu **Ustawienia bloku**, a menu **⋮** bloku
+ma **Duplikuj blok**, przesunięcie wyżej lub niżej i **Usuń blok**.
 
 ### Wysyłanie i wczytywanie planu
 
@@ -190,12 +199,24 @@ pozycję albo cały blok.
 (**Zapisz do pliku**). Plik niesie nazwę, opis, dni, treningi z seriami, powtórzeniami, czasem, przerwami, ciężarem
 i wskazówkami oraz notatki do ćwiczeń. Nie ma w nim twojego wzrostu i wagi, historii treningów, notatek z sesji ani
 pamięci trenera. Plan, który u ciebie dopasowuje się do poziomu, jedzie z ćwiczeniami i liczbami, które widzisz na swoim
-poziomie i ze swoim sprzętem, a odbiorca dostaje go dokładnie takim, bez skalowania. Podpis autora to imię
-z Ustawień → Dane i kopia → Podpis planów.
+poziomie i ze swoim sprzętem, a odbiorca dostaje go dokładnie takim, bez skalowania.
+
+Plik jest podpisany twoim imieniem z **Ustawienia → O mnie** (pole **Podpis** na ekranie wysyłki zapisuje je tam
+od razu) i kluczem tego telefonu. Klucz powstaje w telefonie przy pierwszym podpisie i nigdy z niego nie wychodzi,
+a jego odcisk (pięć grup po cztery znaki) widać w **O mnie**. Kto zmieni w pliku autora albo treść, ten zepsuje podpis
+i plik się nie wczyta. Plan od kogoś przekazany dalej, także jego kopia, podaje w pliku swojego autora, a ty jesteś
+w nim jako przekazujący. Podpis nie zatrzyma kogoś, kto podpisze plan własnym kluczem pod własnym imieniem, ale wtedy
+odcisk będzie inny niż twój: jeśli komuś zależy na pewności, pokaż mu swój odcisk.
+
+**Chroń hasłem** zamyka plik hasłem (co najmniej 6 znaków): bez hasła pliku nie otworzy nikt, także aplikacja, a hasła
+nie da się odzyskać. Przekaż je odbiorcy osobno, na przykład SMS-em. Nowy telefon to nowy klucz podpisu; pliki
+wysłane wcześniej dalej się wczytują.
 
 Plik od kogoś otworzysz w aplikacji prosto z komunikatora, maila albo Plików („Otwórz za pomocą”) albo przez
-**Nowy plan → Plan z pliku** w zakładce Plany. Podgląd pokazuje treningi, autora, sprzęt, którego nie zaznaczyłeś,
-i ćwiczenia, które dojdą do biblioteki. **Dodaj do planów** dopisuje plan do listy; czeka tam, aż ustawisz go jako
+**Nowy plan → Plan z pliku** w zakładce Plany. Plik z hasłem najpierw o nie pyta. Podgląd pokazuje treningi,
+autora, podpis, sprzęt, którego nie zaznaczyłeś, i ćwiczenia, które dojdą do biblioteki. Przy podpisie zgodnym
+z treścią stoi odcisk klucza: jeśli zgadza się z tym, który autor widzi u siebie w **O mnie**, plan jest od niego.
+Plik z wcześniejszej wersji aplikacji wchodzi jako „bez podpisu”, a plik zmieniony po podpisaniu się nie wczyta. **Dodaj do planów** dopisuje plan do listy; czeka tam, aż ustawisz go jako
 aktywny. Jeśli ten plan już masz, podgląd o tym mówi, a dodanie zrobi drugą, osobną kopię.
 
 ### Statystyki i raport PDF
@@ -208,7 +229,7 @@ drugi raz ponad kolejkę widać osobno jako „ponad plan”, a w całości w Hi
 Raport PDF zbiera to samo na stronach A4 z tabelą „Dzień po dniu”. **Udostępnij raport** wysyła go na przykład osobie,
 która ułożyła plan, **Zapisz PDF** zapisuje go w Plikach, a **Podgląd raportu** pokazuje pierwsze strony w aplikacji.
 Notatki z treningów trafiają do raportu tylko po włączeniu przełącznika **Notatki z treningów w raporcie**. W nagłówku
-raportu stoi autor planu i, jako osoba ćwicząca, twoje imię z Ustawień → Dane i kopia → Podpis planów.
+raportu stoi autor planu i, jako osoba ćwicząca, twoje imię z Ustawienia → O mnie.
 
 ## Ćwiczenia
 
@@ -229,39 +250,43 @@ nie używa. Czas w edytorze sięga godziny.
 
 ## Historia
 
-Lista sesji z filtrami okresu (7 dni, 30 dni, wszystko) i statusu. Karta statystyk pokazuje serię dni,
-liczbę treningów, czas, serie i powtórzenia w wybranym okresie. Niżej wykresy: tygodniowy wolumen
-i kalendarz aktywności z ostatnich 12 tygodni.
+Przed pierwszym treningiem Historia mówi tylko, że jeszcze nic tu nie ma. Potem pokazuje okres (7 dni, 30 dni,
+wszystko) i jego statystyki: serię dni, liczbę treningów, czas, serie i powtórzenia. Wykresy, czyli tygodniowy wolumen
+i kalendarz aktywności z ostatnich 12 tygodni, czekają w zwiniętym wierszu **Postęp**. Nad listą wybierasz
+**Wszystkie**, **Ukończone** albo **Przerwane**, a sesje idą miesiącami.
 
-Wpis sesji otwiera szczegóły: wszystkie serie, RPE i notatka do dopisania po fakcie.
+Wpis sesji otwiera szczegóły: czas, serie i powtórzenia, porównanie z poprzednim razem, zwinięta lista wszystkich serii
+oraz ocena RPE i notatka do dopisania po fakcie (**Zapisz ocenę**). Sesję usuniesz z menu **⋮**.
 
 Historia pokazuje wszystkie treningi razem, ze wszystkich planów. Przebieg jednego planu jest w jego statystykach
 (menu planu → **Statystyki i raport**).
 
-Ustawienia to sześć kategorii; wiersz każdej mówi, co jest w środku ustawione, a tapnięcie otwiera ją jako podstronę
+Ustawienia to siedem kategorii; wiersz każdej mówi, co jest w środku ustawione, a tapnięcie otwiera ją jako podstronę
 (na tablecie w poziomie lista i kategoria stoją obok siebie):
 
+- **O mnie** — imię, którym podpisujesz plany wysłane innym i raporty z przebiegu planu, płeć (na zdjęciu dnia są
+  osoby twojej płci, a bez wyboru obie; plan i cele od niej nie zależą), wzrost i waga (od nich startuje kreator,
+  a to, co w nim poprawisz, wraca tutaj) oraz **klucz podpisu**: odcisk klucza, którym telefon podpisuje plany.
 - **Trening** — poziom trudności (ten sam, którego używa kreator i player), **odliczanie przed startem** (0, 3, 5 albo
   10 sekund), **sygnały** (dźwięk, głos TTS, wibracja, „nie gaś ekranu w trakcie treningu”) i **przycisk głośności**
   potwierdzający serię (opisany wyżej skrót; da się wyłączyć).
 - **Mój sprzęt** — sprzęt domowy, a pod nim ergometry.
 - **Przypomnienie** — codzienne o wybranej godzinie. Powiadomienie przychodzi tylko wtedy, gdy tego dnia
   nie było jeszcze treningu, a plan ma co podać. Alarm przeżywa restart telefonu.
-- **Wygląd**: jeden z trzech motywów, „Ogień i Krew” (domyślny), jasny „Papier i Ogień” albo „Stal i Bursztyn”.
-  Aplikacja trzyma wybrany motyw i nie przełącza się sama za trybem jasnym czy ciemnym systemu.
-  Pod motywami jest **Tło**: jednolite (domyślne) albo jeden z trzech gradientów w kolorach motywu: Żar, Łuna
-  i Wino w „Ogniu i Krwi”, Świt, Róża i Pergamin w „Papierze i Ogniu”, Granat, Głębia i Zmrok w „Stali
-  i Bursztynie”. Gradient leży pod wszystkimi ekranami, a karty i napisy zostają tak samo czytelne. Każdy motyw
-  pamięta swoje tło, więc po powrocie do motywu wraca też jego gradient.
-  Ostatnia opcja tła to **Zdjęcie dnia**: rozmyte zdjęcie w klimacie dzisiejszych treningów. Aplikacja patrzy
-  na treningi dnia ze wszystkich planów, w których ćwiczysz (zrobione dziś i czekające w kolejce), bierze trzy tematy,
-  których jest najwięcej (brzuch, nogi, góra ciała, całe ciało, kardio, joga), i losuje jeden z nich, częściej ten
-  liczniejszy. Zdjęcie losuje się raz dziennie i nic w aplikacji nie mówi, jaką partię dziś ćwiczysz. W **Na zdjęciach**
-  wybierasz, kogo pokazywać: kobietę, mężczyznę albo oboje. Karty są przy zdjęciu szklane, żeby prześwitywało.
+- **Wygląd**: jeden z czterech motywów, „Ogień i Krew” (domyślny), jasny „Papier i Ogień”, „Stal i Bursztyn”
+  albo jasny „Brzoza i Mech”. Aplikacja trzyma wybrany motyw i nie przełącza się sama za trybem jasnym czy ciemnym
+  systemu. Pod ekranami zawsze leży **zdjęcie dnia**: rozmyte zdjęcie w klimacie dzisiejszych treningów. Aplikacja
+  patrzy na treningi dnia ze wszystkich planów, w których ćwiczysz (zrobione dziś i czekające w kolejce), bierze trzy
+  tematy, których jest najwięcej (brzuch, nogi, góra ciała, całe ciało, kardio, joga), i losuje jeden z nich, częściej
+  ten liczniejszy. Zdjęcie losuje się raz dziennie i nic w aplikacji nie mówi, jaką partię dziś ćwiczysz; osoby na nim
+  są twojej płci z **O mnie**. **Tło** wybiera, co leży na zdjęciu: samo zdjęcie (domyślnie) albo jeden z trzech
+  gradientów w kolorach motywu: Żar, Łuna i Wino w „Ogniu i Krwi”, Świt, Róża i Pergamin w „Papierze i Ogniu”, Granat,
+  Głębia i Zmrok w „Stali i Bursztynie”, Mgła, Paproć i Wrzos w „Brzozie i Mechu”. Gradient zabarwia zdjęcie, ale go
+  nie zasłania. Karty są szklane, żeby zdjęcie prześwitywało, a napisy zostają tak samo czytelne. Każdy motyw pamięta
+  swoje tło.
 - **Dane i kopia** — kopia zapasowa, **Health Connect** (opcjonalny, jednostronny zapis ukończonych treningów
-  do systemowego dziennika zdrowia; tylko na telefonach, które go mają) i podpis planów.
+  do systemowego dziennika zdrowia; tylko na telefonach, które go mają).
 - **Aktualizacje** — patrz niżej; gdy jest nowa wersja, wiersz kategorii mówi o tym na liście.
-- **Dane i kopia → Podpis planów**: twoje imię, którym podpisujesz plany wysłane innym i raporty z przebiegu planu. Puste pole to brak podpisu.
 - **Dane i kopia → Kopia zapasowa**: eksport i import jednego pliku JSON z historią, wszystkimi planami (z autorami i notatkami
   do ćwiczeń), pamięcią trenera, ustawieniami oraz własnymi ćwiczeniami i treningami. Po wczytaniu na nowym telefonie
   aktywny plan wraca tam, gdzie był. Import dokłada brakujące sesje i plany, a pomija te, które już masz: plan, który
@@ -304,9 +329,9 @@ w telefonie nic się wtedy nie zmienia. Baza przygotowana dla nowszej aplikacji 
 ## Tablet i ekran w poziomie
 
 Na tablecie i na telefonie obróconym w poziom nawigacja przechodzi z dołu na bok ekranu, a listy i formularze trzymają
-czytelną szerokość zamiast rozciągać się na cały ekran. Na tablecie w poziomie Ćwiczenia i Ustawienia stoją jako lista
-i szczegół obok siebie, a „Dziś” ma dwie kolumny. Biblioteka w pionie ma więcej kolumn kafelków, a player stawia liczbę
-po lewej i przyciski po prawej.
+czytelną szerokość zamiast rozciągać się na cały ekran. Na tablecie w poziomie Ćwiczenia, Historia i Ustawienia stoją
+jako lista i szczegół obok siebie, a „Dziś”, podgląd planu, kreator i edytor planu mają dwie kolumny. Biblioteka
+w pionie ma więcej kolumn kafelków, a player stawia liczbę po lewej i przyciski po prawej.
 
 ## Czego aplikacja nie robi
 

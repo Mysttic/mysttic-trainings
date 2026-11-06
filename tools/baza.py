@@ -923,13 +923,18 @@ def pasma_motywow():
     try:
         import check_contrast  # tools/ jest na ścieżce, tak jak przy przeglad.py
         tekst_palety = "\n".join(f.read_text(encoding="utf-8") for f in check_contrast.PALETTE_FILES if f.exists())
-        pasma = check_contrast.parse_photo_bands(check_contrast.BACKGROUNDS.read_text(encoding="utf-8"),
-                                                 check_contrast.parse_palette(tekst_palety))
+        paleta = check_contrast.parse_palette(tekst_palety)
+        tekst_tel = check_contrast.BACKGROUNDS.read_text(encoding="utf-8")
+        # Od D-55 każdy wariant tła niesie pasmo swojego motywu (jedno na motyw), więc wystarczy pierwszy wariant motywu.
+        pasma = check_contrast.parse_bands(tekst_tel, paleta)
+        motywy = {}
+        for motyw, _, _, pasmo in check_contrast.parse_backgrounds(tekst_tel, paleta):
+            motywy.setdefault(motyw, pasma[pasmo])
         with open(os.path.join(ROOT, MOTYWY_KT), encoding="utf-8") as f:
             nazwy = dict(re.findall(r'(\w+)\("[a-z]+",\s*"([^"]+)"', f.read()))
-    except (OSError, ImportError, KeyError):
+    except (OSError, ImportError, KeyError, AttributeError):
         return []
-    return [dict(id=motyw.lower(), nazwa=nazwy.get(motyw, motyw), low=low, high=high) for motyw, _, low, high, _ in pasma]
+    return [dict(id=motyw.lower(), nazwa=nazwy.get(motyw, motyw), low=low, high=high) for motyw, (low, high, _) in motywy.items()]
 
 
 # --- wydanie bazy --------------------------------------------------------------------------------------------

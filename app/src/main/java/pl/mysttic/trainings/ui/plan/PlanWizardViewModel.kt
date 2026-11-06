@@ -22,6 +22,7 @@ import pl.mysttic.trainings.data.settings.SettingsRepository
 import pl.mysttic.trainings.domain.editor.WorkoutEditing
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Equipment
+import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.domain.plan.CycleReview
 import pl.mysttic.trainings.domain.plan.Goal
 import pl.mysttic.trainings.domain.plan.PlanGenerator
@@ -46,6 +47,9 @@ data class WizardUiState(
     val previousScale: Double = 1.0,
     /** Aktywny plan w trakcie kolejki, który nowy cykl wstrzyma (D-42); null = nic nie zostanie wstrzymane. */
     val pausing: String? = null,
+    /** Z ilu ćwiczeń kreator ułoży plan przy zaznaczonym sprzęcie i bez sprzętu (D-57); null, dopóki baza się czyta. */
+    val candidates: Int? = null,
+    val bodyweightCandidates: Int? = null,
 ) {
     val sessionsInCycle: Int get() = PlanGenerator.sessionsInCycle(profile)
     val weeklyMinutes: Int get() = PlanGenerator.weeklyMinutes(profile)
@@ -77,9 +81,13 @@ class PlanWizardViewModel @Inject constructor(
     private val _ui = MutableStateFlow(WizardUiState())
     val ui: StateFlow<WizardUiState> = _ui.asStateFlow()
 
+    /** Biblioteka do licznika ćwiczeń w kroku sprzętu (D-57); generowanie i tak czyta ją od nowa. */
+    private var library: List<Exercise> = emptyList()
+
     init {
         viewModelScope.launch {
             val settings = settingsRepo.current()
+            library = exerciseRepo.getAll()
             // Po gotowym programie (D-37) kreator startuje z ostatniego profilu kreatora, żeby nie zgubić mnożnika
             // celów (D-22); preset nie ma frekwencji do rozliczenia, więc bez oceny cyklu.
             val active = programRepo.active()
@@ -94,15 +102,21 @@ class PlanWizardViewModel @Inject constructor(
             _ui.value = WizardUiState(
                 loading = false,
                 isNextCycle = previous != null,
-                profile = (previous ?: TrainingProfile()).copy(
-                    level = previous?.level ?: settings.difficulty,
-                    equipment = previous?.equipment ?: settings.ownedEquipment,
-                ),
+                // Sprzęt to „Mój sprzęt”, a wzrost i waga to „O mnie” (D-57): kreator startuje od tego, co użytkownik
+                // o sobie zapisał, i zapisuje tam z powrotem to, co w nim poprawi.
+                profile = (previous ?: TrainingProfile()).let { base ->
+                    base.copy(
+                        level = previous?.level ?: settings.difficulty,
+                        equipment = settings.ownedEquipment,
+                        heightCm = settings.heightCm ?: base.heightCm,
+                        weightKg = settings.weightKg ?: base.weightKg,
+                    )
+                },
                 review = review,
                 step = fromToday ?: review?.let { PlanProgression.suggest(it) } ?: ProgressionStep.HOLD,
                 previousScale = previous?.targetScale ?: 1.0,
                 pausing = active?.name?.takeIf { inProgress },
-            )
+            ).withCounts()
         }
     }
 
@@ -121,7 +135,7 @@ class PlanWizardViewModel @Inject constructor(
         it.copy(equipment = if (equipment in it.equipment) it.equipment - equipment else it.equipment + equipment)
     }
 
-    /** Generuje cykl, zapisuje go i przenosi wybrany sprzęt oraz poziom do globalnych ustawień. */
+    /** Generuje cykl, zapisuje go i przenosi sprzęt, poziom oraz wzrost i wagę („O mnie”) do ustawień. */
     fun generate() {
         val state = _ui.value
         val profile = TrainingProfile.sanitize(state.profile.copy(targetScale = state.nextScale))
@@ -145,6 +159,7 @@ class PlanWizardViewModel @Inject constructor(
                 programRepo.save(profile, plan, startedAt = System.currentTimeMillis(), programId = programId)
                 settingsRepo.setOwnedEquipment(profile.equipment)
                 settingsRepo.setDifficulty(profile.level)
+                settingsRepo.setBody(profile.heightCm, profile.weightKg)
                 _ui.update { it.copy(generating = false, saved = true, profile = profile) }
             } catch (t: Throwable) {
                 Log.e(TAG, "Nie udało się wygenerować planu", t)
@@ -174,7 +189,14 @@ class PlanWizardViewModel @Inject constructor(
     }
 
     private fun update(transform: (TrainingProfile) -> TrainingProfile) =
-        _ui.update { it.copy(profile = TrainingProfile.sanitize(transform(it.profile)), error = null) }
+        _ui.update { it.copy(profile = TrainingProfile.sanitize(transform(it.profile)), error = null).withCounts() }
+
+    /** Licznik ćwiczeń kroku sprzętu z tych samych reguł co generator (`PlanGenerator.candidates`). */
+    private fun WizardUiState.withCounts(): WizardUiState =
+        if (library.isEmpty()) this else copy(
+            candidates = PlanGenerator.candidates(library, profile.equipment).size,
+            bodyweightCandidates = PlanGenerator.candidates(library, emptySet()).size,
+        )
 
     companion object {
         private const val TAG = "PlanWizardViewModel"

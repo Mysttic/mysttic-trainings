@@ -19,6 +19,7 @@ bez Robolectrica, bez zegara systemowego. To tam mieszkają reguły, które da s
 | `service` | treść powiadomienia (`NotificationContent`) i zbocze zgody na powiadomienia (`NotificationGate`, D-43), oba czysty Kotlin |
 | `ui/theme` | kontrakt wyglądu: pary WCAG w każdym motywie, komplet ról, błąd z innej rodziny odcieni niż akcja, zgodność flagi `dark` z jasnością tła, identyfikatory z DataStore (D-39); każde tło motywu w każdym punkcie gradientu (pary na `surface` i `background`, jasność zgodna z `dark`), warianty i ich identyfikatory (D-50); pasmo zdjęcia dnia ze szklanymi kartami w 8 bitach na kanał (D-51) |
 | `ui/player` | saver opinii z podsumowania — czy przeżywają obrót ekranu |
+| `ui/plan` | rozkład planu tygodniami w podglądzie (D-54): podział po 7 dni, sklejanie kolejnych odpoczynków, tydzień rozwinięty na start |
 | `data/backup` | format pliku kopii: stara wersja wczytuje się z domyślnymi wartościami, dzisiejsza wraca w całości |
 | `data/settings` | tło każdego motywu w DataStore (`BackgroundChoices`, D-50): wybór wraca z zapisu, śmieć z kopii nie wywraca odczytu |
 | `data/db` | sprzątanie treningów w SQL na Room w pamięci (Robolectric): `ProgramRepository.delete` i dwa zapytania, które `SeedImporter` woła po aktualizacji (sieroty planów sprzed 0.9.1, wbudowane spoza seedu v7), D-43 |
@@ -132,7 +133,7 @@ Tego nie złapie test jednostkowy — do przejścia na emulatorze po każdym eta
    `adb pull` i `python -c "d=open('raport.pdf','rb').read(); print(d[:5], d.count(b'/Type /Page'))"` —
    nagłówek `%PDF-` i liczba stron; na podglądzie polskie znaki i pogrubienie nagłówków (oś `wght` Sory).
 
-### Nowy interfejs (D-52, D-53)
+### Nowy interfejs (D-52, D-53, D-54)
 
 Układ głównych ekranów rysuje bez emulatora `LayoutScreenshotTest` (telefon w pionie i tablet w poziomie, z fiksturami);
 `./gradlew testDebugUnitTest -Proborazzi.record=true` zapisuje obrazy do `app/src/test/screenshots/uklad`.
@@ -143,14 +144,45 @@ Na emulatorze zostaje to, czego zrzut nie złapie:
    kafelki / lista działają z panelu, „Wyczyść filtry” nad listą tylko przy aktywnych filtrach.
 3. Szczegół ćwiczenia: zwijane wiersze przetrwają obrót; na tablecie w poziomie wybór w liście zmienia panel szczegółu,
    a wariant tapnięty w panelu otwiera się w tym samym panelu.
-4. Player: menu ⋮ zmienia poziom w trakcie serii (cele od następnej serii) i przerywa trening z potwierdzeniem;
+4. Player: menu ⋮ zmienia poziom w trakcie serii (zrobione serie zostają, trwająca i dalsze dostają cele nowego
+   poziomu od razu, jak mówi napis w menu) i przerywa trening z potwierdzeniem;
    klawisz głośności dalej potwierdza serię, gdy menu jest zamknięte.
 5. Ustawienia: kategoria otwiera się jako podstrona, systemowe „Wstecz” wraca do listy kategorii, eksport kopii przez SAF
-   wraca do tej samej kategorii z komunikatem. W „Wygląd” zmiana tła działa od razu, „Na zdjęciach” jest tylko przy
-   zdjęciu dnia, a wiersz kategorii mówi motyw i tło („Ogień i Krew · Żar”); kategorie i podstrony leżą na gradiencie
-   i na zdjęciu jako szkło, jak karty.
+   wraca do tej samej kategorii z komunikatem. W „Wygląd” zmiana tła działa od razu, a wiersz kategorii mówi motyw
+   i gradient („Ogień i Krew · Żar”, samo zdjęcie to sam motyw); kategorie i podstrony leżą na zdjęciu jako szkło,
+   jak karty.
 6. Plany: zakładka z „Dziś” (cichy przycisk przy pierwszym uruchomieniu) i z menu podglądu planu („Twoje plany”) podświetla
    zakładkę Plany; „Nowy plan” otwiera arkusz z czterema drogami.
+7. Historia (D-54): po `pm clear` samo zdanie, bez filtrów; po treningu „Postęp” rozwija wykres i kalendarz, segmenty
+   nad listą filtrują ją bez zdejmowania przy drugim tapnięciu, sesje idą miesiącami. Szczegóły sesji: **Zapisz ocenę**
+   wraca na listę jako „RPE n”, menu ⋮ usuwa sesję z potwierdzeniem. Na tablecie w poziomie wybór w liście zmienia panel,
+   a po usunięciu w panelu wybór przechodzi do najnowszej z pozostałych sesji.
+8. Podgląd planu (D-54): rozwinięty tylko tydzień z następnym treningiem, kolejne odpoczynki jednym wierszem, a po
+   zrobionym tygodniu rozwija się następny. Menu ⋮ ma te same pozycje co dotąd („Usuń plan”, „Wyślij plan”…).
+9. Kreator (D-54, D-57): × zamyka go z każdego kroku, krok 1 to sprzęt z licznikiem ćwiczeń, krok 2 bierze wzrost i wagę
+   z „O mnie”, a wiersz streszczenia na kroku 4 wraca do swojego kroku.
+10. Edytory (D-54): w edytorze planu strzałki przy dniu sąsiadującym ze zrobionym są wyłączone, a menu ⋮ dnia (duplikat,
+    usunięcie) znika, gdy za dniem stoi zrobiony; „Rozpisz tygodnie” i „Kolejny tydzień jak ostatni” dokładają dni.
+    W edytorze treningu menu ⋮ bloku duplikuje, przesuwa i usuwa blok, „Ustawienia bloku” rozwijają nazwę, rodzaj,
+    rundy i przerwy, a arkusz ćwiczenia ma **Zmień ćwiczenie**, **Duplikuj** i **Usuń z bloku**; przeciąganie
+    za uchwyt dalej zmienia kolejność.
+
+### Tło, motyw leśny, „O mnie” i podpis planu (D-55, D-56, D-57, D-58)
+
+Kontrast wszystkich teł liczą `ThemeContractTest` i `python tools/check_contrast.py`, podpis i hasło `PlanSealTest`
+(z wzorcami formatu 2 w `app/src/test/resources`). Na emulatorze (2026-11-06):
+
+1. „Dziś” mówi „Trening na dziś”, bez partii ciała; pod kartą widać zdjęcie dnia.
+2. Wygląd: „Samo zdjęcie” i każdy gradient; przy gradiencie zdjęcie dalej widać (w „Ogniu i Krwi” przy Żarze sylwetka
+   za kartą), a karty są szklane. „Brzoza i Mech” przemalowuje aplikację od razu, gradienty Mgła, Paproć, Wrzos.
+3. „O mnie”: imię, płeć, wzrost, waga i klucz podpisu; płeć zmienia osoby na zdjęciu dnia (następny dzień albo po
+   ponownym uruchomieniu).
+4. Kreator: krok 1 sprzęt z licznikiem („z tym sprzętem plan ułożę z N ćwiczeń”), krok 2 z wzrostem i wagą z „O mnie”.
+5. Wyślij plan: pole **Podpis** (bez imienia przyciski są wyłączone), odcisk klucza w opisie, **Chroń hasłem** z hasłem
+   krótszym niż 6 znaków blokuje wysyłkę; **Zapisz do pliku** zapisuje kopertę `"formatVersion": 2` z `"encrypted"`.
+6. Plan z pliku (ten sam plik): pytanie o hasło, złe hasło daje „Hasło nie pasuje.”, dobre otwiera podgląd z „Podpis
+   zgodny z treścią, klucz …” (ten sam odcisk co na ekranie wysyłki) i „Plik był chroniony hasłem.”. Plik formatu 1
+   (`app/src/test/resources/plan-wzorcowy.plan.json`) wchodzi jako „Bez podpisu”.
 
 Duże ekrany sprawdza drugi AVD — ten sam obraz systemu co `Pixel_9_Pro` (API 37, x86_64, 16 KB), profil tabletu:
 
@@ -167,6 +199,7 @@ Skrypty biorą wymiary ekranu z korzenia `uiautomator dump`, więc przewijają d
 Do obejrzenia na tablecie w obu orientacjach i na `Pixel_9_Pro` w poziomie: szyna z pięcioma ikonami i etykietami
 zamiast dolnego paska, „Dziś” na tablecie w poziomie w dwóch kolumnach (karta i tydzień), a w pionie jako jedna karta
 nie szersza niż ok. 640 dp, Ćwiczenia i Ustawienia na tablecie w poziomie jako lista i szczegół obok siebie (D-52),
+Historia jako lista i szczegół sesji, a podgląd planu, kreator i edytor planu w dwóch kolumnach (D-54),
 lista planów i szczegóły planu w czytelnej szerokości, biblioteka w pionie w 3 kolumnach, player w poziomie z liczbą po lewej i przyciskami po prawej bez przewijania,
 obrót i podzielony ekran w trakcie treningu (player biegnie dalej, bo stan żyje w `PlayerController`, D-16).
 

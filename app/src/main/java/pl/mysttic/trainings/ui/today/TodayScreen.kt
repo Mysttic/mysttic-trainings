@@ -149,7 +149,7 @@ fun TodayContent(
             }
             Overline(date)
             Spacer(Modifier.height(10.dp))
-            Headline(card?.nextWorkoutName, hasPlan = card != null, inProgress = active != null, oneLine = wide)
+            Headline(hasPlan = card != null, inProgress = active != null, cycleOpen = card?.nextWorkoutName != null, oneLine = wide)
         }
     }
     val main: @Composable () -> Unit = {
@@ -247,10 +247,13 @@ private fun WelcomeStrip(images: List<String>, wide: Boolean) {
     }
 }
 
-/** „Dziś trenujesz górę”: ostatnie słowo grubszą wagą, jak w projekcie. Na tablecie w jednej linii, większe. */
+/**
+ * Nagłówek „Dziś”: ostatnie słowo grubszą wagą, jak w projekcie (D-52); na tablecie w jednej linii, większy.
+ * Przy planie nie nazywa partii ciała (D-55): „Dziś trenujesz całe ciało” nad zdjęciem dnia ogłaszało to, czego tło
+ * miało nie ogłaszać (D-51), a nazwę treningu i tak mówi karta pod spodem.
+ */
 @Composable
-private fun Headline(workoutName: String?, hasPlan: Boolean, inProgress: Boolean, oneLine: Boolean) {
-    val accusative = workoutName?.let { accusativeOf(it) }
+private fun Headline(hasPlan: Boolean, inProgress: Boolean, cycleOpen: Boolean, oneLine: Boolean) {
     val br = if (oneLine) " " else "\n"
     val text = when {
         inProgress -> buildAnnotatedString {
@@ -261,13 +264,9 @@ private fun Headline(workoutName: String?, hasPlan: Boolean, inProgress: Boolean
             append("Zacznij od$br")
             withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append("planu") }
         }
-        accusative != null -> buildAnnotatedString {
-            append("Dziś trenujesz$br")
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(accusative) }
-        }
-        workoutName != null -> buildAnnotatedString {
-            append("Dziś$br")
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(workoutName) }
+        cycleOpen -> buildAnnotatedString {
+            append("Trening$br")
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append("na dziś") }
         }
         else -> buildAnnotatedString {
             append("Cykl ")
@@ -476,17 +475,6 @@ private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forL
 
 private fun todayDate(): String =
     LocalDate.ofInstant(Instant.ofEpochMilli(System.currentTimeMillis()), ZoneId.systemDefault()).format(dateFormat)
-
-/**
- * Biernik nazwy treningu do zdania „Dziś trenujesz…”. Nazwy pochodzą z kreatora i są zamknięte:
- * „Góra A/B”, „Dół A/B”, „Całe ciało (A/B/C)”. Cokolwiek innego zostaje w mianowniku.
- */
-private fun accusativeOf(name: String): String? = when {
-    name.startsWith("Góra", ignoreCase = true) -> "górę"
-    name.startsWith("Dół", ignoreCase = true) -> "dół"
-    name.startsWith("Całe ciało", ignoreCase = true) -> "całe ciało"
-    else -> null
-}
 
 private fun dniWord(n: Int): String = if (n == 1) "dzień" else "dni"
 
