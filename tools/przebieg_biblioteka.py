@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Przebieg biblioteki ćwiczeń na emulatorze: kafelki (domyślne) i lista, panel filtrów, chipy „lub” w sekcji i „i” między
-sekcjami, licznik na pasku, „Mój sprzęt”, „Wyczyść filtry”, szukanie. Zrzuty do build/przebieg-biblioteka/.
+sekcjami, licznik i „Wyczyść filtry” nad listą, „Tylko mój sprzęt” i widok w panelu (D-52), szukanie. Zrzuty do build/przebieg-biblioteka/.
 
 Instaluje app/build/outputs/apk/debug/app-debug.apk i nie czyści danych apki; z pustym sprzętem w Ustawieniach
-„Mój sprzęt” + „Hantle” daje 0 wyników, co skrypt uwiecznia. Przed startem usuwa stare zrzuty z katalogu wyjściowego.
+„Tylko mój sprzęt” + „Hantle” daje 0 wyników, co skrypt uwiecznia. Przed startem usuwa stare zrzuty z katalogu wyjściowego.
 
     python tools/przebieg_biblioteka.py --serial emulator-5554
     python tools/przebieg_biblioteka.py --serial emulator-5556 --orientacja port --out build/przebieg-biblioteka-port
@@ -34,37 +34,45 @@ def przebieg(u: Urzadzenie) -> None:
     time.sleep(1.5)
     u.zrzut("kafelki-dalej")
 
-    u.tapnij("Lista", pauza=1.5)
-    u.zrzut("lista")
-    u.tapnij("Kafelki", pauza=1.5)
-
+    # Od D-52 nad listą jest tylko szukanie z przyciskiem filtrów („Filtry” / „Filtry · n”);
+    # widok, „Tylko mój sprzęt” i chipy są w panelu, a „Wyczyść filtry” nad listą, gdy coś filtruje.
     u.tapnij("Filtry", pauza=1.2)
     u.zrzut("panel")
+    u.przewin_do("Lista")
+    u.tapnij("Lista", pauza=1.0)
+    u.tapnij("Filtry", pauza=1.5)
+    u.zrzut("lista")
+    u.tapnij("Filtry", pauza=1.2)
+    u.przewin_do("Kafelki")
+    u.tapnij("Kafelki", pauza=1.0)
+    u.tapnij("Filtry", pauza=1.2)
+
+    u.tapnij("Filtry", pauza=1.2)
     u.tapnij("Kardio")
     u.tapnij("Bez sprzętu")
     u.zrzut("panel-kardio-bez-sprzetu")
     u.tapnij("Filtry.*", pauza=1.5)
     u.zrzut("kafelki-kardio")
 
-    u.tapnij("Mój sprzęt")
-    u.zrzut("moj-sprzet")
     u.tapnij("Filtry.*", pauza=1.2)
+    u.tapnij("Tylko mój sprzęt")
+    u.tapnij("Filtry.*", pauza=1.5)
+    u.zrzut("moj-sprzet")
+    u.tapnij("Wyczyść filtry", pauza=1.2)
+    u.tapnij("Filtry", pauza=1.2)
     u.tapnij("Kardio")
     u.tapnij("Bez sprzętu")
     u.tapnij("Hantle")
+    u.przewin_do("Brzuch")
     u.tapnij("Brzuch")
-    u.przewin_do("Wyczyść filtry")
     u.zrzut("panel-dol")
     u.tapnij("Wyczyść filtry")
-    u.tapnij("Filtry.*", pauza=1.2)
+    u.tapnij("Filtry", pauza=1.2)
     u.tapnij("Filtry", pauza=1.2)
     u.tapnij("Ławka")
     u.tapnij("Filtry.*", pauza=1.5)
     u.zrzut("kafelki-lawka-brak-sprzetu")
-    u.tapnij("Filtry.*", pauza=1.2)
-    u.przewin_do("Wyczyść filtry")
-    u.tapnij("Wyczyść filtry")
-    u.tapnij("Filtry.*", pauza=1.2)
+    u.tapnij("Wyczyść filtry", pauza=1.2)
 
     u.tapnij("Szukaj ćwiczenia")
     u.shell("input", "text", "plank")

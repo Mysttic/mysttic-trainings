@@ -13,7 +13,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -93,7 +97,7 @@ import pl.mysttic.trainings.ui.theme.Overline as OverlineStyle
 
 /**
  * Scaffold ekranu na tle aplikacji (D-50): bez własnego wypełnienia, bo zasłoniłby tło, które maluje korzeń
- * nawigacji (jednolite albo gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
+ * nawigacji (zdjęcie dnia, na nim gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
  * więc `contentColorFor` oddałby domyślną czerń zamiast `onSurface`.
  */
 @Composable
@@ -114,15 +118,13 @@ fun ScreenScaffold(
 }
 
 /**
- * Wypełnienie karty leżącej na tle ekranu: `surfaceContainer`, a nad zdjęciem dnia (D-51) szkło, czyli `onSurface`
- * z alfą motywu, przez które zdjęcie prześwituje. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod
- * nimi przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` dla całego pasma zdjęcia.
+ * Wypełnienie karty leżącej na tle ekranu: szkło, czyli `onSurface` z alfą motywu, przez które prześwituje zdjęcie
+ * dnia (D-51), od D-55 obecne pod każdym tłem. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod nimi
+ * przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` w całym paśmie zdjęcia
+ * i w każdym punkcie gradientu.
  */
 @Composable
-fun cardColor(): Color {
-    val band = LocalAppBackground.current.band ?: return MaterialTheme.colorScheme.surfaceContainer
-    return MaterialTheme.colorScheme.onSurface.copy(alpha = band.glass)
-}
+fun cardColor(): Color = MaterialTheme.colorScheme.onSurface.copy(alpha = LocalAppBackground.current.band.glass)
 
 /** Pasek tytułu nad tłem aplikacji (D-50): bez wypełnienia, jak `ScreenScaffold`, tytuł i ikony bez zmian. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,10 +278,12 @@ fun SecondaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = Dimens.secondaryButton,
+    enabled: Boolean = true,
 ) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(height),
+        enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
@@ -291,7 +295,8 @@ fun SecondaryAction(
 
 /**
  * Karta dnia: jedyna karta na „Dziś” i jedyne wyróżnienie w kolejce planu.
- * `roundsDone`/`roundsTotal` rysują pasek postępu tygodnia nad przyciskiem Start.
+ * `weekDone`/`weekTotal` rysują pasek postępu tygodnia nad przyciskiem Start, a [top] (D-52) to miejsce na pasek
+ * miniatur ćwiczeń nad nazwą — karta przestaje być samym tekstem.
  */
 @Composable
 fun WorkoutCard(
@@ -301,6 +306,7 @@ fun WorkoutCard(
     modifier: Modifier = Modifier,
     weekDone: Int = 0,
     weekTotal: Int = 0,
+    top: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -309,9 +315,10 @@ fun WorkoutCard(
         shape = RoundedCornerShape(26.dp),
     ) {
         Column(
-            modifier = Modifier.padding(Dimens.cardInner),
+            modifier = Modifier.padding(if (top != null) Dimens.cardPreviewInner else Dimens.cardInner),
             verticalArrangement = Arrangement.spacedBy(Dimens.cardGap),
         ) {
+            top?.invoke()
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = name,
@@ -516,71 +523,25 @@ fun FilterPill(
 }
 
 /**
- * Przełącznik widoku listy i kafelków: dwie ikony w jednej pigułce, wybrana wypełniona ogniem jak `FilterPill`.
- * Glify rysowane na `Canvas`, bo `material-icons-core` nie ma siatki; opisy „Lista” / „Kafelki” dla czytnika i testów.
+ * Pole szukania: bez obwódki, na stopniu surfaceContainerLow. [leadingIcon] i [trailingIcon] (D-52): lupa i przycisk
+ * filtrów w samym polu, zamiast osobnego rzędu pigułek nad listą.
  */
 @Composable
-fun ViewToggle(tiles: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .height(34.dp)
-            .clip(Pill)
-            .border(BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline), Pill),
-    ) {
-        ViewToggleCell(selected = !tiles, description = "Lista", onClick = { onChange(false) }) { color ->
-            Canvas(Modifier.size(18.dp)) {
-                listOf(0.2f, 0.5f, 0.8f).forEach { fy ->
-                    val y = size.height * fy
-                    drawLine(
-                        color = color,
-                        start = Offset(size.width * 0.08f, y),
-                        end = Offset(size.width * 0.92f, y),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                    )
-                }
-            }
-        }
-        ViewToggleCell(selected = tiles, description = "Kafelki", onClick = { onChange(true) }) { color ->
-            Canvas(Modifier.size(18.dp)) {
-                val gap = size.width * 0.16f
-                val cell = (size.width - gap) / 2f
-                val radius = CornerRadius(cell * 0.28f)
-                listOf(Offset(0f, 0f), Offset(cell + gap, 0f), Offset(0f, cell + gap), Offset(cell + gap, cell + gap))
-                    .forEach { drawRoundRect(color = color, topLeft = it, size = Size(cell, cell), cornerRadius = radius) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ViewToggleCell(
-    selected: Boolean,
-    description: String,
-    onClick: () -> Unit,
-    glyph: @Composable (Color) -> Unit,
+fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(46.dp)
-            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        glyph(if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** Pole szukania: bez obwódki, na stopniu surfaceContainerLow. */
-@Composable
-fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     TextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyLarge) },
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
         singleLine = true,
         shape = RoundedCornerShape(16.dp),
         textStyle = MaterialTheme.typography.bodyLarge,
@@ -919,6 +880,8 @@ fun TextInput(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    /** Pole hasła (D-58): znaki ukryte, klawiatura bez podpowiedzi słów. */
+    password: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Overline(label)
@@ -929,6 +892,8 @@ fun TextInput(
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,
             minLines = minLines,
+            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = if (password) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
             shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = TextFieldDefaults.colors(

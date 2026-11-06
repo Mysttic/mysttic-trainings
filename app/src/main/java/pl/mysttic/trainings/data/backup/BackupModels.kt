@@ -172,8 +172,10 @@ data class BackupSettings(
     val authorName: String = "",
     /** Tło w każdym motywie, id motywu → id tła (D-50); od wersji 5. */
     val backgrounds: Map<String, String> = emptyMap(),
-    /** Kogo pokazywać na zdjęciu dnia (D-51); od wersji 5. */
-    val photoPeople: String = "oboje",
+    /** „O mnie” (D-57): płeć (id jak w `Gender`, puste = nie podano), wzrost i waga; od wersji 5. */
+    val gender: String = "",
+    val heightCm: Int? = null,
+    val weightKg: Double? = null,
 )
 
 @Serializable

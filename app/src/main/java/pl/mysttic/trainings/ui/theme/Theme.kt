@@ -11,8 +11,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 /*
  * Komplet 35 ról Material 3 na motyw (D-17, D-32). Pominięta rola spada na paletę bazową M3 (fiolet),
  * dlatego wszystkie są podane jawnie. Bez dynamicColor: wygląd to tożsamość produktu, nie tapeta systemu —
- * ale od D-39 użytkownik wybiera jeden z trzech motywów, a każdy z nich jest skończony: „Papier i Ogień”
- * jest jasny zawsze, pozostałe ciemne zawsze, niezależnie od ustawienia systemu.
+ * ale od D-39 użytkownik wybiera jeden z motywów (od D-56 czterech), a każdy z nich jest skończony: „Papier i Ogień”
+ * i „Brzoza i Mech” są jasne zawsze, pozostałe ciemne zawsze, niezależnie od ustawienia systemu.
  * Wartości „Ognia i Krwi” stoją w Color.kt, pozostałych w Themes.kt, a warianty tła każdego motywu (D-50)
  * w Backgrounds.kt.
  */
@@ -132,20 +132,60 @@ private val SteelScheme = darkColorScheme(
     scrim = SteelScrim,
 )
 
+private val ForestScheme = lightColorScheme(
+    primary = ForestPrimary,
+    onPrimary = ForestOnPrimary,
+    primaryContainer = ForestPrimaryContainer,
+    onPrimaryContainer = ForestOnPrimaryContainer,
+    secondary = ForestSecondary,
+    onSecondary = ForestOnSecondary,
+    secondaryContainer = ForestSecondaryContainer,
+    onSecondaryContainer = ForestOnSecondaryContainer,
+    tertiary = ForestTertiary,
+    onTertiary = ForestOnTertiary,
+    tertiaryContainer = ForestTertiaryContainer,
+    onTertiaryContainer = ForestOnTertiaryContainer,
+    error = ForestError,
+    onError = ForestOnError,
+    errorContainer = ForestErrorContainer,
+    onErrorContainer = ForestOnErrorContainer,
+    background = ForestBackground,
+    onBackground = ForestOnBackground,
+    surface = ForestSurface,
+    onSurface = ForestOnSurface,
+    surfaceVariant = ForestSurfaceVariant,
+    onSurfaceVariant = ForestOnSurfaceVariant,
+    surfaceContainerLowest = ForestSurfaceContainerLowest,
+    surfaceContainerLow = ForestSurfaceContainerLow,
+    surfaceContainer = ForestSurfaceContainer,
+    surfaceContainerHigh = ForestSurfaceContainerHigh,
+    surfaceContainerHighest = ForestSurfaceContainerHighest,
+    surfaceBright = ForestSurfaceBright,
+    surfaceDim = ForestSurfaceDim,
+    outline = ForestOutline,
+    outlineVariant = ForestOutlineVariant,
+    inverseSurface = ForestInverseSurface,
+    inverseOnSurface = ForestInverseOnSurface,
+    inversePrimary = ForestInversePrimary,
+    scrim = ForestScrim,
+)
+
 /** Schemat wybranego motywu; jedyne miejsce, które kojarzy wybór z kolorami. */
 fun schemeFor(theme: AppTheme): ColorScheme = when (theme) {
     AppTheme.FIRE -> FireScheme
     AppTheme.PAPER -> PaperScheme
     AppTheme.STEEL -> SteelScheme
+    AppTheme.FOREST -> ForestScheme
 }
 
 /**
- * Tło ekranów wybrane w Ustawieniach (D-50). Maluje je raz korzeń nawigacji (`appBackground`), a Scaffoldy ekranów
- * nad nim są przezroczyste, więc gradient przechodzi przez wszystkie ekrany i zostaje w miejscu przy przewijaniu.
+ * Tło ekranów wybrane w Ustawieniach (D-50, D-55). Maluje je raz korzeń nawigacji: dół pasma, zdjęcie dnia i gradient
+ * na zdjęciu. Scaffoldy ekranów nad nim są przezroczyste, więc tło przechodzi przez wszystkie ekrany i zostaje
+ * w miejscu przy przewijaniu.
  */
-val LocalAppBackground = staticCompositionLocalOf { AppBackground.FIRE_SOLID }
+val LocalAppBackground = staticCompositionLocalOf { AppBackground.FIRE_PHOTO }
 
-/** Zdjęcie dnia (D-51): ścieżka jak ilustracji ćwiczeń albo null, gdy tło nie jest zdjęciem albo baza go nie ma. */
+/** Zdjęcie dnia (D-51): ścieżka jak ilustracji ćwiczeń albo null, dopóki się nie wczyta albo gdy baza go nie ma. */
 val LocalBackgroundPhoto = staticCompositionLocalOf<String?> { null }
 
 @Composable
@@ -155,9 +195,9 @@ fun TrainingsTheme(
     photo: String? = null,
     content: @Composable () -> Unit,
 ) {
-    // Tło innego motywu nie trzyma kontrastu z tym schematem, więc w takim wypadku zostaje jednolite.
+    // Tło innego motywu nie trzyma kontrastu z tym schematem, więc w takim wypadku zostaje samo zdjęcie.
     val own = if (background.theme == theme) background else AppBackground.of(theme).first()
-    CompositionLocalProvider(LocalAppBackground provides own, LocalBackgroundPhoto provides photo?.takeIf { own.photo }) {
+    CompositionLocalProvider(LocalAppBackground provides own, LocalBackgroundPhoto provides photo) {
         MaterialTheme(
             colorScheme = schemeFor(theme),
             typography = AppTypography,

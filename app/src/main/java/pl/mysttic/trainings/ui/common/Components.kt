@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.Image
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +19,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
@@ -111,9 +114,13 @@ private fun photoMatrix(dark: Boolean): FloatArray {
     return m
 }
 
+/**
+ * Filtr idzie za jasnością motywu, nie za trybem systemu (D-39, poprawka z D-52): „Ogień i Krew” jest ciemny także
+ * przy jasnym systemie, a filtr jasny zostawiał ilustracje białe jak kartka na krwistym tle.
+ */
 @Composable
 fun exercisePhotoFilter(): ColorFilter {
-    val dark = isSystemInDarkTheme()
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     return remember(dark) { ColorFilter.colorMatrix(ColorMatrix(photoMatrix(dark))) }
 }
 
@@ -255,6 +262,47 @@ private fun TileImage(assetPath: String?, contentDescription: String, modifier: 
     }
 }
 
+/**
+ * Pasek miniatur ćwiczeń na karcie dnia (D-52): do czterech ilustracji w równych kafelkach, a przy dłuższym treningu
+ * trzy i kafelek „+N”. Miniatury kadrujemy — to zapowiedź treningu, pełny ruch pokazuje szczegół ćwiczenia.
+ * [total] = liczba różnych ćwiczeń w treningu; ilustracji może być mniej, gdy któreś jej nie ma.
+ */
+@Composable
+fun ExercisePreviewStrip(
+    images: List<String>,
+    total: Int,
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 64.dp,
+    onClick: (() -> Unit)? = null,
+) {
+    val shown = if (total > PREVIEW_TILES) images.take(PREVIEW_TILES - 1) else images.take(PREVIEW_TILES)
+    val more = (total - shown.size).coerceAtLeast(0)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClickLabel = "Co jest w treningu", onClick = onClick) else Modifier),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        shown.forEach { path ->
+            ExerciseImage(assetPath = path, modifier = Modifier.weight(1f).height(height), shape = RoundedCornerShape(14.dp))
+        }
+        if (more > 0) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(height)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("+$more", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+    }
+}
+
+private const val PREVIEW_TILES = 4
+
 /** Miniatura w liście: 44 dp (promień 12) w treningu, 56 dp (promień 16) w bibliotece. */
 @Composable
 fun ExerciseThumbnail(exercise: Exercise, modifier: Modifier = Modifier, large: Boolean = false) {
@@ -266,11 +314,47 @@ fun ExerciseThumbnail(exercise: Exercise, modifier: Modifier = Modifier, large: 
     )
 }
 
+/**
+ * Ilustracja w swoich proporcjach (D-52): ramka ma kształt obrazu, więc nie ma pasów tła po bokach ani u góry.
+ * Szerokość bierze dostępne miejsce, a [maxHeight] ją ogranicza (player); proporcje czyta painter po wczytaniu,
+ * do tego czasu 2:1 — tyle ma większość ilustracji z generatora (D-36).
+ */
+@Composable
+fun ExerciseIllustration(
+    assetPath: String?,
+    modifier: Modifier = Modifier,
+    maxHeight: Dp = Dp.Unspecified,
+    contentDescription: String? = null,
+    shape: Shape = RoundedCornerShape(22.dp),
+) {
+    if (assetPath == null) {
+        ExerciseImage(assetPath = null, modifier = modifier.fillMaxWidth().aspectRatio(2f), shape = shape)
+        return
+    }
+    val painter = rememberAsyncImagePainter(model = exerciseImageModel(assetPath))
+    val intrinsic = painter.intrinsicSize
+    val ratio = if (intrinsic.isSpecified && intrinsic.height > 0f) intrinsic.width / intrinsic.height else 2f
+    BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val width = if (maxHeight != Dp.Unspecified) minOf(maxWidth, maxHeight * ratio) else maxWidth
+        Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Fit,
+            colorFilter = exercisePhotoFilter(),
+            modifier = Modifier.width(width).aspectRatio(ratio).clip(shape),
+        )
+    }
+}
+
 /** Obraz ćwiczenia na całą szerokość. Od seedu v5 to zawsze jedna ilustracja; dwa kadry (Start, Koniec) obsługujemy dalej. */
 @Composable
 fun ExerciseImagePair(exercise: Exercise, modifier: Modifier = Modifier) {
     if (exercise.images.isEmpty()) {
         ExerciseImage(assetPath = null, modifier = modifier.fillMaxWidth().aspectRatio(3f / 2f))
+        return
+    }
+    if (exercise.images.size == 1) {
+        ExerciseIllustration(assetPath = exercise.images.single(), modifier = modifier, contentDescription = exercise.namePl)
         return
     }
     // Dwa zdjęcia to pozycja startowa i końcowa; jedna ilustracja (D-36) pokazuje cały ruch strzałkami, więc bez podpisów.
@@ -336,24 +420,6 @@ fun DifficultySelector(
                     Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun EquipmentTags(equipment: Set<Equipment>, owned: Set<Equipment>, modifier: Modifier = Modifier) {
-    if (equipment.isEmpty()) {
-        Text("bez sprzętu", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
-        return
-    }
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        equipment.forEach { eq ->
-            val missing = eq !in owned
-            Text(
-                text = if (missing) "${eq.labelPl} (brak)" else eq.labelPl,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (missing) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

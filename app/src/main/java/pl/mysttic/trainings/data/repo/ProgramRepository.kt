@@ -222,8 +222,9 @@ class ProgramRepository @Inject constructor(
             days = copied.days,
             source = target,
             originId = original.id,
-            // Podpis zostaje przy powtórce i przy kopii własnego planu; kopia planu od kogoś to już Twój plan.
-            author = if (sameRun || original.source == PlanSource.CUSTOM) original.author else "",
+            // Autor zostaje przy powtórce, przy kopii własnego planu i przy kopii planu od kogoś (D-58): kopia nie może
+            // zdjąć z planu jego autora. Kopia planu z kreatora albo gotowego programu jest Twoja.
+            author = if (sameRun || original.source == PlanSource.CUSTOM || original.source == PlanSource.IMPORTED) original.author else "",
             shareUid = if (sameRun) original.shareUid else null,
             rhythmStart = 0,
         )

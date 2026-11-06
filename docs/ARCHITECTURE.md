@@ -58,7 +58,7 @@ w checkpoincie i w datach sesji.
 - `Exercise.equipment: Set<Equipment>` — wymagany w całości; pusty zbiór = bez sprzętu. `Equipment` to zamknięta lista domowa
   (hantle, kettlebell, guma, drążek, niski drążek/stół, ławka/krzesło, skakanka, piłka lekarska, piłka gimnastyczna, sztanga).
 - `UserSettings.ownedEquipment` — co użytkownik zaznaczył w Ustawieniach.
-- Biblioteka filtruje przez `domain/library/LibraryFilter`: „Mój sprzęt” (`Exercise.canDoWith`), „Bez sprzętu” i konkretny sprzęt,
+- Biblioteka filtruje przez `domain/library/LibraryFilter`: „Tylko mój sprzęt” (`Exercise.canDoWith`), „Bez sprzętu” i konkretny sprzęt,
   rodzaj, poziom, partie (główne mięśnie) i szukanie po nazwie PL/EN; wymiary łączy „i”, wartości w wymiarze „lub”.
   `LibraryFacets.of` daje chipy tylko z wartości obecnych w bibliotece, w kolejności enumów.
 - `EquipmentMatcher.substitutes(exercise, candidates, owned)`: ta sama główna grupa mięśniowa, wykonalne z posiadanym sprzętem,
@@ -103,11 +103,19 @@ w użyciu, regułą z `domain/background/PhotoPicker` (trzy najliczniejsze temat
 
 ## UI (`ui/`)
 
-Navigation Compose z trasami `@Serializable` (`ui/navigation/Routes.kt`); dolny pasek na 4 ekranach głównych
-(Dziś, Ćwiczenia, Historia, Ustawienia). Ekrany: `today` (jedna karta z następnym treningiem z kolejki, D-26),
-`plan` (kreator profilu i podgląd cyklu), `library` (kafelki albo lista w jednej `LazyVerticalGrid`, rozwijany panel filtrów jako pierwszy element siatki) + `ExerciseDetail` (zdjęcia, instrukcja, warianty, zamienniki, wykres rekordów),
-`workout/WorkoutDetail` (cele po skalowaniu, propozycja progresji, wejście do edytora), `editor`, `player` (cienki widok na
-`PlayerController`), `history` (filtry, statystyki, wykresy) + szczegół sesji z RPE i notatką, `settings`.
+Navigation Compose z trasami `@Serializable` (`ui/navigation/Routes.kt`); dolny pasek (na tablecie szyna) na 5 ekranach
+głównych z ikonami z `ui/common/AppIcons.kt` (Dziś, Plany, Ćwiczenia, Historia, Ustawienia; D-52, D-53).
+Ekrany: `today` (jedna karta z następnym treningiem z kolejki, D-26), `plans` (lista planów i „Nowy plan”),
+`plan` (kreator profilu ze streszczeniem odpowiedzi i podgląd cyklu z rozkładem tygodniami, `PlanWeeks`, D-54), `library` (kafelki albo lista w jednej `LazyVerticalGrid`, rozwijany panel filtrów
+jako pierwszy element siatki, na tablecie w poziomie lista obok szczegółu przez `ui/adaptive/TwoPane`) + `ExerciseDetail`
+(ilustracja, instrukcja, a wyniki, warianty, zamienniki i trener w zwijanych wierszach),
+`workout/WorkoutDetail` (cele po skalowaniu, propozycja progresji, wejście do edytora), `editor` (bloki jako karty, ustawienia
+bloku zwinięte, akcje bloku w menu ⋮, ćwiczenie w arkuszu), `planeditor` (treningi planu i dni tygodniami; na tablecie
+obok siebie), `player` (cienki widok na `PlayerController`; poziom i przerwanie w menu ⋮), `history` (okres i statystyki,
+zwinięty „Postęp” z wykresami, lista miesiącami; na tablecie w poziomie lista obok szczegółu sesji przez `TwoPane`,
+a `SessionDetailViewModel` dostaje wybór przez `select`) + szczegół sesji z Δ, RPE i notatką, `settings` (sześć kategorii,
+na tablecie w poziomie lista obok kategorii). Ekrany główne, Historia, podgląd planu, kreator i oba edytory mają
+bezstanowe `*Content` z akcjami w osobnej klasie, które `LayoutScreenshotTest` rysuje z fiksturami (D-52, D-54).
 Wykresy rysuje `ui/common/Charts.kt` na `Canvas` (D-23), dane liczy `domain/stats/ProgressStats`.
 
 ## Sygnały (`service/Cues`)

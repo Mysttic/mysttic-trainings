@@ -1,7 +1,6 @@
 package pl.mysttic.trainings.ui.theme
 
 import androidx.compose.foundation.background
-import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -14,12 +13,15 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativePaint
 
 /*
- * Tło ekranów w motywie (D-50, issue #6): jednolite albo gradient z góry na dół. Każdy motyw ma własne warianty,
- * bo gradient leży pod tymi samymi kartami i napisami co tło jednolite i w każdym swoim punkcie trzyma progi
- * kontrastu tego motywu: tekst i obrysy na tle, karta i pasek odróżnione od tła. Pilnują tego `ThemeContractTest`
- * i `python tools/check_contrast.py`, które próbkują gradient tak, jak rysuje go Android (liniowo w sRGB).
- * Najciaśniejszy jest próg karty (`surfaceContainer` wobec tła), więc w ciemnych motywach gradient nie jaśnieje
- * ponad kartę, tylko zmienia odcień i schodzi w czerń, a w jasnym nie ciemnieje do karty.
+ * Tło ekranów (issue #6). Od D-55 to zawsze zdjęcie dnia (D-51): rozmyte zdjęcie z bazy ćwiczeń sprowadzone filtrem
+ * do pasma motywu, a karty leżą na nim jako szkło. Wybór w Ustawieniach to tylko kolor nad zdjęciem: „Samo zdjęcie”
+ * albo jeden z gradientów motywu (D-50) położony na zdjęciu z kryciem [GRADIENT_OVER_PHOTO], więc zdjęcie dalej widać.
+ * Tła jednolitego już nie ma; bez zdjęcia w bazie pod gradientem i szkłem leży dolny kolor pasma.
+ *
+ * Kontrast liczą razem `ThemeContractTest` i `python tools/check_contrast.py`, oba w 8 bitach na kanał, jak ekran:
+ * w każdym punkcie pasma i każdym punkcie gradientu tekst na tle i na szklanej karcie trzyma progi, a karta odróżnia
+ * się od tła. Gradienty są spokojne, bo mieszają się z pasmem: w ciemnych motywach nie jaśnieją ponad jasny koniec pasma,
+ * w jasnych nie ciemnieją poniżej ciemnego.
  */
 
 // ---- Ogień i Krew ----
@@ -48,12 +50,18 @@ val SteelDeepBottom = Color(0xFF062220)
 val SteelDuskTop = Color(0xFF0D1217)          // Zmrok: grafit gaśnie w fiolecie
 val SteelDuskBottom = Color(0xFF1A1430)
 
+// ---- Brzoza i Mech (D-56) ----
+val ForestMistTop = Color(0xFFFFFFFF)         // Mgła: biel opada chłodną mgłą
+val ForestMistBottom = Color(0xFFE4EDE8)
+val ForestFernTop = Color(0xFFF7FAF1)         // Paproć: jasna zieleń gęstnieje ku dołowi
+val ForestFernBottom = Color(0xFFDFEBD0)
+val ForestHeatherTop = Color(0xFFFBF8FA)      // Wrzos: blady fiolet przy ziemi
+val ForestHeatherBottom = Color(0xFFEDE2EC)
+
 /*
- * Zdjęcie dnia (D-51): rozmyte zdjęcie z bazy ćwiczeń, sprowadzone filtrem do pasma między dwoma kolorami motywu.
- * Karty leżą na nim jako szkło: `onSurface` z alfą motywu (`cardColor()` w DesignSystem.kt), więc zdjęcie przez nie
- * prześwituje. Pasmo i alfa są policzone razem: w każdym punkcie pasma tekst na tle i na szklanej karcie trzyma progi,
- * a karta odróżnia się od tła (`ThemeContractTest`, `python tools/check_contrast.py`, oba w 8 bitach na kanał, jak ekran). Najciaśniej jest w „Ogniu
- * i Krwi”: obrys przycisku na szklanej karcie, dlatego tam zdjęcie jest najciemniejsze.
+ * Pasmo zdjęcia (D-51): najciemniejszy i najjaśniejszy kolor po filtrze oraz alfa szklanych kart. Pasmo i alfa są
+ * policzone razem z gradientami nad zdjęciem. Najciaśniej jest w „Ogniu i Krwi”: obrys przycisku na szklanej karcie,
+ * dlatego tam zdjęcie jest najciemniejsze.
  */
 val FirePhotoLow = Color(0xFF050303)
 val FirePhotoHigh = Color(0xFF1A1110)
@@ -61,6 +69,8 @@ val PaperPhotoLow = Color(0xFFDFD3CA)
 val PaperPhotoHigh = Color(0xFFFFFFFF)
 val SteelPhotoLow = Color(0xFF060809)
 val SteelPhotoHigh = Color(0xFF2D363F)
+val ForestPhotoLow = Color(0xFFD8DECF)
+val ForestPhotoHigh = Color(0xFFFFFFFF)
 
 /** Pasmo zdjęcia tła: najciemniejszy i najjaśniejszy kolor po filtrze oraz alfa szklanych kart nad nim. */
 data class PhotoBand(val low: Color, val high: Color, val glass: Float) {
@@ -73,69 +83,92 @@ data class PhotoBand(val low: Color, val high: Color, val glass: Float) {
     }
 }
 
+val FireBand = PhotoBand(FirePhotoLow, FirePhotoHigh, glass = 0.08f)
+val PaperBand = PhotoBand(PaperPhotoLow, PaperPhotoHigh, glass = 0.065f)
+val SteelBand = PhotoBand(SteelPhotoLow, SteelPhotoHigh, glass = 0.075f)
+val ForestBand = PhotoBand(ForestPhotoLow, ForestPhotoHigh, glass = 0.065f)
+
+/** Krycie gradientu położonego na zdjęciu (D-55): 0,4, bo przy połowie ciemny gradient gasił zdjęcie jak zasłona. */
+const val GRADIENT_OVER_PHOTO = 0.4f
+
 /**
  * Wariant tła. `id` idzie do DataStore i do kopii zapasowej razem z id motywu, więc istniejących nie zmieniamy;
- * jest unikalny w obrębie motywu. `stops` to kolory gradientu od góry do dołu, rozłożone równo (tak samo rysuje
- * je tło okna w `MainActivity`); pusta lista = jednolite `surface` motywu. `band` ma tylko zdjęcie dnia (D-51).
- * Pierwszy wariant motywu jest domyślny.
+ * jest unikalny w obrębie motywu. `stops` to kolory gradientu od góry do dołu, rozłożone równo (tak samo rysuje je tło
+ * okna w `MainActivity`); pusta lista = samo zdjęcie. `band` to pasmo zdjęcia motywu, wspólne dla jego wariantów.
+ * Pierwszy wariant motywu („Samo zdjęcie”) jest domyślny.
  */
 enum class AppBackground(
     val theme: AppTheme,
     val id: String,
     val labelPl: String,
     val stops: List<Color>,
-    val band: PhotoBand? = null,
+    val band: PhotoBand,
 ) {
-    FIRE_SOLID(AppTheme.FIRE, "jednolite", "Jednolite", emptyList()),
-    FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberMid, FireEmberBottom)),
-    FIRE_GLOW(AppTheme.FIRE, "luna", "Łuna", listOf(FireGlowTop, FireGlowMid, FireGlowBottom)),
-    FIRE_WINE(AppTheme.FIRE, "wino", "Wino", listOf(FireWineTop, FireWineBottom)),
-    FIRE_PHOTO(AppTheme.FIRE, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(FirePhotoLow, FirePhotoHigh, glass = 0.08f)),
-    PAPER_SOLID(AppTheme.PAPER, "jednolite", "Jednolite", emptyList()),
-    PAPER_DAWN(AppTheme.PAPER, "swit", "Świt", listOf(PaperDawnTop, PaperDawnBottom)),
-    PAPER_ROSE(AppTheme.PAPER, "roza", "Róża", listOf(PaperRoseTop, PaperRoseBottom)),
-    PAPER_PARCHMENT(AppTheme.PAPER, "pergamin", "Pergamin", listOf(PaperParchmentTop, PaperParchmentBottom)),
-    PAPER_PHOTO(AppTheme.PAPER, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(PaperPhotoLow, PaperPhotoHigh, glass = 0.065f)),
-    STEEL_SOLID(AppTheme.STEEL, "jednolite", "Jednolite", emptyList()),
-    STEEL_NAVY(AppTheme.STEEL, "granat", "Granat", listOf(SteelNavyTop, SteelNavyBottom)),
-    STEEL_DEEP(AppTheme.STEEL, "glebia", "Głębia", listOf(SteelDeepTop, SteelDeepBottom)),
-    STEEL_DUSK(AppTheme.STEEL, "zmrok", "Zmrok", listOf(SteelDuskTop, SteelDuskBottom)),
-    STEEL_PHOTO(AppTheme.STEEL, "zdjecie", "Zdjęcie dnia", emptyList(), PhotoBand(SteelPhotoLow, SteelPhotoHigh, glass = 0.075f)),
+    FIRE_PHOTO(AppTheme.FIRE, "zdjecie", "Samo zdjęcie", emptyList(), FireBand),
+    FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberMid, FireEmberBottom), FireBand),
+    FIRE_GLOW(AppTheme.FIRE, "luna", "Łuna", listOf(FireGlowTop, FireGlowMid, FireGlowBottom), FireBand),
+    FIRE_WINE(AppTheme.FIRE, "wino", "Wino", listOf(FireWineTop, FireWineBottom), FireBand),
+    PAPER_PHOTO(AppTheme.PAPER, "zdjecie", "Samo zdjęcie", emptyList(), PaperBand),
+    PAPER_DAWN(AppTheme.PAPER, "swit", "Świt", listOf(PaperDawnTop, PaperDawnBottom), PaperBand),
+    PAPER_ROSE(AppTheme.PAPER, "roza", "Róża", listOf(PaperRoseTop, PaperRoseBottom), PaperBand),
+    PAPER_PARCHMENT(AppTheme.PAPER, "pergamin", "Pergamin", listOf(PaperParchmentTop, PaperParchmentBottom), PaperBand),
+    STEEL_PHOTO(AppTheme.STEEL, "zdjecie", "Samo zdjęcie", emptyList(), SteelBand),
+    STEEL_NAVY(AppTheme.STEEL, "granat", "Granat", listOf(SteelNavyTop, SteelNavyBottom), SteelBand),
+    STEEL_DEEP(AppTheme.STEEL, "glebia", "Głębia", listOf(SteelDeepTop, SteelDeepBottom), SteelBand),
+    STEEL_DUSK(AppTheme.STEEL, "zmrok", "Zmrok", listOf(SteelDuskTop, SteelDuskBottom), SteelBand),
+    FOREST_PHOTO(AppTheme.FOREST, "zdjecie", "Samo zdjęcie", emptyList(), ForestBand),
+    FOREST_MIST(AppTheme.FOREST, "mgla", "Mgła", listOf(ForestMistTop, ForestMistBottom), ForestBand),
+    FOREST_FERN(AppTheme.FOREST, "paproc", "Paproć", listOf(ForestFernTop, ForestFernBottom), ForestBand),
+    FOREST_HEATHER(AppTheme.FOREST, "wrzos", "Wrzos", listOf(ForestHeatherTop, ForestHeatherBottom), ForestBand),
     ;
 
+    /** Gradient na zdjęciu (D-55); bez niego „Samo zdjęcie”. */
     val gradient: Boolean get() = stops.size >= 2
 
-    /** Zdjęcie dnia (D-51): pod nim karty są szklane. */
-    val photo: Boolean get() = band != null
-
     /**
-     * Kolory tła od góry do dołu: dla jednolitego `surface` schematu, dla zdjęcia dolny kolor jego pasma —
-     * to widać, zanim zdjęcie się wczyta, i wtedy, gdy baza nie ma zdjęć.
+     * Kolory tła od góry do dołu bez zdjęcia: dół pasma, a pod gradientem gradient zmieszany z dołem pasma. To widać,
+     * zanim zdjęcie się wczyta, i wtedy, gdy baza nie ma zdjęć; tak samo maluje się tło okna w `MainActivity`.
      */
-    fun colors(scheme: ColorScheme): List<Color> = band?.let { listOf(it.low) } ?: stops.ifEmpty { listOf(scheme.surface) }
+    fun colors(): List<Color> = if (gradient) stops.map { composite(band.low, it, GRADIENT_OVER_PHOTO) } else listOf(band.low)
 
     companion object {
-        /** Warianty motywu w kolejności z Ustawień; pierwszy jest jednolity i domyślny. */
+        /** Warianty motywu w kolejności z Ustawień; pierwszy to samo zdjęcie i jest domyślny. */
         fun of(theme: AppTheme): List<AppBackground> = entries.filter { it.theme == theme }
 
-        /** Wybór z DataStore albo z kopii; nieznany id (albo tło innego motywu) spada na tło jednolite motywu. */
+        /**
+         * Wybór z DataStore albo z kopii; nieznany id (także „jednolite” sprzed D-55) i tło innego motywu spadają
+         * na samo zdjęcie tego motywu.
+         */
         fun resolve(theme: AppTheme, id: String?): AppBackground = of(theme).let { own -> own.firstOrNull { it.id == id } ?: own.first() }
     }
 }
 
+/** Kolor [top] z kryciem [alpha] położony na [under], zmieszany w sRGB tak, jak składa warstwy Android. */
+fun composite(under: Color, top: Color, alpha: Float): Color = Color(
+    red = under.red + (top.red - under.red) * alpha,
+    green = under.green + (top.green - under.green) * alpha,
+    blue = under.blue + (top.blue - under.blue) * alpha,
+)
+
+/** Podkład tła: dół pasma zdjęcia. Na nim rysuje się zdjęcie (`PhotoBackdrop`), a nad zdjęciem [gradientOverPhoto]. */
+fun Modifier.appBackground(background: AppBackground): Modifier = background(background.band.low)
+
 /**
- * Maluje tło ekranów: `surface` dla tła jednolitego, gradient dla pozostałych. Gradient idzie z ditheringiem,
- * bo ciemne przejścia na kilku poziomach jasności inaczej układają się w widoczne pasy; pędzel powstaje raz
- * na rozmiar (`drawWithCache`), a nie przy każdej klatce playera.
+ * Gradient na zdjęciu (D-55) z kryciem [GRADIENT_OVER_PHOTO]. Idzie z ditheringiem, bo ciemne przejścia na kilku
+ * poziomach jasności inaczej układają się w widoczne pasy; pędzel powstaje raz na rozmiar (`drawWithCache`), a nie
+ * przy każdej klatce playera. Bez gradientu nic nie rysuje.
  */
-fun Modifier.appBackground(background: AppBackground, surface: Color): Modifier =
+fun Modifier.gradientOverPhoto(background: AppBackground): Modifier =
     if (!background.gradient) {
-        // Zdjęcie dnia rysuje się nad tym kolorem osobno (`PhotoBackdrop`): pod nim jest dół pasma, nie `surface`.
-        background(background.band?.low ?: surface)
+        this
     } else {
         drawWithCache {
             val paint = Paint().apply {
-                shader = LinearGradientShader(from = Offset.Zero, to = Offset(0f, size.height), colors = background.stops)
+                shader = LinearGradientShader(
+                    from = Offset.Zero,
+                    to = Offset(0f, size.height),
+                    colors = background.stops.map { it.copy(alpha = GRADIENT_OVER_PHOTO) },
+                )
                 nativePaint.isDither = true
             }
             onDrawBehind {

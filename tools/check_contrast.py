@@ -4,12 +4,11 @@
 Uruchom: python tools/check_contrast.py
 Od D-39 motywów jest kilka (Color.kt + Themes.kt), więc skrypt bierze każdy schemat, jaki znajdzie w Theme.kt:
 nowy motyw nie wjedzie bez kontroli kompletu 35 ról.
-Od D-50 każdy motyw ma też warianty tła (Backgrounds.kt). Gradient leży pod tymi samymi kartami i napisami
-co `surface`, więc w każdym swoim punkcie musi trzymać pary, w których tłem jest `surface` albo `background`.
-Punkty liczymy jak Android: liniowo w sRGB między równo rozłożonymi kolorami (tak samo ThemeContractTest).
-Od D-51 jest też zdjęcie dnia: filtr kładzie każdy piksel zdjęcia na odcinku pasma (`PhotoBand`), a karty nad nim są
-szkłem, czyli `onSurface` z alfą motywu. W każdym punkcie pasma tekst na tle i na szklanej karcie trzyma progi,
-a karta odróżnia się od tła na 1,12:1.
+Od D-50 każdy motyw ma też warianty tła (Backgrounds.kt), od D-55 zawsze na zdjęciu dnia (D-51): filtr kładzie każdy
+piksel zdjęcia na odcinku pasma (`PhotoBand`), a wybrany gradient leży na nim z kryciem `GRADIENT_OVER_PHOTO`.
+Karty nad tłem są szkłem, czyli `onSurface` z alfą motywu. W każdym punkcie pasma i każdym punkcie gradientu tekst
+na tle i na szklanej karcie trzyma progi, a karta odróżnia się od tła na 1,12:1. Punkty liczymy jak Android:
+liniowo w sRGB, w 8 bitach na kanał (tak samo ThemeContractTest).
 Kod wyjścia 1, jeśli któraś para nie spełnia progu — do wpięcia w CI, gdyby motyw zaczął się psuć.
 
 Progi: 4.5:1 dla tekstu, 3:1 dla elementów interfejsu (obrysy, ikony).
@@ -66,6 +65,13 @@ PAIRS = [
     ("tertiary", "surfaceContainer", 4.5, "żar na karcie"),
     ("onTertiary", "tertiary", 4.5, "tekst na żarze („Zastosuj”)"),
     ("primary", "surfaceContainerHigh", 3.0, "wskaźnik nawigacji, pasek „to teraz”"),
+    # D-52: kategorie Ustawień, menu playera, podświetlony wybór na tablecie, pole szukania.
+    ("onSurfaceVariant", "surfaceContainer", 4.5, "streszczenie kategorii, opis na karcie dnia"),
+    ("onSurfaceVariant", "surfaceContainerHigh", 4.5, "opis w menu playera, podświetlony kafelek"),
+    ("onSurfaceVariant", "surfaceContainerHighest", 4.5, "streszczenie wybranej kategorii"),
+    ("tertiary", "surfaceContainerHighest", 4.5, "„Jest wersja” na wybranej kategorii"),
+    ("error", "surfaceContainerHigh", 4.5, "brak sprzętu na podświetlonym kafelku"),
+    ("onSurface", "surfaceContainerLow", 4.5, "tekst w polu szukania"),
 ]
 
 
@@ -100,30 +106,36 @@ def parse_theme(text, palette_text):
     return schemes
 
 
-def parse_backgrounds(text, palette):
-    """Zwraca [(motyw, id tła, ['#RRGGBB', ...])] z `enum class AppBackground` w Backgrounds.kt.
+def parse_bands(text, palette):
+    """{nazwa: ('#low', '#high', alfa)} z `val FireBand = PhotoBand(FirePhotoLow, FirePhotoHigh, glass = 0.08f)`."""
+    return {
+        name: (palette[low], palette[high], float(alpha))
+        for name, low, high, alpha in re.findall(
+            r"val\s+(\w+)\s*=\s*PhotoBand\(\s*(\w+),\s*(\w+),\s*glass\s*=\s*([0-9.]+)f\s*\)", text
+        )
+    }
 
-    Wpis wygląda tak: `FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberBottom))`;
-    `emptyList()` to tło jednolite, czyli `surface` schematu, który i tak sprawdzają pary wyżej.
+
+def parse_gradient_alpha(text):
+    """Krycie gradientu na zdjęciu: `const val GRADIENT_OVER_PHOTO = 0.5f`; None, gdy go nie ma."""
+    match = re.search(r"const\s+val\s+GRADIENT_OVER_PHOTO\s*=\s*([0-9.]+)f", text)
+    return float(match.group(1)) if match else None
+
+
+def parse_backgrounds(text, palette):
+    """Zwraca [(motyw, id tła, ['#RRGGBB', ...], nazwa pasma)] z `enum class AppBackground` w Backgrounds.kt.
+
+    Wpis wygląda tak: `FIRE_EMBER(AppTheme.FIRE, "zar", "Żar", listOf(FireEmberTop, FireEmberBottom), FireBand)`;
+    `emptyList()` to samo zdjęcie, bez gradientu.
     """
     entries = re.findall(
-        r"\w+\(\s*AppTheme\.(\w+),\s*\"([^\"]+)\",\s*\"[^\"]*\",\s*(?:emptyList\(\)|listOf\(([^)]*)\))\s*\)",
+        r"\w+\(\s*AppTheme\.(\w+),\s*\"([^\"]+)\",\s*\"[^\"]*\",\s*(?:emptyList\(\)|listOf\(([^)]*)\)),\s*(\w+)\s*\)",
         text,
     )
     return [
-        (theme, background_id, [palette[name.strip()] for name in stops.split(",") if name.strip()])
-        for theme, background_id, stops in entries
+        (theme, background_id, [palette[name.strip()] for name in stops.split(",") if name.strip()], band)
+        for theme, background_id, stops, band in entries
     ]
-
-
-def parse_photo_bands(text, palette):
-    """[(motyw, id, '#low', '#high', alfa)] z wpisów zdjęcia dnia: `…, emptyList(), PhotoBand(Low, High, glass = 0.08f))`."""
-    entries = re.findall(
-        r"\w+\(\s*AppTheme\.(\w+),\s*\"([^\"]+)\",\s*\"[^\"]*\",\s*emptyList\(\),\s*"
-        r"PhotoBand\(\s*(\w+),\s*(\w+),\s*glass\s*=\s*([0-9.]+)f\s*\)\s*\)",
-        text,
-    )
-    return [(theme, bid, palette[low], palette[high], float(alpha)) for theme, bid, low, high, alpha in entries]
 
 
 def parse_scheme_for(text):
@@ -168,84 +180,77 @@ def mix(under, over, alpha):
     return quantize(tuple(u + (o - u) * alpha for u, o in zip(under, over)))
 
 
-def contrast(a, b):
-    la, lb = luminance(a), luminance(b)
+def ratio(la, lb):
+    """Stosunek kontrastu dwóch względnych jasności."""
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 
+def contrast(a, b):
+    return ratio(luminance(a), luminance(b))
+
+
+def background_points(stops, low, high, alpha):
+    """Punkty tła tak, jak składa je Android: piksel zdjęcia z odcinka pasma, a na nim punkt gradientu z kryciem
+    `GRADIENT_OVER_PHOTO`. Samo zdjęcie to sam odcinek pasma. Tak samo liczy ThemeContractTest."""
+    band = gradient_points([low, high])
+    if len(stops) < 2:
+        return band
+    gradient = gradient_points(stops)
+    return [mix(pixel, point, alpha) for pixel in band for point in gradient]
+
+
 def check_backgrounds(theme_text, palette_text, schemes):
-    """Każdy gradient z Backgrounds.kt wobec ról swojego motywu; zwraca liczbę złamanych par."""
+    """Każde tło z Backgrounds.kt (zdjęcie w paśmie, gradient na nim, szklane karty) wobec ról swojego motywu.
+
+    Zwraca liczbę złamanych par; dla każdej pary liczy się najciaśniejszy punkt tła.
+    """
     if not BACKGROUNDS.exists():
         return 0
-    backgrounds = parse_backgrounds(BACKGROUNDS.read_text(encoding="utf-8"), parse_palette(palette_text))
+    text = BACKGROUNDS.read_text(encoding="utf-8")
+    palette = parse_palette(palette_text)
+    bands = parse_bands(text, palette)
+    alpha = parse_gradient_alpha(text)
+    backgrounds = parse_backgrounds(text, palette)
     owner = parse_scheme_for(theme_text)
     by_name = dict(schemes)
-    pairs = [pair for pair in PAIRS if pair[1] in BACKDROP_ROLES]
+    if alpha is None or not backgrounds:
+        print("\nNie znalazłem teł albo krycia gradientu (GRADIENT_OVER_PHOTO) w Backgrounds.kt")
+        return 1
+    on_backdrop = [(fg, threshold, label) for fg, bg, threshold, label in PAIRS if bg in BACKDROP_ROLES and fg not in CARD_ROLES]
+    on_glass = [(fg, threshold, label) for fg, bg, threshold, label in PAIRS if bg in CARD_ROLES and fg not in CARD_ROLES + BACKDROP_ROLES]
     failures = 0
-    print(f"\n=== Tła (D-50): pary na {' i '.join(BACKDROP_ROLES)} w każdym punkcie gradientu")
-    for theme, background_id, stops in backgrounds:
-        if len(stops) < 2:
-            continue
-        scheme_name = owner.get(theme)
-        scheme = by_name.get(scheme_name)
-        if scheme is None:
-            print(f"  BRAK SCHEMATU  {theme}/{background_id}")
-            failures += 1
-            continue
-        worst = None
-        for fg, bg, threshold, label in pairs:
-            ratio, point = min(
-                ((contrast(scheme[fg], point), point) for point in gradient_points(stops)),
-                key=lambda item: item[0],
-            )
-            if ratio < threshold:
-                failures += 1
-                print(f"  BŁĄD {ratio:5.2f}:1 (min {threshold})  {theme.lower()}/{background_id}: {fg} na {as_hex(point)} — {label}")
-            if worst is None or ratio / threshold < worst[0] / worst[1]:
-                worst = (ratio, threshold, fg, point)
-        ratio, threshold, fg, point = worst
-        print(
-            f"  {'ok  ' if ratio >= threshold else 'BŁĄD'} {theme.lower()}/{background_id} ({' → '.join(stops)}): "
-            f"najciaśniej {fg} na {as_hex(point)} {ratio:.3f}:1 (min {threshold})"
-        )
-    return failures
-
-
-def check_photo_bands(theme_text, palette_text, schemes):
-    """Pasmo każdego zdjęcia dnia razem ze szklanymi kartami; zwraca liczbę złamanych par."""
-    if not BACKGROUNDS.exists():
-        return 0
-    bands = parse_photo_bands(BACKGROUNDS.read_text(encoding="utf-8"), parse_palette(palette_text))
-    owner = parse_scheme_for(theme_text)
-    by_name = dict(schemes)
-    failures = 0
-    print("\n=== Zdjęcie dnia (D-51): pasmo zdjęcia i szklane karty w każdym punkcie")
-    for theme, background_id, low, high, alpha in bands:
+    print(f"\n=== Tła (D-50, D-51, D-55): zdjęcie w paśmie, gradient na nim z kryciem {alpha:g}, szklane karty")
+    for theme, background_id, stops, band_name in backgrounds:
         scheme = by_name.get(owner.get(theme))
-        if scheme is None:
-            print(f"  BRAK SCHEMATU  {theme}/{background_id}")
+        band = bands.get(band_name)
+        if scheme is None or band is None:
+            print(f"  BRAK SCHEMATU ALBO PASMA  {theme}/{background_id}")
             failures += 1
             continue
+        low, high, glass_alpha = band
         on_surface = rgb(scheme["onSurface"])
-        worst = None
-        for point in gradient_points([low, high]):
-            glass = mix(point, on_surface, alpha)
-            checks = []
-            for fg, bg, threshold, label in PAIRS:
-                if bg in BACKDROP_ROLES and fg not in CARD_ROLES:
-                    checks.append((contrast(scheme[fg], point), threshold, f"{fg} na tle {as_hex(point)}", label))
-                elif bg in CARD_ROLES and fg not in CARD_ROLES + BACKDROP_ROLES:
-                    checks.append((contrast(scheme[fg], glass), threshold, f"{fg} na szkle {as_hex(glass)}", label))
-            checks.append((contrast(glass, point), GLASS_SEPARATION, f"szkło {as_hex(glass)} na {as_hex(point)}", "karta odróżniona od zdjęcia"))
-            for ratio, threshold, where, label in checks:
-                if ratio < threshold:
-                    failures += 1
-                    print(f"  BŁĄD {ratio:5.2f}:1 (min {threshold})  {theme.lower()}/{background_id}: {where} — {label}")
-                if worst is None or ratio / threshold < worst[0] / worst[1]:
-                    worst = (ratio, threshold, where)
-        ratio, threshold, where = worst
-        print(f"  {'ok  ' if ratio >= threshold else 'BŁĄD'} {theme.lower()}/{background_id} ({low} → {high}, szkło {alpha:g}): "
-              f"najciaśniej {where} {ratio:.3f}:1 (min {threshold})")
+        lum = {fg: luminance(scheme[fg]) for fg, _, _ in on_backdrop + on_glass}
+        lowest = {}
+        for point in background_points(stops, low, high, alpha):
+            glass = mix(point, on_surface, glass_alpha)
+            l_point, l_glass = luminance(point), luminance(glass)
+            checks = [(ratio(lum[fg], l_point), threshold, fg, "tle", label, point) for fg, threshold, label in on_backdrop]
+            checks += [(ratio(lum[fg], l_glass), threshold, fg, "szkle", label, glass) for fg, threshold, label in on_glass]
+            checks.append((ratio(l_glass, l_point), GLASS_SEPARATION, "szkło", "tle", "karta odróżniona od tła", point))
+            for value, threshold, fg, where, label, surface in checks:
+                key = (fg, where)
+                if key not in lowest or value < lowest[key][0]:
+                    lowest[key] = (value, threshold, label, surface)
+        for (fg, where), (value, threshold, label, surface) in lowest.items():
+            if value < threshold:
+                failures += 1
+                print(f"  BŁĄD {value:5.2f}:1 (min {threshold})  {theme.lower()}/{background_id}: {fg} na {where} {as_hex(surface)} — {label}")
+        (fg, where), (value, threshold, label, surface) = min(lowest.items(), key=lambda item: item[1][0] / item[1][1])
+        look = " → ".join(stops) if stops else "samo zdjęcie"
+        print(
+            f"  {'ok  ' if value >= threshold else 'BŁĄD'} {theme.lower()}/{background_id} ({look}; pasmo {low} → {high}, "
+            f"szkło {glass_alpha:g}): najciaśniej {fg} na {where} {as_hex(surface)} {value:.3f}:1 (min {threshold})"
+        )
     return failures
 
 
@@ -269,7 +274,6 @@ def main():
             failures += not ok
             print(f"  {'ok  ' if ok else 'BŁĄD'} {ratio:5.2f}:1 (min {threshold})  {fg} na {bg} — {label}")
     failures += check_backgrounds(theme_text, palette_text, schemes)
-    failures += check_photo_bands(theme_text, palette_text, schemes)
     print(f"\nSchematów: {len(schemes)}, problemów: {failures}")
     return 1 if failures else 0
 

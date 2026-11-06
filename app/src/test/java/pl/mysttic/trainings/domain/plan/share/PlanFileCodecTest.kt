@@ -146,7 +146,7 @@ class PlanFileCodecTest {
         assertTrue(message("""{"app":"mysttic-trainings","version":3}""").contains("kopia zapasowa"))
         assertTrue(message("{}").contains("nie jest plik planu"))
         assertTrue(message("[]").contains("nie jest plik planu"))
-        assertTrue(message("""{"format":"mysttic-trainings-plan","formatVersion":2,"plan":{}}""").contains("nowszej"))
+        assertTrue(message("""{"format":"mysttic-trainings-plan","formatVersion":3,"plan":{}}""").contains("nowszej"))
         assertTrue(message("x".repeat(PlanFile.MAX_BYTES + 1)).contains("za duży"))
     }
 

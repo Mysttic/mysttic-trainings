@@ -1080,3 +1080,220 @@ a `pick` losuje jeden z wagą liczby ćwiczeń, potem zdjęcie tematu, z ziarnem
 przez dzień i nie zmienia się po zrobionym treningu, bo zrobiony trening zostaje w składzie dnia. Dzień bez treningów
 losuje z wszystkich zdjęć. Żaden napis w aplikacji nie mówi o partii dnia; opis w Ustawieniach mówi tylko o „klimacie
 dzisiejszych treningów”.
+
+## D-52 Nowy interfejs: mniej na start, szczegóły schowane, tablet w dwóch panelach (2026-11-05, wersja 1.2.0)
+
+Kontekst: issue #5 (właściciel, 2026-11-05): motywy są, ale aplikacja jest mało atrakcyjna i na start pokazuje za dużo;
+interfejs do przebudowy w designerze, z lepiej schowanymi elementami sekcji ćwiczeń i ustawień, lepszym wyglądem na tabletach
+i prostszym ekranem ćwiczeń. Stan kodu: „Dziś” pokazywało statystyki także przed pierwszym treningiem, nad biblioteką stały
+przełącznik widoku, „Filtry”, „Mój sprzęt” i licznik, Ustawienia były jedną stroną z dwunastoma sekcjami, player trzymał
+nad liczbą wybór poziomu, a pod przyciskami drugi rząd i „Przerwij trening”. `AppLayout.twoPane` z D-42 istniał, ale żaden
+ekran go nie używał: tablet w poziomie dostawał wąską kolumnę pośrodku.
+
+Decyzja: projekt powstał w designerze (canvas „mysttic-trainings: nowy interfejs”, telefon i tablet), a kod idzie za nim.
+Kolory, krój Sora, trzy motywy (D-39) i reguły D-32 (ogień = akcja, żar = informacja, elewacje zerowe) zostają. Zmienia się
+struktura:
+- **Nawigacja z ikonami.** Własne ikony kreskowe 24 × 24 w `ui/common/AppIcons.kt` (`ImageVector` ze ścieżek SVG,
+  te same co w projekcie), bo `material-icons-core` (D-13) nie ma hantla, pauzy ani „pomiń”. Wskaźnik 34 × 4 dp nad aktywną
+  zostaje. Zmienia zdanie z D-32 „dolna nawigacja jest bez ikon”.
+- **„Dziś” mówi mniej na start.** Przed pierwszym planem: trzy ilustracje, jedno zdanie i dwa wybory (kreator jako akcja,
+  gotowy program na stopniu karty). Statystyki schodzą pod kartę i pojawiają się dopiero z historią. Karta dnia dostaje pasek
+  miniatur ćwiczeń (ćwiczenia pokazane, D-43), a „Co jest w treningu” i „Zobacz plan” są cichymi odsyłaczami zamiast
+  drugiego rzędu przycisków. Tablet w poziomie: karta po lewej, tydzień po prawej. Dalej jeden trening na ekranie (D-26).
+- **Ćwiczenia.** Nad listą tylko tytuł i pole szukania z lejkiem; „Tylko mój sprzęt”, widok kafelki / lista i chipy w panelu
+  (D-38: panel dalej rozwija się w siatce, bez arkusza), licznik i „Wyczyść filtry” tylko przy aktywnym filtrze.
+  `LibraryFilter.panelCount` liczy zaznaczenia razem z „Mój sprzęt”. Szczegół ćwiczenia: ilustracja, znaczniki partii
+  i sprzętu, instrukcja; wyniki, warianty, zamienniki i trener w zwijanych wierszach ze streszczeniem.
+- **Ustawienia** to sześć kategorii (Trening, Mój sprzęt, Przypomnienie, Wygląd, Dane i kopia, Aktualizacje) ze streszczeniem
+  stanu (`SettingsSummary`, czysty Kotlin z testem); kategoria jest podstroną tej samej zakładki, bez nowej trasy.
+- **Player**: pozycja w żarze nad nazwą, nazwa dużym tytułem (z półtora metra czyta się nazwę, nie wersaliki 11 sp), liczba,
+  ilustracja i jedna akcja. Poziom (dalej zmienny w każdej chwili, D-06) i „Przerwij trening” w arkuszu pod ⋮; Wstecz,
+  Pauza i Pomiń jako ciche przyciski z ikoną. Liczby playera bez zmian (D-32).
+- **Tablet**: `TwoPane` z D-42 wchodzi w Ćwiczenia (lista 460 dp + szczegół w tym samym `ExerciseDetailViewModel`, który
+  dostał wybór przez `select`, a z trasy bierze id z `SavedStateHandle`) i w Ustawienia (kategorie 400 dp + kategoria).
+- **Ilustracje** w swoich proporcjach (`ExerciseIllustration`), bez pasów tła, a filtr zdjęć idzie za jasnością motywu,
+  nie za trybem systemu — przy jasnym systemie i ciemnym motywie ilustracje były białe jak kartka (luka po D-39).
+- Ekrany główne mają bezstanowe `*Content` z akcjami w osobnej klasie, a `LayoutScreenshotTest` rysuje je z fiksturami
+  na telefonie i tablecie (zapowiedziany w D-42), z paskiem albo szyną.
+- **Tło i szkło zostają** (D-50, D-51): nowe karty (grupy kategorii, wybory na „Dziś”, znaczniki) biorą `cardColor()`,
+  ekrany `ScreenScaffold`, a obrysowane elementy są przezroczyste, więc gradient i zdjęcie dnia przechodzą przez nowy
+  układ jak przez stary. Kategoria Wygląd w Ustawieniach zbiera motyw, tło i osoby na zdjęciu dnia, a jej streszczenie
+  dopisuje tło, gdy nie jest jednolite.
+
+Odrzucone: nowa paleta (motywy były dobre, problemem była struktura); `material-icons-extended` (kilka megabajtów dla
+kilkunastu ikon, D-13); arkusz dolny na filtry biblioteki (D-38: rozwijany panel był prośbą wprost); osobne trasy dla kategorii
+Ustawień (pasek nawigacji zniknąłby na podstronie); dwa panele także dla Historii i planów (osobny krok, wymaga szczegółu
+sesji i planu w panelu).
+
+Konsekwencje: `tools/check_contrast.py` i `ThemeContractTest` dostały sześć par używanych przez nowe komponenty
+(streszczenia na kartach, menu playera, podświetlony wybór, pole szukania) — wszystkie trzy motywy je trzymają.
+Skrypty `tools/przebieg_biblioteka.py` i `tools/przebieg_preset.py` szukają filtrów, widoku i „Przerwij trening” w nowych
+miejscach. Zrzuty w `docs/screenshots` pokazują wygląd sprzed D-52 do następnego przejścia na emulatorze; aktualny układ
+rysuje `LayoutScreenshotTest`. Historia, kreator, edytory i podgląd planu dostają tylko wspólne elementy (nawigacja, ikony,
+filtr zdjęć) — ich przebudowa to następny krok (zrobiona w D-54, razem z dwoma panelami Historii).
+
+## D-53 Plany w głównej nawigacji z „Nowy plan” (2026-11-05, wersja 1.2.0)
+
+Kontekst: issue #1 (przeniesione z archiwum, D-48): lista planów ma pozwalać na zarządzanie wieloma planami i dodanie planu
+wprost z niej, a „na głównym oknie”. Od D-42 lista istniała, ale jako osobny ekran za cichym odsyłaczem na „Dziś”, którego
+w trakcie cyklu nie było (wejście przez podgląd planu). Dwie uwagi z przejścia poradnika trenera rozwiązało D-49 (plan
+własny startuje dosłownie, „×2” przy treningu planu). Właściciel (2026-11-05): uwzględnić to issue w nowym interfejsie (D-52).
+
+Decyzja: **Plany** to piąta zakładka (Dziś, Plany, Ćwiczenia, Historia, Ustawienia) — cofnięcie odrzucenia „na razie”
+z D-42. „Dziś” zostaje jednym treningiem (D-26), a lista jest jedno tapnięcie obok. Nagłówek listy ma „Nowy plan” (akcja
+w ogniu) z czterema drogami w arkuszu: kreator, gotowy program, własny plan, plan z pliku; bez żadnego planu te same cztery
+stoją od razu na liście. Odsyłacze „Twoje plany” z „Dziś” znikają (zostaje jeden cichy przycisk przed pierwszym planem),
+a „Twoje plany” z menu podglądu planu przełącza zakładkę.
+
+Odrzucone: lista planów na samym „Dziś” (łamie D-26 i cel D-52, żeby na start było mniej); przełącznik planów w nagłówku
+„Dziś” (drugi sposób na to samo co zakładka).
+
+Konsekwencje: pięć pozycji w pasku i szynie (etykiety mieszczą się od 360 dp szerokości); `TodayViewModel.planCount`
+znika. Poradnik trenera i przewodnik opisują nową ścieżkę: Plany → Nowy plan → Własny plan.
+
+## D-54 Reszta nowego interfejsu: Historia, podgląd planu, kreator i edytory (2026-11-06, wersja 1.2.0)
+
+Kontekst: issue #5 prosiło o przebudowę całego interfejsu. D-52 przebudował „Dziś”, bibliotekę, Ustawienia, playera
+i listę planów, a Historię, kreator, edytory i podgląd planu zostawił na następny krok, z samymi wspólnymi elementami.
+Właściciel (2026-11-06): wydanie 1.2.0 ma zamknąć issue w całości. Projektu z designera dla tych ekranów nie było,
+więc idą za językiem D-52, bez nowych kolorów i krojów.
+
+Decyzja:
+- **Ten sam zestaw części.** Pasek ekranu podrzędnego `BackTopBar` ze strzałką z `AppIcons` (koniec glifów Materiala
+  w `ui/`), menu ⋮ (`OverflowMenu`, `MenuAction` w `Structure.kt`) na akcje, które nie zasługują na przycisk,
+  cichy odsyłacz `QuietLink`, zwijane wiersze `DisclosureRow` ze streszczeniem i karty kategorii `CategoryGroup`.
+  Nowe ikony kreskowe: Check, Trash, Edit, ChevronUp, Drag, Person, Target, Calendar (`AppIconsTest` je pilnuje).
+- **Historia.** Przed pierwszym treningiem jedno zdanie zamiast filtrów i zer. Okres steruje statystykami, a stan
+  listy (wszystkie, ukończone, przerwane) to segmenty nad listą; ponowne tapnięcie nie zdejmuje już filtra, bo
+  „Wszystkie” jest osobnym segmentem. Wykres wolumenu i kalendarz są w zwiniętym „Postępie”, sesje idą miesiącami
+  w kartach z kafelkiem dnia. Szczegóły sesji: trzy liczby, Δ względem poprzedniego razu, serie w zwiniętym wierszu,
+  ocena i notatka z **Zapisz ocenę**, usunięcie w menu ⋮. Na tablecie w poziomie lista i szczegół stoją obok siebie
+  jak w bibliotece: `SessionDetailViewModel` dostał wybór przez `select` (klucz `sessionId` w `SavedStateHandle`),
+  po usunięciu panel przechodzi do najnowszej z pozostałych sesji. To cofa odrzucenie z D-52 dla Historii; lista
+  planów zostaje w jednej kolumnie.
+- **Podgląd planu.** Postęp i jedna karta następnego dnia ze Startem, a rozkład tygodniami (`PlanWeeks`: dni 1 do 7,
+  8 do 14, jak „Rozpisz tygodnie”) w zwijanych wierszach. Rozwinięty jest tydzień z następnym treningiem, a ręcznie
+  przełączone tygodnie pamiętane są względem tej reguły, więc po zrobionym tygodniu rozwija się kolejny. Kolejne dni
+  odpoczynku stoją jednym wierszem („Odpoczynek · 2 dni”). Akcje planu w menu ⋮ z tymi samymi etykietami co dotąd.
+- **Kreator.** Zamknięcie z każdego kroku (×), sprzęt pigułkami jak w panelu biblioteki zamiast pól wyboru, a na
+  ostatnim kroku streszczenie odpowiedzi, z którego wiersz wraca do swojego kroku.
+- **Edytor planu.** Nazwa, opis i przełącznik trybu w karcie; treningi planu w karcie razem z „Nowy trening”
+  i „Skopiuj trening”; dni tygodniami w zwijanych wierszach (przy krótkim planie wszystkie rozwinięte, przy dłuższym
+  pierwszy tydzień do zmiany i ostatni). Przy dniu zostają strzałki, a „Duplikuj dzień” i „Usuń dzień” przeszły do menu ⋮
+  dnia; dokładanie dni to wiersze z opisem, co robią.
+- **Edytor treningu.** Blok to karta: ćwiczenia z miniaturą i celem, „Dodaj ćwiczenie” i zwinięte „Ustawienia bloku”
+  (nazwa, rodzaj, rundy, przerwy) ze streszczeniem. Przesunięcie, duplikat i usunięcie bloku są w jego menu ⋮,
+  a wszystko o ćwiczeniu (cel, zamiana, duplikat, usunięcie) w arkuszu po tapnięciu wiersza; w wierszu zostaje uchwyt
+  do przeciągania.
+- **Tablet w poziomie.** Podgląd planu, kreator i edytor planu dostają dwie kolumny (karta i postęp obok rozkładu,
+  pytanie obok odpowiedzi, treningi obok dni), edytor treningu zostaje w czytelnej szerokości.
+- Ekrany mają bezstanowe `*Content` z akcjami w osobnej klasie, a `LayoutScreenshotTest` rysuje je z fiksturami
+  na telefonie i tablecie (12 nowych wzorców w `app/src/test/screenshots/uklad`).
+
+Odrzucone: przeciąganie dni w edytorze planu (strzałki wystarczają przy tygodniu, a przeciąganie przez zwinięte
+tygodnie byłoby niejasne); usunięcie ćwiczenia jednym tapnięciem w wierszu bloku (łatwo o pomyłkę przy przeciąganiu);
+dwa panele dla listy planów (podgląd planu ma już dwie kolumny na tablecie).
+
+Konsekwencje: napis w menu ⋮ playera mówi teraz, że zmiana poziomu przelicza od razu także trwającą serię
+(`WorkoutPlanner.merge`, D-06); wersja z D-52 obiecywała „od następnej serii”. Skrypty `tools/przebieg*.py`
+przechodzą bez zmian, bo etykiety, na które patrzą („Krok 1 z 4”, „Więcej”, „Usuń plan”, „Cykl N dni”), zostały.
+Zrzuty w `docs/screenshots` są z przejścia emulatora po D-54. Opis zmian: `docs/guide.md`, `docs/poradnik-trenera.md`,
+`docs/testing.md`, `CHANGELOG.md`.
+
+## D-55 Tło zawsze ze zdjęciem dnia, gradient na zdjęciu (2026-11-06, wersja 1.2.0)
+
+Uwaga właściciela po przeglądzie 1.2.0: tło nie ma być „albo gradient, albo zdjęcie”. Zdjęcie dnia (D-51) leży zawsze,
+a gradient, jeśli wybrany, ma je zabarwić, nie zasłonić.
+
+- `AppBackground` ma w każdym motywie najpierw **Samo zdjęcie** (domyślne), a po nim gradienty motywu (D-50). Każdy
+  wariant niesie pasmo zdjęcia swojego motywu (`PhotoBand`, jedno na motyw). Tło jednolite znika; zapisany identyfikator
+  `jednolite` i każdy nieznany wracają do „Samo zdjęcie” (`AppBackground.resolve`), więc DataStore i kopia zapasowa
+  nie potrzebują migracji.
+- Korzeń nawigacji maluje trzy warstwy: dół pasma (widać go, zanim zdjęcie się wczyta, i gdy baza nie ma zdjęć),
+  zdjęcie (`PhotoBackdrop`) i gradient z kryciem `GRADIENT_OVER_PHOTO` = 0,4 (`gradientOverPhoto`). Przy kryciu 0,5
+  ciemne gradienty „Ognia i Krwi” gasiły zdjęcie jak zasłona (sprawdzone na emulatorze), przy 0,4 sylwetka zostaje
+  czytelna, a kolor gradientu widać. Tło okna (`MainActivity`) to te same kolory bez zdjęcia: `AppBackground.colors()`
+  miesza gradient z dołem pasma w sRGB, jak Android składa warstwy.
+- Karty na tle ekranu są zawsze szklane (`cardColor()`), bo pod każdym tłem jest zdjęcie. `MainActivity` liczy zdjęcie
+  dnia zawsze, nie tylko przy jego wyborze.
+- Kontrast liczy siatka: każdy punkt pasma zdjęcia razem z każdym punktem gradientu, zmieszane z kryciem
+  `GRADIENT_OVER_PHOTO`. W każdym takim punkcie trzymają progi tekst na tle, tekst na szkle i odróżnienie szkła od tła
+  (1,12:1), a tło nie przechodzi na drugą stronę jasności motywu (ikony pasków systemu). Jeden test
+  (`tlo i szklane karty trzymaja progi w calym pasmie i gradiencie`) i jedna funkcja `check_contrast.py`
+  (`check_backgrounds`) zastępują dawne dwie (gradient pod pełnymi kartami, pasmo zdjęcia pod szkłem). Wszystkie
+  warianty trzymają progi; najciaśniej jest dalej przy samym zdjęciu: obrys na szkle w „Ogniu i Krwi” 3,03:1
+  i odróżnienie szkła w „Brzozie i Mechu” 1,126:1.
+- Nagłówek „Dziś” nie nazywa partii („Dziś trenujesz całe ciało”): mówi „Trening na dziś”, „Trening w toku”,
+  „Zacznij od planu” albo „Cykl zrobiony”. Reguła z D-51 („żaden napis nie mówi, jaką partię dziś ćwiczysz”) obejmuje
+  teraz cały ekran, nie tylko zdjęcie.
+
+Konsekwencje: `LayoutScreenshotTest` maluje pod ekranami dół pasma, jak aplikacja przed wczytaniem zdjęcia, więc
+wszystkie karty na wzorcach są szklane; `ThemeScreenshotTest` rysuje każde tło, także „Samo zdjęcie”. Streszczenie
+„Wyglądu” dopisuje do motywu tylko gradient. Odrzucone: zdjęcie z kryciem na gradiencie (zdjęcie wyblakłe, dwa
+parametry do pilnowania), tryby mieszania (Overlay, Color), bo kontrastu nie da się wtedy policzyć tak prosto jak
+przy zwykłym kryciu, i zostawienie tła jednolitego jako opcji (wbrew prośbie).
+
+## D-56 Motyw „Brzoza i Mech”: jasny las (2026-11-06, wersja 1.2.0)
+
+Czwarty motyw, jasny, w klimacie lasu i natury. Identyfikator `forest`, `dark = false`, na końcu listy w Ustawieniach.
+Role trzymają reguły D-32: `primary` to mech (#2E5E2B) i znaczy akcję, `tertiary` to żywica (#7A4A0E) i niesie
+informację, `error` to jagoda (#A3123A), daleko od odcienia mchu, a powierzchnie to podbarwiona kora brzozy (#F4F6EF),
+nie neutralna szarość. Tła: „Samo zdjęcie” i gradienty Mgła, Paproć, Wrzos; pasmo zdjęcia od #D8DECF do bieli,
+szkło 0,065, jak w „Papierze i Ogniu”. Wszystkie pary 35 ról i wszystkie punkty tła trzymają progi
+(`check_contrast.py` widzi cztery schematy). Paletę sprawdziliśmy skryptem przed wpisaniem do `Themes.kt`.
+
+Konsekwencje: `schemeFor` ma czwartą gałąź, `ThemeScreenshotTest` ma wzorce `forest*.png`. Raport PDF dalej rysuje się
+w „Papierze i Ogniu” (D-42), niezależnie od motywu.
+
+## D-57 „O mnie”: płeć, wzrost i waga; kreator zaczyna od sprzętu (2026-11-06, wersja 1.2.0)
+
+- **O mnie** to pierwsza kategoria Ustawień: imię (podpis planów i raportów, wcześniej w „Dane i kopia”), płeć
+  (`Gender`: kobieta, mężczyzna, nie podaję), wzrost i waga (DataStore `gender`, `height_cm`, `weight_kg`; widełki
+  140 do 210 cm i 40 do 150 kg) oraz klucz podpisu planów (D-58). Ustawień jest siedem kategorii.
+- „Na zdjęciach” znika z „Wyglądu”: osoby na zdjęciu dnia wynikają z płci (`PhotoPeople.of`: kobieta → kobiety,
+  mężczyzna → mężczyźni, bez wyboru → oboje). Dawny klucz `photo_people` czytamy jako płeć, gdy nowego nie ma
+  („oboje” to brak wyboru), a zapis płci go kasuje.
+- Kreator: krok 1 to sprzęt (pigułki z „Mój sprzęt” i licznik „z ilu ćwiczeń ułożę plan, a ile bez sprzętu”),
+  krok 2 sylwetka i poziom (wzrost i waga z „O mnie”, po ułożeniu planu zapisane z powrotem), krok 3 cel, krok 4 czas.
+  Licznik liczy `PlanGenerator.candidates`, tymi samymi regułami co generator (wykonalne z zaznaczonym sprzętem,
+  niewycofane, bez ćwiczeń oddechowych i ergometrów); test pilnuje, że generator nie bierze niczego spoza kandydatów.
+- Kopia zapasowa v5 (niewydana) niesie płeć, wzrost i wagę zamiast wyboru osób na zdjęciu.
+
+Odrzucone: płeć jako filtr ćwiczeń albo parametr planu (plan i cele od niej nie zależą, mówi to podpowiedź w „O mnie”).
+
+## D-58 Plik planu podpisany, z hasłem na życzenie (2026-11-06, wersja 1.2.0)
+
+Pytanie właściciela: czy plan da się zabezpieczyć tak, żeby nikt nie podmienił autora. Plik planu nie był XML-em
+w ZIP-ie, tylko zwykłym JSON-em (D-42), w którym autor to pole tekstowe.
+
+- **Format 2** to koperta `PlanEnvelope` z tymi samymi znacznikami `format` i `formatVersion`: `signed` albo
+  `encrypted`. Treść (`PlanFile`, jak dotąd) jedzie w Base64, a podpis ECDSA P-256 (`SHA256withECDSA`) obejmuje
+  dokładnie te bajty, razem z autorem planu (`plan.author`) i podpisującym (`signer`, nowe pole). Klucz publiczny
+  (X.509) jedzie w pliku.
+- **Klucz** żyje w Android Keystore (`PlanSigningKey`, alias `plan-signing`): powstaje przy pierwszym użyciu i nigdy
+  nie wychodzi z telefonu, więc nie ma go w kopii zapasowej. Odcisk to 80 bitów SHA-256 klucza publicznego w pięciu
+  grupach po cztery znaki; widać go w „O mnie”, na ekranie wysyłki i w podglądzie importu.
+- **Hasło** (co najmniej 6 znaków) zamyka podpisaną treść: AES-256-GCM, klucz z PBKDF2-HMAC-SHA256 (210 000 iteracji,
+  sól 16 bajtów, hasło w UTF-8, liczone na `Mac`, bo dostawcy na Androidzie i w JDK różnie zamieniają znaki spoza
+  ASCII). Hasło żyje tylko w pamięci ekranu i ViewModelu, nigdy w zapisanym stanie.
+- **Eksport** wymaga imienia z „O mnie” (pole **Podpis** na ekranie wysyłki zapisuje je tam od razu). Autor planu
+  od kogoś zostaje w pliku, a podpisujący jest w nim jako przekazujący. Kopia planu od kogoś zachowuje jego autora:
+  to zmienia D-42 („kopia planu od kogoś to już Twój plan”), bo inaczej „Kopiuj” zdejmowałby autora jednym ruchem.
+- **Import**: podpis niezgodny z treścią zatrzymuje plik z komunikatem, plik z hasłem pyta o hasło („Hasło nie
+  pasuje.” po złym), plik formatu 1 wchodzi jak dotąd, oznaczony „Bez podpisu”. Aplikacja 1.1.0 na pliku formatu 2
+  mówi „Zaktualizuj aplikację”.
+
+Granice, uczciwie: kod jest otwarty, a klucz publiczny jedzie z plikiem, więc podpis dowodzi tylko tego, że plik
+podpisał właściciel tego klucza i że od tamtej chwili nic się w nim nie zmieniło. Ktoś może podpisać cudzy plan własnym
+kluczem pod własnym imieniem; wtedy odcisk różni się od odcisku autora, dlatego autor pokazuje swój (na przykład
+klientom), a odbiorca porównuje. Hasło chroni przed tymi, którzy go nie mają, a nie przed odbiorcą, który je dostał.
+Nowy telefon albo ponowna instalacja to nowy klucz; stare pliki dalej się sprawdzają, bo niosą swój klucz.
+
+Odrzucone: ZIP z hasłem (ZipCrypto jest słaby, AES w ZIP-ie wymaga biblioteki, a ZIP i tak nie chroni autora),
+szyfrowanie bez hasła kluczem wbudowanym w aplikację (klucz leżałby w publicznym repozytorium), rejestr autorów
+na serwerze (aplikacja nie ma konta ani sieci poza aktualizacjami).
+
+Pliki: `domain/plan/share/PlanSeal.kt` (koperta, podpis, hasło, odcisk), `data/share/PlanSigningKey.kt`, wzorce
+`app/src/test/resources/plan-podpisany.plan.json` i `plan-z-haslem.plan.json` (hasło `lesna-polana`, klucz
+3616 6E0E 2B17 DD34 19FE), testy `PlanSealTest`. Wzorce formatu 2 są umową jak `plan-wzorcowy.plan.json`: muszą się
+wczytywać w każdej przyszłej wersji.

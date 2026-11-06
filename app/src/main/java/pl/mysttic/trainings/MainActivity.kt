@@ -21,7 +21,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import pl.mysttic.trainings.data.background.BackgroundPhotoRepository
@@ -34,7 +33,6 @@ import pl.mysttic.trainings.ui.navigation.TrainingsRoot
 import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
-import pl.mysttic.trainings.ui.theme.schemeFor
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -68,13 +66,13 @@ class MainActivity : ComponentActivity() {
             val theme = AppTheme.fromId(settings.themeId)
             // Tło tego motywu (D-50): każdy motyw pamięta swoje, więc zmiana motywu przywraca jego wybór.
             val background = AppBackground.resolve(theme, settings.backgrounds[theme.id])
-            // Zdjęcie dnia (D-51) liczymy tylko wtedy, gdy jest wybrane: dobór czyta plan, treningi i bazę ćwiczeń.
-            val photos = remember(background.photo) { if (background.photo) backgroundPhotos.today() else flowOf(null) }
+            // Zdjęcie dnia (D-51) leży od D-55 pod każdym tłem. Dobór czyta plan, treningi i bazę ćwiczeń, więc flow jest jeden.
+            val photos = remember { backgroundPhotos.today() }
             val photo by photos.collectAsStateWithLifecycle(initialValue = null)
             val view = LocalView.current
             LaunchedEffect(theme, background) {
                 // Wygląd nie idzie za systemem, więc ikony pasków i tło okna muszą iść za wyborem.
-                window.setBackgroundDrawable(windowBackground(theme, background))
+                window.setBackgroundDrawable(windowBackground(background))
                 WindowCompat.getInsetsController(window, view).apply {
                     isAppearanceLightStatusBars = !theme.dark
                     isAppearanceLightNavigationBars = !theme.dark
@@ -104,11 +102,11 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Tło okna takie jak tło ekranów: widać je, zanim Compose narysuje klatkę. Gradient z tymi samymi kolorami
-     * rozłożonymi równo z góry na dół, tak samo jak `appBackground`.
+     * Tło okna takie jak tło ekranów przed wczytaniem zdjęcia: widać je, zanim Compose narysuje klatkę. Dół pasma,
+     * a z gradientem jego kolory zmieszane z dołem pasma, rozłożone równo z góry na dół jak w `gradientOverPhoto`.
      */
-    private fun windowBackground(theme: AppTheme, background: AppBackground): Drawable {
-        val colors = background.colors(schemeFor(theme)).map { it.toArgb() }
+    private fun windowBackground(background: AppBackground): Drawable {
+        val colors = background.colors().map { it.toArgb() }
         return if (colors.size < 2) {
             ColorDrawable(colors.first())
         } else {

@@ -36,6 +36,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import pl.mysttic.trainings.data.share.PlanSigningKey
 
 /** Stan sekcji „Aktualizacje": wynik ostatniego pytania i to, co akurat trwa, osobno dla aplikacji i bazy ćwiczeń. */
 data class UpdateUiState(
@@ -65,7 +68,18 @@ class SettingsViewModel @Inject constructor(
     private val updates: UpdateRepository,
     private val databases: ExerciseDatabaseRepository,
     private val player: PlayerController,
+    private val planSigningKey: PlanSigningKey,
 ) : ViewModel() {
+
+    /** Odcisk klucza podpisu planów (D-58) do „O mnie”; liczony raz, w tle, bo za pierwszym razem tworzy klucz. */
+    private val _signingKey = MutableStateFlow<String?>(null)
+    val signingKey: StateFlow<String?> = _signingKey.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _signingKey.value = runCatching { withContext(Dispatchers.Default) { planSigningKey.fingerprint() } }.getOrNull()
+        }
+    }
 
     private val _update = MutableStateFlow(UpdateUiState())
     val update: StateFlow<UpdateUiState> = _update.asStateFlow()
@@ -205,7 +219,9 @@ class SettingsViewModel @Inject constructor(
     fun setVolumeKeyDone(on: Boolean) = viewModelScope.launch { repo.setVolumeKeyDone(on) }
     fun setTheme(id: String) = viewModelScope.launch { repo.setThemeId(id) }
     fun setBackground(themeId: String, backgroundId: String) = viewModelScope.launch { repo.setBackground(themeId, backgroundId) }
-    fun setPhotoPeople(id: String) = viewModelScope.launch { repo.setPhotoPeople(id) }
+    fun setGender(id: String) = viewModelScope.launch { repo.setGender(id) }
+    fun setHeightCm(cm: Int) = viewModelScope.launch { repo.setHeightCm(cm) }
+    fun setWeightKg(kg: Double) = viewModelScope.launch { repo.setWeightKg(kg) }
     fun setAuthorName(name: String) = viewModelScope.launch { repo.setAuthorName(name) }
 
     fun setReminderEnabled(on: Boolean) = viewModelScope.launch {

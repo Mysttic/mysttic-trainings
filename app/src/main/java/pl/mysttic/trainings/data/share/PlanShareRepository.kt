@@ -32,6 +32,8 @@ import pl.mysttic.trainings.domain.plan.share.ImportedPlan
 import pl.mysttic.trainings.domain.plan.share.PlanFile
 import pl.mysttic.trainings.domain.plan.share.PlanFileCodec
 import pl.mysttic.trainings.domain.plan.share.PlanFileException
+import pl.mysttic.trainings.domain.plan.share.PlanSeal
+import pl.mysttic.trainings.domain.plan.share.PlanSealInfo
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -46,12 +48,16 @@ data class PlanImportPreview(
     val alreadyHave: String?,
     /** Seed autora nowszy niż nasz: część ćwiczeń przyjdzie bez ilustracji. */
     val newerSeed: Boolean,
+    /** Podpis i hasło pliku (D-58): podpis zgodny z treścią albo plik bez podpisu. */
+    val seal: PlanSealInfo = PlanSealInfo(signed = false, fingerprint = null, passwordProtected = false),
 )
 
 /**
  * Plik planu na zewnątrz i do środka (D-42). Plik wychodzi tylko przez systemowe okno udostępniania albo SAF,
  * przychodzi tylko jako `content://` od innej aplikacji. Import nigdy niczego nie nadpisuje: plan dostaje nowe id
  * (`PlanCopy`), ćwiczenia, które już są, zostają swoje, a nowy plan czeka na liście nieaktywny.
+ * Od D-58 plik wychodzi podpisany kluczem telefonu ([PlanSigningKey]) i imieniem z „O mnie”, na życzenie z hasłem;
+ * przychodzący z podpisem niezgodnym z treścią nie wchodzi.
  */
 @Singleton
 class PlanShareRepository @Inject constructor(
@@ -63,6 +69,7 @@ class PlanShareRepository @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val settingsRepo: SettingsRepository,
     private val json: Json,
+    private val signingKey: PlanSigningKey,
 ) {
     /** Odbiór pliku żyje dłużej niż Activity: obrót ekranu w trakcie czytania nie gubi pliku. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -73,10 +80,10 @@ class PlanShareRepository @Inject constructor(
 
     // ---------------------------------------------------------------- wysyłka
 
-    /** Plik planu w `cacheDir/shared` i jego `content://` do okna udostępniania. */
-    suspend fun exportForShare(programId: String): Pair<Uri, String> = withContext(Dispatchers.IO) {
+    /** Plik planu w `cacheDir/shared` i jego `content://` do okna udostępniania; [password] zamyka go hasłem (D-58). */
+    suspend fun exportForShare(programId: String, password: String? = null): Pair<Uri, String> = withContext(Dispatchers.IO) {
         cleanup()
-        val (text, name) = exportText(programId)
+        val (text, name) = exportText(programId, password)
         val dir = File(context.cacheDir, SHARED_DIR).apply { mkdirs() }
         val file = File(dir, name)
         file.writeText(text)
@@ -84,8 +91,8 @@ class PlanShareRepository @Inject constructor(
     }
 
     /** Zapis przez SAF (`CreateDocument`) — do Plików, na dysk, na kartę. */
-    suspend fun exportTo(uri: Uri, programId: String) = withContext(Dispatchers.IO) {
-        val (text, _) = exportText(programId)
+    suspend fun exportTo(uri: Uri, programId: String, password: String? = null) = withContext(Dispatchers.IO) {
+        val (text, _) = exportText(programId, password)
         context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
             ?: error("Nie udało się otworzyć pliku do zapisu.")
     }
@@ -102,14 +109,20 @@ class PlanShareRepository @Inject constructor(
     suspend fun suggestedName(programId: String): String =
         PlanFileCodec.fileName(programRepo.byId(programId)?.name ?: "plan")
 
-    private suspend fun exportText(programId: String): Pair<String, String> {
+    /** Odcisk klucza, którym ten telefon podpisuje plany (D-58); pierwsze wywołanie tworzy klucz. */
+    suspend fun signerFingerprint(): String = withContext(Dispatchers.IO) { signingKey.fingerprint() }
+
+    private suspend fun exportText(programId: String, password: String?): Pair<String, String> {
         val program = programRepo.byId(programId) ?: error("Nie ma takiego planu.")
         val workouts = program.days.mapNotNull { it.workoutId }.distinct()
             .mapNotNull { workoutRepo.getById(it) }.associateBy { it.id }
         val settings = settingsRepo.current()
         // Tożsamość planu nadajemy przy pierwszym eksporcie: kolejne wysyłki tego samego planu rozpozna odbiorca.
         val uid = program.shareUid ?: UUID.randomUUID().toString().also { programRepo.setShareUid(programId, it) }
-        val author = program.author.ifBlank { settings.authorName }
+        // Plik podpisuje właściciel telefonu imieniem z „O mnie” (D-58); autor planu od kogoś zostaje w pliku.
+        val signer = settings.authorName.trim()
+        if (signer.isEmpty()) throw PlanFileException(NO_SIGNER)
+        val author = program.author.ifBlank { signer }
         val file = PlanFileCodec.export(
             program = program,
             workouts = workouts,
@@ -122,8 +135,9 @@ class PlanShareRepository @Inject constructor(
             difficulty = settings.difficulty,
             owned = settings.ownedEquipment,
             notes = programRepo.notes(programId),
+            signer = signer,
         )
-        return PlanFileCodec.encode(file, json) to PlanFileCodec.fileName(program.name)
+        return PlanSeal.seal(file, json, signingKey, password?.takeIf { it.isNotEmpty() }) to PlanFileCodec.fileName(program.name)
     }
 
     // ---------------------------------------------------------------- odbiór
@@ -165,19 +179,24 @@ class PlanShareRepository @Inject constructor(
         key
     }
 
-    suspend fun preview(key: String): PlanImportPreview = withContext(Dispatchers.IO) {
-        val plan = read(key)
+    /**
+     * Podgląd pliku. Plik zamknięty hasłem bez [password] (albo ze złym) rzuca `PlanPasswordException`, a z podpisem
+     * niezgodnym z treścią `PlanFileException` (D-58).
+     */
+    suspend fun preview(key: String, password: String? = null): PlanImportPreview = withContext(Dispatchers.IO) {
+        val (plan, seal) = read(key, password)
         val settings = settingsRepo.current()
         PlanImportPreview(
             plan = plan,
             alreadyHave = programDao.byShareUid(plan.uid).firstOrNull()?.name,
             newerSeed = plan.seedVersion > settings.seedVersion,
+            seal = seal,
         )
     }
 
     /** Zapis planu z pliku: nowe id, dosłowne bloki, nieaktywny. Zwraca id nowego planu. */
-    suspend fun commit(key: String, now: Long = System.currentTimeMillis()): String = withContext(Dispatchers.IO) {
-        val plan = read(key)
+    suspend fun commit(key: String, password: String? = null, now: Long = System.currentTimeMillis()): String = withContext(Dispatchers.IO) {
+        val (plan, _) = read(key, password)
         val programId = programRepo.newProgramId()
         val copied = PlanCopy.copy(plan.days, plan.workouts.associateBy { it.id }, programId, now)
         val program = Program(
@@ -205,12 +224,12 @@ class PlanShareRepository @Inject constructor(
         programId
     }
 
-    private suspend fun read(key: String): ImportedPlan {
+    private suspend fun read(key: String, password: String?): Pair<ImportedPlan, PlanSealInfo> {
         require(KEY.matches(key)) { "Zły klucz pliku." }
         val file = File(File(context.cacheDir, INCOMING_DIR), "$key.json")
         if (!file.exists()) throw PlanFileException("Plik zniknął — otwórz go jeszcze raz.")
-        val text = file.readText()
-        return PlanFileCodec.validate(PlanFileCodec.decode(text, json), exerciseRepo.getMap())
+        val opened = PlanSeal.open(file.readText(), json, password)
+        return PlanFileCodec.validate(opened.file, exerciseRepo.getMap()) to opened.seal
     }
 
     /** Pliki starsze niż doba z `shared`, `reports` i `incoming`: cache nie puchnie od wysłanych planów. */
@@ -233,6 +252,7 @@ class PlanShareRepository @Inject constructor(
         private const val TAG = "PlanShareRepository"
         private const val CANNOT_OPEN = "Nie udało się otworzyć pliku."
         private const val OWN_FILE = "Ten plik wyszedł z tej aplikacji. Wyślij go innej osobie albo zapisz do pliku."
+        private const val NO_SIGNER = "Plan podpisuje się Twoim imieniem. Wpisz je wyżej albo w Ustawieniach, w „O mnie”."
 
         /** Komunikat na ekran dla błędu odczytu pliku planu; ten sam dla intencji i dla wyboru pliku. */
         fun errorMessage(t: Throwable): String = when (t) {

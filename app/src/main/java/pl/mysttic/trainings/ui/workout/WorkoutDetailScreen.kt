@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +36,7 @@ import pl.mysttic.trainings.domain.plan.SetProgression
 import pl.mysttic.trainings.domain.plan.preset.PresetCatalog
 import pl.mysttic.trainings.ui.adaptive.ReadableBox
 import pl.mysttic.trainings.ui.adaptive.readableWidth
+import pl.mysttic.trainings.ui.common.AppIcons
 import pl.mysttic.trainings.ui.common.BlockHeader
 import pl.mysttic.trainings.ui.common.DifficultySelector
 import pl.mysttic.trainings.ui.common.EmptyState
@@ -210,7 +209,7 @@ fun WorkoutDetailScreen(
             ) {
                 item(key = "naglowek") {
                     IconButton(onClick = onBack, modifier = Modifier.padding(bottom = 4.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Overline("Trening")
                     Spacer(Modifier.height(8.dp))

@@ -6,6 +6,7 @@ import pl.mysttic.trainings.domain.model.BlockItem
 import pl.mysttic.trainings.domain.model.BlockKind
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Exercise
+import pl.mysttic.trainings.domain.model.Equipment
 import pl.mysttic.trainings.domain.model.ExerciseCategory
 import pl.mysttic.trainings.domain.model.ExerciseKind
 import pl.mysttic.trainings.domain.model.MuscleGroup
@@ -229,6 +230,16 @@ object PlanGenerator {
      * Ile rund obwodu albo serii każdego ćwiczenia mieści się w jednym treningu na danym poziomie.
      * To twarde widełki: czas dociąga się ćwiczeniami i przerwami, nie kolejnymi rundami.
      */
+    /**
+     * Ćwiczenia, z których kreator może układać plan przy danym sprzęcie (D-57: licznik w kroku sprzętu). Te same
+     * reguły co w [generate] i doborze ćwiczeń: wykonalne z posiadanym sprzętem, niewycofane, bez ćwiczeń oddechowych
+     * i bez ergometrów (D-44). Ćwiczenia z „nie chcę” trenera nie są tu odejmowane: licznik mówi o sprzęcie.
+     */
+    fun candidates(exercises: List<Exercise>, equipment: Set<Equipment>): List<Exercise> =
+        exercises.filter {
+            it.canDoWith(equipment) && !it.isRetired && it.category != ExerciseCategory.BREATHING && !it.usesErgometer
+        }
+
     fun repeatsRange(level: Difficulty, goal: Goal): IntRange {
         val byLevel = when (level) {
             Difficulty.BEGINNER -> 2..3

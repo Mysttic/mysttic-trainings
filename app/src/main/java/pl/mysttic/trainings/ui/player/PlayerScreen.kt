@@ -19,6 +19,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import pl.mysttic.trainings.domain.model.Difficulty
+import pl.mysttic.trainings.ui.common.AppIcons
+import pl.mysttic.trainings.ui.common.IconLabelButton
+import pl.mysttic.trainings.ui.common.SettingRow
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -64,6 +76,7 @@ import pl.mysttic.trainings.domain.model.TargetKind
 import pl.mysttic.trainings.service.SessionSummary
 import pl.mysttic.trainings.ui.common.DifficultySelector
 import pl.mysttic.trainings.ui.common.EmptyState
+import pl.mysttic.trainings.ui.common.ExerciseIllustration
 import pl.mysttic.trainings.ui.common.ExerciseImage
 import pl.mysttic.trainings.ui.common.FilterPill
 import pl.mysttic.trainings.ui.common.SearchField
@@ -101,6 +114,7 @@ fun PlayerScreen(
     val state by viewModel.ui.collectAsStateWithLifecycle()
     var showAbortDialog by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     // Android 13+: bez POST_NOTIFICATIONS serwis działa, ale powiadomienia z odliczaniem nie widać.
     val context = LocalContext.current
@@ -179,6 +193,15 @@ fun PlayerScreen(
         )
     }
 
+    if (showMenu && summary == null) {
+        PlayerMenu(
+            state = state,
+            onDifficulty = viewModel::changeDifficulty,
+            onAbort = { showMenu = false; showAbortDialog = true },
+            onDismiss = { showMenu = false },
+        )
+    }
+
     when {
         state.error != null -> EmptyState(state.error ?: "")
         summary != null -> SummaryContent(summary, viewModel, onExit, fixed = state.fixed)
@@ -187,12 +210,106 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-        else -> PlayerContent(state, viewModel, onAbort = { showAbortDialog = true })
+        else -> PlayerContent(state, remember(viewModel) { PlayerActions.of(viewModel) }, onAbort = { showAbortDialog = true }, onMenu = { showMenu = true })
+    }
+}
+
+/**
+ * Sterowanie playerem bez ViewModelu: treść kroku i przyciski dostają same funkcje, więc zrzut (D-40) narysuje
+ * player z migawką silnika, a w aplikacji każda funkcja idzie wprost do `PlayerController` przez `PlayerViewModel`.
+ */
+class PlayerActions(
+    val done: (Int?) -> Unit = {},
+    val count: (Int) -> Unit = {},
+    val skip: () -> Unit = {},
+    val back: () -> Unit = {},
+    val pause: () -> Unit = {},
+    val resume: () -> Unit = {},
+    val addRest: (Int) -> Unit = {},
+) {
+    companion object {
+        fun of(viewModel: PlayerViewModel) = PlayerActions(
+            done = { viewModel.done(it) },
+            count = viewModel::count,
+            skip = viewModel::skip,
+            back = viewModel::back,
+            pause = viewModel::pause,
+            resume = viewModel::resume,
+            addRest = viewModel::addRest,
+        )
+    }
+}
+
+/**
+ * Menu treningu (D-52): to, co rzadko potrzebne w trakcie serii, schodzi z ekranu do arkusza pod ⋮ — poziom
+ * trudności (dalej zmienny w każdej chwili, D-06) i przerwanie treningu. Ekran zostaje dla liczby i jednej akcji.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlayerMenu(
+    state: PlayerUiState,
+    onDifficulty: (Difficulty) -> Unit,
+    onAbort: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = Dimens.screenPadding, end = Dimens.screenPadding, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Overline("Poziom trudności")
+            if (state.fixed) {
+                // Stały protokół (D-37): poziom nie ma tu nic do roboty, więc nie kusimy przełącznikiem.
+                Text(
+                    text = "Stały protokół: poziom nie zmienia celów",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                DifficultySelector(
+                    selected = state.difficulty,
+                    onSelect = onDifficulty,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                // Silnik przelicza od razu wszystko, czego jeszcze nie zrobiono, także trwającą serię
+                // (`WorkoutPlanner.merge`, D-06); napis nie może obiecywać „od następnej serii”.
+                Text(
+                    text = "Zrobione serie zostają, reszta, także ta seria, przelicza się od razu. Teraz: ${state.difficulty.labelPl.lowercase()}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Hairline(modifier = Modifier.padding(top = 4.dp))
+            val snapshot = state.snapshot
+            SettingRow(
+                title = "Przerwij trening",
+                description = if (snapshot != null) {
+                    "Zapiszemy ${state.loggedSets} z ${snapshot.workTotal} serii, trening wróci do kolejki."
+                } else {
+                    "Wykonane serie zostaną zapisane, trening wróci do kolejki."
+                },
+                onClick = onAbort,
+                trailing = {
+                    Icon(AppIcons.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                },
+            )
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("Wróć do treningu", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
     }
 }
 
 @Composable
-private fun PlayerContent(state: PlayerUiState, viewModel: PlayerViewModel, onAbort: () -> Unit) {
+fun PlayerContent(state: PlayerUiState, actions: PlayerActions, onAbort: () -> Unit, onMenu: () -> Unit) {
     val snapshot = state.snapshot ?: return
     val step = snapshot.step
     val controls: @Composable () -> Unit = {
@@ -201,8 +318,7 @@ private fun PlayerContent(state: PlayerUiState, viewModel: PlayerViewModel, onAb
             paused = snapshot.paused,
             phase = snapshot.phase,
             pendingCount = snapshot.pendingCount,
-            viewModel = viewModel,
-            onAbort = onAbort,
+            actions = actions,
         )
     }
 
@@ -231,7 +347,7 @@ private fun PlayerContent(state: PlayerUiState, viewModel: PlayerViewModel, onAb
             ) {
                 // Nagłówek z pytaniem o wznowienie bywa wyższy niż miejsce nad przyciskami: przewija się on, a nie akcje.
                 Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                    PlayerHeader(state, snapshot, viewModel, onAbort)
+                    PlayerHeader(state, snapshot, actions, onAbort, onMenu)
                 }
                 Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
                 controls()
@@ -247,7 +363,7 @@ private fun PlayerContent(state: PlayerUiState, viewModel: PlayerViewModel, onAb
             .padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        PlayerHeader(state, snapshot, viewModel, onAbort)
+        PlayerHeader(state, snapshot, actions, onAbort, onMenu)
         Spacer(Modifier.height(12.dp))
         // Krok dostaje to, co zostaje po nagłówku i przyciskach: w niskim oknie przewija się treść, a akcje
         // (z „Przerwij trening”) zostają całe. Krótsza treść stoi pośrodku, jak wcześniej między dwoma odstępami.
@@ -259,18 +375,29 @@ private fun PlayerContent(state: PlayerUiState, viewModel: PlayerViewModel, onAb
     }
 }
 
+/**
+ * Nagłówek playera (D-52): nazwa treningu, czas i licznik serii w jednej linii, menu ⋮ i pasek postępu.
+ * Poziom trudności przeszedł do menu — w trakcie serii nikt go nie szuka, a zabierał wiersz nad liczbą.
+ */
 @Composable
-private fun PlayerHeader(state: PlayerUiState, snapshot: PlayerSnapshot, viewModel: PlayerViewModel, onAbort: () -> Unit) {
+private fun PlayerHeader(
+    state: PlayerUiState,
+    snapshot: PlayerSnapshot,
+    actions: PlayerActions,
+    onAbort: () -> Unit,
+    onMenu: () -> Unit,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = state.workoutName,
                 style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // Odstęp, żeby długa nazwa nie zlewała się z zegarem („etap 1 z 40:24”); skraca się nazwa, nie czas.
+            // Odstęp, żeby długa nazwa nie zlewała się z zegarem; skraca się nazwa, nie czas.
             Spacer(Modifier.width(12.dp))
             Text(
                 text = formatDuration(snapshot.totalElapsedSec) + " · seria ${snapshot.workNumber} z ${snapshot.workTotal}" +
@@ -280,25 +407,12 @@ private fun PlayerHeader(state: PlayerUiState, snapshot: PlayerSnapshot, viewMod
                 maxLines = 1,
                 softWrap = false,
             )
+            IconButton(onClick = onMenu, modifier = Modifier.offset(x = 10.dp)) {
+                Icon(AppIcons.More, contentDescription = "Menu treningu", tint = MaterialTheme.colorScheme.onSurface)
+            }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
         ProgressTrack(fraction = snapshot.progress, height = Dimens.progressTrackPlayer)
-        Spacer(Modifier.height(16.dp))
-        if (state.fixed) {
-            // Stały protokół (D-37): poziom nie ma tu nic do roboty, więc nie kusimy przełącznikiem.
-            Text(
-                text = "Stały protokół: poziom nie zmienia celów",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            DifficultySelector(
-                selected = state.difficulty,
-                onSelect = viewModel::changeDifficulty,
-                compact = true,
-                modifier = Modifier.width(220.dp),
-            )
-        }
         if (state.restoredFromCheckpoint && snapshot.paused) {
             // Faza minęła dawno (WorkoutEngine.RESTORE_OVERDUE_PAUSE_MS): użytkownik decyduje, czy kontynuować.
             Spacer(Modifier.height(14.dp))
@@ -310,7 +424,7 @@ private fun PlayerHeader(state: PlayerUiState, snapshot: PlayerSnapshot, viewMod
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Wznowiono przerwany trening. Kontynuować od tego miejsca?", style = MaterialTheme.typography.bodyLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        PrimaryAction("Kontynuuj", onClick = viewModel::resume, modifier = Modifier.weight(1f), height = 48.dp)
+                        PrimaryAction("Kontynuuj", onClick = actions.resume, modifier = Modifier.weight(1f), height = 48.dp)
                         SecondaryAction("Przerwij", onClick = onAbort, modifier = Modifier.weight(1f), height = 48.dp)
                     }
                 }
@@ -374,8 +488,18 @@ private fun StepContent(
 
 @Composable
 private fun WorkStep(step: Step.Work, state: PlayerUiState, remainingSec: Int?, elapsedSec: Int, compact: Boolean) {
-    Overline(step.exerciseName)
-    Spacer(Modifier.height(14.dp))
+    // Pozycja w żarze nad nazwą, nazwa dużym tytułem (D-52): z półtora metra czyta się nazwę, nie wersaliki 11 sp.
+    Overline(positionLabel(step))
+    Spacer(Modifier.height(10.dp))
+    Text(
+        text = step.exerciseName,
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    Spacer(Modifier.height(6.dp))
     val cadenceSec = step.cadenceSec
     when {
         step.targetKind == TargetKind.REPS -> BigValue(
@@ -400,13 +524,12 @@ private fun WorkStep(step: Step.Work, state: PlayerUiState, remainingSec: Int?, 
     }
     Spacer(Modifier.height(10.dp))
     Text(
-        text = buildString {
-            append(positionLabel(step))
-            if (step.targetKind == TargetKind.REPS) append(" · czas serii ${formatDuration(elapsedSec)}")
-            if (cadenceSec != null && remainingSec != null) append(" · jeszcze ${shortTime(remainingSec)}")
-            step.weightKg?.let { append(" · ${formatKg(it)}") }
-            if (step.blockLabel.isNotBlank()) append(" · ${step.blockLabel}")
-        },
+        text = listOfNotNull(
+            if (step.targetKind == TargetKind.REPS) "czas serii ${formatDuration(elapsedSec)}" else null,
+            if (cadenceSec != null && remainingSec != null) "jeszcze ${shortTime(remainingSec)}" else null,
+            step.weightKg?.let { formatKg(it) },
+            step.blockLabel.takeIf { it.isNotBlank() },
+        ).joinToString(" · "),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -429,12 +552,14 @@ private fun WorkStep(step: Step.Work, state: PlayerUiState, remainingSec: Int?, 
         )
     }
     Spacer(Modifier.height(if (compact) 12.dp else 18.dp))
-    ExerciseImage(
+    ExerciseIllustration(
         assetPath = state.currentExercise?.images?.lastOrNull(),
-        modifier = Modifier.fillMaxWidth().height(if (compact) 120.dp else 186.dp),
+        maxHeight = when {
+            compact -> 120.dp
+            LocalAppLayout.current.playerSideBySide -> 240.dp
+            else -> 186.dp
+        },
         contentDescription = step.exerciseName,
-        shape = RoundedCornerShape(22.dp),
-        contentScale = ContentScale.Fit,
     )
     state.currentExercise?.instructionsPl?.firstOrNull()?.let {
         Spacer(Modifier.height(14.dp))
@@ -527,8 +652,7 @@ private fun Controls(
     paused: Boolean,
     phase: Phase,
     pendingCount: Int?,
-    viewModel: PlayerViewModel,
-    onAbort: () -> Unit,
+    actions: PlayerActions,
 ) {
     val work = step as? Step.Work
     val amrap = work?.targetKind == TargetKind.AMRAP
@@ -538,7 +662,7 @@ private fun Controls(
     val counted = work != null && (work.targetKind == TargetKind.REPS || amrap)
     val setCount: (Int) -> Unit = { n ->
         actualReps = n
-        if (amrap) viewModel.count(n)
+        if (amrap) actions.count(n)
     }
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -551,39 +675,34 @@ private fun Controls(
                 StepperButton("−", onClick = { if (actualReps > 0) setCount(actualReps - 1) })
                 PrimaryAction(
                     text = "Zrobione ($actualReps)",
-                    onClick = { viewModel.done(actualReps) },
+                    onClick = { actions.done(actualReps) },
                     modifier = Modifier.weight(1f),
                     height = Dimens.playerAction,
                 )
                 StepperButton("+", onClick = { setCount(actualReps + 1) })
             }
             // Krok bez limitu: nie ma serii do „zakończenia”, jest chwila, w której użytkownik przestaje.
-            work != null && work.openEnded -> PrimaryAction("Zakończ", onClick = { viewModel.done() }, height = Dimens.playerAction)
-            work != null -> PrimaryAction("Zakończ serię", onClick = { viewModel.done() }, height = Dimens.playerAction)
+            work != null && work.openEnded -> PrimaryAction("Zakończ", onClick = { actions.done(null) }, height = Dimens.playerAction)
+            work != null -> PrimaryAction("Zakończ serię", onClick = { actions.done(null) }, height = Dimens.playerAction)
             step is Step.Rest -> Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryAction("+15 s", onClick = { viewModel.addRest(15) }, modifier = Modifier.weight(1f), height = Dimens.playerAction)
-                RowButton("Pomiń", onClick = viewModel::skip, modifier = Modifier.weight(1f), height = Dimens.playerAction)
+                PrimaryAction("+15 s", onClick = { actions.addRest(15) }, modifier = Modifier.weight(1f), height = Dimens.playerAction)
+                RowButton("Pomiń", onClick = actions.skip, modifier = Modifier.weight(1f), height = Dimens.playerAction)
             }
-            step is Step.Countdown -> PrimaryAction("Pomiń odliczanie", onClick = viewModel::skip, height = Dimens.playerAction)
+            step is Step.Countdown -> PrimaryAction("Pomiń odliczanie", onClick = actions.skip, height = Dimens.playerAction)
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RowButton("Wstecz", onClick = viewModel::back, modifier = Modifier.weight(1f))
+        // Drugi rząd (D-52): ciche przyciski z ikoną, bez wypełnienia. „Pomiń” w przerwie i odliczaniu stoi już
+        // w pierwszym rzędzie, a „Przerwij trening” mieszka w menu ⋮.
+        Row(modifier = Modifier.fillMaxWidth()) {
+            IconLabelButton(AppIcons.Previous, "Wstecz", onClick = actions.back, modifier = Modifier.weight(1f))
             if (phase == Phase.RUNNING) {
                 if (paused) {
-                    RowButton("Wznów", onClick = viewModel::resume, modifier = Modifier.weight(1f))
+                    IconLabelButton(AppIcons.Play, "Wznów", onClick = actions.resume, modifier = Modifier.weight(1f))
                 } else {
-                    RowButton("Pauza", onClick = viewModel::pause, modifier = Modifier.weight(1f))
+                    IconLabelButton(AppIcons.Pause, "Pauza", onClick = actions.pause, modifier = Modifier.weight(1f))
                 }
             }
-            if (step is Step.Rest || step is Step.Countdown) {
-                RowButton("Przerwij", onClick = onAbort, modifier = Modifier.weight(1f))
-            } else {
-                RowButton("Pomiń", onClick = viewModel::skip, modifier = Modifier.weight(1f))
-            }
-        }
-        if (step !is Step.Rest && step !is Step.Countdown) {
-            TextButton(onClick = onAbort, modifier = Modifier.fillMaxWidth()) {
-                Text("Przerwij trening", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (step !is Step.Rest && step !is Step.Countdown) {
+                IconLabelButton(AppIcons.Next, "Pomiń", onClick = actions.skip, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -597,13 +716,20 @@ private fun Controls(
 private fun StepperButton(text: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(width = Dimens.playerStepper, height = Dimens.playerAction),
+        modifier = Modifier
+            .size(width = Dimens.playerStepper, height = Dimens.playerAction)
+            .semantics { contentDescription = if (text == "+") "Jedno powtórzenie więcej" else "Jedno powtórzenie mniej" },
         shape = RoundedCornerShape(20.dp),
         color = Color.Transparent,
         border = androidx.compose.foundation.BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+            Icon(
+                imageVector = if (text == "+") AppIcons.Plus else AppIcons.Minus,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

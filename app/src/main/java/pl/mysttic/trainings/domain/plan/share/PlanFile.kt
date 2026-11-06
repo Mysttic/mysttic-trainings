@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
  * plik wysłany dziś ma się wczytać w każdej przyszłej wersji — więc każde pole ma stałe `@SerialName`,
  * a enumy jadą jako tekst (nieznana wartość z nowszej aplikacji jest pomijana z ostrzeżeniem, nie wysadza odczytu).
  * W pliku nie ma sylwetki (wzrost, waga), historii ani pamięci trenera — tylko to, co ułożył autor.
+ * Od formatu 2 (D-58) plik jedzie w kopercie `PlanEnvelope`: podpisany kluczem telefonu, a na życzenie zamknięty
+ * hasłem (`PlanSeal`). Ta klasa to treść koperty; plik formatu 1 to sama treść, bez podpisu.
  */
 @Serializable
 data class PlanFile(
@@ -18,11 +20,17 @@ data class PlanFile(
     /** Wersja seedu u autora; wyższa niż u odbiorcy = ćwiczenia bez ilustracji do czasu aktualizacji. */
     @SerialName("seedVersion") val seedVersion: Int = 0,
     @SerialName("exportedAt") val exportedAt: Long = 0,
+    /**
+     * Kto podpisał i wysłał plik (D-58): imię z „O mnie”. Autor planu stoi w `plan.author` i bywa kimś innym,
+     * gdy ktoś przekazuje dalej plan od kogoś. Pliki formatu 1 tego pola nie mają.
+     */
+    @SerialName("signer") val signer: String = "",
     @SerialName("plan") val plan: SharedPlan,
 ) {
     companion object {
         const val FORMAT = "mysttic-trainings-plan"
-        const val VERSION = 1
+        /** 2 od D-58: podpis i hasło w kopercie. Pliki formatu 1 dalej się wczytują, jako niepodpisane. */
+        const val VERSION = 2
         const val EXTENSION = ".plan.json"
         const val MIME = "application/json"
         /** Największy plik planu; 120 dni z pełnymi treningami to ułamek tego. */

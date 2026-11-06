@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 /*
  * Motywy do wyboru w Ustawieniach (D-39). Każdy to jeden skończony wygląd, nie para jasny/ciemny:
- * „Ogień i Krew” (domyślny, wartości w Color.kt), „Papier i Ogień” i „Stal i Bursztyn” — tutaj.
+ * „Ogień i Krew” (domyślny, wartości w Color.kt), a tutaj „Papier i Ogień”, „Stal i Bursztyn” i „Brzoza i Mech” (D-56).
  * Wszystkie trzymają reguły z D-32: wypełnienie `primary` znaczy akcję, `tertiary` niesie informację
  * i nigdy nie trafia na przycisk, `error` jest z innej rodziny odcieni niż akcja, a powierzchnie są
  * podbarwione, nie neutralnie szare. Komplet 35 ról na motyw, kontrast pilnuje `ThemeContractTest`
@@ -19,6 +19,7 @@ enum class AppTheme(val id: String, val labelPl: String, val opisPl: String, val
     FIRE("fire", "Ogień i Krew", "Wypalona krew pod spodem, ogień na akcji. Domyślny.", dark = true),
     PAPER("paper", "Papier i Ogień", "Ten sam ogień na jasnym papierze — ekran nie świeci w dzień.", dark = false),
     STEEL("steel", "Stal i Bursztyn", "Chłodny grafit jak rama sprzętu, bursztyn tylko na akcji.", dark = true),
+    FOREST("forest", "Brzoza i Mech", "Jasna kora brzozy pod spodem, mech na akcji: las za dnia.", dark = false),
     ;
 
     companion object {
@@ -99,3 +100,40 @@ val SteelInverseSurface = Color(0xFFE7EDF2)
 val SteelInverseOnSurface = Color(0xFF1B232A)
 val SteelInversePrimary = Color(0xFF7B5000)
 val SteelScrim = Color(0xFF05080B)
+
+// ---- Brzoza i Mech (D-56): jasny las za dnia ----
+val ForestPrimary = Color(0xFF2E5E2B)  // mech: akcja
+val ForestOnPrimary = Color(0xFFF1F8EC)
+val ForestPrimaryContainer = Color(0xFFCDEBC0)
+val ForestOnPrimaryContainer = Color(0xFF0B2A0A)
+val ForestSecondary = Color(0xFF4A5D41)
+val ForestOnSecondary = Color(0xFFF2F7EE)
+val ForestSecondaryContainer = Color(0xFFD9E7CF)
+val ForestOnSecondaryContainer = Color(0xFF172414)
+val ForestTertiary = Color(0xFF7A4A0E)  // żywica: informacja (nagłówki, seria, podpowiedzi)
+val ForestOnTertiary = Color(0xFFFFF6EA)
+val ForestTertiaryContainer = Color(0xFFFBE0B5)
+val ForestOnTertiaryContainer = Color(0xFF2C1A00)
+val ForestError = Color(0xFFA3123A)  // jagoda, z innej rodziny odcieni niż mech
+val ForestOnError = Color(0xFFFFFFFF)
+val ForestErrorContainer = Color(0xFFFFDADF)
+val ForestOnErrorContainer = Color(0xFF42000F)
+val ForestBackground = Color(0xFFF4F6EF)
+val ForestOnBackground = Color(0xFF17201A)
+val ForestSurface = Color(0xFFF4F6EF)  // kora brzozy
+val ForestOnSurface = Color(0xFF17201A)
+val ForestSurfaceVariant = Color(0xFFE5ECDD)
+val ForestOnSurfaceVariant = Color(0xFF4A5A4E)
+val ForestSurfaceContainerLowest = Color(0xFFFFFFFF)
+val ForestSurfaceContainerLow = Color(0xFFEEF2E8)
+val ForestSurfaceContainer = Color(0xFFE5ECDD)
+val ForestSurfaceContainerHigh = Color(0xFFDCE4D3)
+val ForestSurfaceContainerHighest = Color(0xFFD2DCC7)
+val ForestSurfaceBright = Color(0xFFFFFFFF)
+val ForestSurfaceDim = Color(0xFFD2DCC7)
+val ForestOutline = Color(0xFF66765F)
+val ForestOutlineVariant = Color(0xFFC6D2BC)
+val ForestInverseSurface = Color(0xFF2B3428)
+val ForestInverseOnSurface = Color(0xFFEEF3E9)
+val ForestInversePrimary = Color(0xFF9CD48A)
+val ForestScrim = Color(0xFF121A10)

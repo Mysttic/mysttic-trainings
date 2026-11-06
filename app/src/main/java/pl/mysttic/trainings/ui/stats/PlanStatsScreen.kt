@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +42,7 @@ import pl.mysttic.trainings.domain.report.PlanReportBuilder
 import pl.mysttic.trainings.domain.stats.PlanExerciseResult
 import pl.mysttic.trainings.domain.stats.PlanWeek
 import pl.mysttic.trainings.ui.adaptive.ReadableBox
+import pl.mysttic.trainings.ui.common.AppIcons
 import pl.mysttic.trainings.ui.common.AppSwitch
 import pl.mysttic.trainings.ui.common.EmptyState
 import pl.mysttic.trainings.ui.common.Hairline
@@ -91,7 +90,7 @@ fun PlanStatsScreen(onBack: () -> Unit, viewModel: PlanStatsViewModel = hiltView
             ReadableBox {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.screenPadding, vertical = 8.dp)) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     EmptyState("Nie znaleziono planu.")
                 }
@@ -108,7 +107,7 @@ fun PlanStatsScreen(onBack: () -> Unit, viewModel: PlanStatsViewModel = hiltView
         ) {
             item(key = "naglowek") {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 Text("Statystyki planu", style = MaterialTheme.typography.headlineMedium)
                 Text(program.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -23,6 +23,7 @@ object Dimens {
     val screenPadding = 24.dp        // margines treści
     val cardPadding = 20.dp          // margines kart pełnej szerokości
     val cardInner = 22.dp
+    val cardPreviewInner = 18.dp     // karta dnia z paskiem miniatur: miniatury bliżej krawędzi (D-52)
     val cardGap = 15.dp
     val sectionGap = 16.dp
     val rowGap = 14.dp

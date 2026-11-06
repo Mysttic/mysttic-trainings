@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pl.mysttic.trainings.domain.model.Gender
 import pl.mysttic.trainings.domain.model.Difficulty
 import pl.mysttic.trainings.domain.model.Exercise
 import pl.mysttic.trainings.domain.model.ExerciseCategory
@@ -127,6 +128,18 @@ class PhotoPickerTest {
         assertTrue("bez treningów losuje z różnych tematów: $bezTreningu", bezTreningu.size > 3)
         assertNull(PhotoPicker.pick(emptyList(), tematyDnia, PhotoPeople.BOTH, 1))
         assertNull(PhotoPicker.pick(baza.filter { it.sex == PhotoSex.FEMALE }, tematyDnia, PhotoPeople.MEN, 1))
+    }
+
+    @Test
+    fun `osoby na zdjeciu wynikaja z plci w O mnie`() {
+        assertEquals(PhotoPeople.WOMEN, PhotoPeople.of(Gender.FEMALE))
+        assertEquals(PhotoPeople.MEN, PhotoPeople.of(Gender.MALE))
+        assertEquals(PhotoPeople.BOTH, PhotoPeople.of(Gender.UNSPECIFIED))
+        Gender.entries.forEach { assertEquals(it, Gender.fromId(it.id)) }
+        assertEquals(Gender.UNSPECIFIED, Gender.fromId(null))
+        // „Oboje” z dawnego „Na zdjęciach” (D-51) to nie płeć: bez wyboru.
+        assertEquals(Gender.UNSPECIFIED, Gender.fromId("oboje"))
+        assertEquals(Gender.FEMALE, Gender.fromId("kobieta"))
     }
 
     @Test
