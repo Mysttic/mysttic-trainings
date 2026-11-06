@@ -6,17 +6,20 @@ import java.util.zip.ZipInputStream
 
 /**
  * Rozpakowanie ZIP-a bazy ćwiczeń (D-47) z limitami. Wpuszcza wyłącznie `exercises.json` i `images/<id>.jpg`,
- * więc ścieżka wychodząca poza katalog (`../`), obcy plik, powtórzony wpis i zip-bomba kończą się odmową,
- * zanim cokolwiek trafi do Room. Bez Androida, więc sprawdza to zwykły test jednostkowy.
+ * a od D-51 także zdjęcia tła: `tla.json` i `tla/<id>.jpg`. Ścieżka wychodząca poza katalog (`../`), obcy plik,
+ * powtórzony wpis i zip-bomba kończą się odmową, zanim cokolwiek trafi do Room. Bez Androida, więc sprawdza to
+ * zwykły test jednostkowy.
  */
 object DatabaseArchive {
 
     const val JSON = "exercises.json"
+    const val PHOTOS_JSON = "tla.json"
     const val MAX_ENTRIES = 2_000
     const val MAX_JSON_BYTES = 5_000_000L
     const val MAX_IMAGE_BYTES = 1_000_000L
     const val MAX_TOTAL_BYTES = 60_000_000L
     private val IMAGE = Regex("images/[a-z0-9]+(-[a-z0-9]+)*\\.jpg")
+    private val PHOTO = Regex("tla/[a-z0-9]+(-[a-z0-9]+)*\\.jpg")
 
     /** Rozpakowuje [input] do pustego albo nieistniejącego [target]. Odmowa = [IllegalArgumentException] z powodem. */
     fun extract(input: InputStream, target: File) {
@@ -30,12 +33,12 @@ object DatabaseArchive {
                 val entry = zip.nextEntry ?: break
                 val name = entry.name
                 if (entry.isDirectory) {
-                    require(name == "images/") { "nieoczekiwany katalog ${name.take(60)}" }
+                    require(name == "images/" || name == "tla/") { "nieoczekiwany katalog ${name.take(60)}" }
                     continue
                 }
                 val limit = when {
-                    name == JSON -> MAX_JSON_BYTES
-                    IMAGE.matches(name) -> MAX_IMAGE_BYTES
+                    name == JSON || name == PHOTOS_JSON -> MAX_JSON_BYTES
+                    IMAGE.matches(name) || PHOTO.matches(name) -> MAX_IMAGE_BYTES
                     else -> throw IllegalArgumentException("nieoczekiwany plik ${name.take(60)}")
                 }
                 require(seen.add(name)) { "plik $name powtórzony" }

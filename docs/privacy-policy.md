@@ -10,6 +10,8 @@ telefonie i wyjeżdża stamtąd tylko wtedy, gdy sam je wyeksportujesz.
 | Profil z kreatora (wzrost, waga, cel, poziom, sprzęt, czas sesji) | baza aplikacji (Room), w pamięci prywatnej | z odinstalowaniem albo usunięciem planu |
 | Plan treningowy i historia sesji (serie, powtórzenia, czas, RPE, notatki) | baza aplikacji | z odinstalowaniem albo usunięciem wpisu w Historii |
 | Ustawienia (poziom, sprzęt, sygnały, przypomnienie, przełączniki) | DataStore, pamięć prywatna | z odinstalowaniem |
+| „O mnie” (imię, płeć, wzrost, waga; D-57) | DataStore, pamięć prywatna | z odinstalowaniem albo po wyczyszczeniu pól |
+| Klucz podpisu planów (D-58) | Android Keystore; klucz prywatny nigdy nie opuszcza telefonu | z odinstalowaniem |
 | Zdjęcia i opisy ćwiczeń | assety w APK | nie są danymi użytkownika |
 | Pobrana baza ćwiczeń (opisy i ilustracje, D-47) | `files/baza/<numer>/` w pamięci prywatnej | przy wczytaniu kolejnej bazy albo odinstalowaniu; nie są danymi użytkownika |
 | Pobrany plik aktualizacji | `files/updates/` w pamięci prywatnej | przy kolejnym pobraniu albo odinstalowaniu |
@@ -46,8 +48,10 @@ przez systemowe okno; od tego momentu za ten plik odpowiadasz ty. Import czyta p
 
 ## Plany i raporty wysyłane innym
 
-Plan wysłany innym (D-42) to plik JSON z nazwą, opisem, dniami, treningami i opisami użytych ćwiczeń,
-podpisany imieniem z Ustawień, jeśli je wpiszesz. Nie ma w nim wzrostu, wagi, historii treningów, notatek
+Plan wysłany innym (D-42) to plik JSON z nazwą, opisem, dniami, treningami i opisami użytych ćwiczeń.
+Od D-58 jest podpisany imieniem z „O mnie” i kluczem telefonu: w pliku jedzie imię i klucz publiczny
+(po nim odbiorca rozpozna, że plan jest od ciebie), nigdy klucz prywatny. Hasło, jeśli je ustawisz, zamyka
+plik i nie jest nigdzie zapisywane. Nie ma w pliku płci, wzrostu, wagi, historii treningów, notatek
 ani pamięci trenera. Raport PDF z przebiegu planu zawiera frekwencję, czasy, serie, RPE i — tylko gdy
 zaznaczysz przełącznik — notatki z podsumowań. Oba pliki powstają wyłącznie na twoje żądanie i wychodzą
 przez systemowe okno udostępniania albo do miejsca, które wskażesz; aplikacja sama ich nigdzie nie wysyła.

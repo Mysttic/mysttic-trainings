@@ -222,8 +222,9 @@ class ProgramRepository @Inject constructor(
             days = copied.days,
             source = target,
             originId = original.id,
-            // Podpis zostaje przy powtórce i przy kopii własnego planu; kopia planu od kogoś to już Twój plan.
-            author = if (sameRun || original.source == PlanSource.CUSTOM) original.author else "",
+            // Autor zostaje przy powtórce, przy kopii własnego planu i przy kopii planu od kogoś (D-58): kopia nie może
+            // zdjąć z planu jego autora. Kopia planu z kreatora albo gotowego programu jest Twoja.
+            author = if (sameRun || original.source == PlanSource.CUSTOM || original.source == PlanSource.IMPORTED) original.author else "",
             shareUid = if (sameRun) original.shareUid else null,
             rhythmStart = 0,
         )
@@ -235,10 +236,18 @@ class ProgramRepository @Inject constructor(
     /** Id nowego treningu w planie; losowy ogon, żeby nie zderzył się z `"$programId-<n>"` z kopii. */
     fun newWorkoutId(programId: String): String = "$programId-w" + UUID.randomUUID().toString().take(8)
 
-    /** Kopia dowolnego treningu (wbudowanego, z innego planu) jako trening tego planu (D-19, D-42). */
-    suspend fun copyWorkoutInto(programId: String, workoutId: String, now: Long = System.currentTimeMillis()): Workout? {
+    /**
+     * Kopia dowolnego treningu (wbudowanego, z innego planu albo z tego samego, D-49) jako trening tego planu
+     * (D-19, D-42). `transform` zmienia treść kopii przed jedynym zapisem (nazwa, tryb planu); id i daty nadaje kopia.
+     */
+    suspend fun copyWorkoutInto(
+        programId: String,
+        workoutId: String,
+        now: Long = System.currentTimeMillis(),
+        transform: (Workout) -> Workout = { it },
+    ): Workout? {
         val source = workoutRepo.getById(workoutId) ?: return null
-        val copy = source.copy(id = newWorkoutId(programId), createdAt = now, updatedAt = now, isBuiltIn = false)
+        val copy = transform(source).copy(id = newWorkoutId(programId), createdAt = now, updatedAt = now, isBuiltIn = false)
         workoutRepo.save(copy)
         return copy
     }

@@ -70,14 +70,15 @@ class ProgramCopyTest {
     }
 
     @Test
-    fun `duplikat planu od kogos to nowy plan bez shareUid i bez podpisu autora`() = runBlocking {
+    fun `duplikat planu od kogos to nowy plan bez shareUid, ale z autorem`() = runBlocking {
         plan("plan-a", PlanSource.IMPORTED, author = "Jan Kowalski")
 
         val copyId = programs.duplicate("plan-a", now = 10)!!
         val copy = programs.byId(copyId)!!
 
         assertNull(copy.shareUid)
-        assertEquals("", copy.author)
+        // D-58: kopia nie zdejmuje autora, więc wysłana dalej dalej podaje go w pliku.
+        assertEquals("Jan Kowalski", copy.author)
         assertEquals(PlanSource.CUSTOM, copy.source)
         assertEquals("plan-a", copy.originId)
         assertEquals(listOf(PlanDay(1, "$copyId-1"), PlanDay(2, "$copyId-1")), copy.days)

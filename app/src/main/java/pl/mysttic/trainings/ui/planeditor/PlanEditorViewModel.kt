@@ -17,13 +17,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import pl.mysttic.trainings.data.repo.ExerciseRepository
 import pl.mysttic.trainings.data.repo.ProgramRepository
 import pl.mysttic.trainings.data.repo.SessionRepository
 import pl.mysttic.trainings.data.repo.WorkoutRepository
 import pl.mysttic.trainings.data.settings.SettingsRepository
-import pl.mysttic.trainings.domain.editor.WorkoutEditing
 import pl.mysttic.trainings.domain.model.SessionStatus
 import pl.mysttic.trainings.domain.model.Workout
 import pl.mysttic.trainings.domain.plan.DraftDay
@@ -83,6 +85,7 @@ class PlanEditorViewModel @Inject constructor(
     private val workoutRepo: WorkoutRepository,
     private val sessionRepo: SessionRepository,
     private val settingsRepo: SettingsRepository,
+    private val exerciseRepo: ExerciseRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -91,6 +94,7 @@ class PlanEditorViewModel @Inject constructor(
     private val meta = MutableStateFlow(Meta())
     private var original: PlanDraft? = null
     private var saving = false
+    private val copying = Mutex()
 
     private data class Meta(
         val lockedKeys: Set<String> = emptySet(),
@@ -151,7 +155,7 @@ class PlanEditorViewModel @Inject constructor(
                     isNew = true,
                     name = NEW_PLAN_NAME,
                     description = "",
-                    literal = false,
+                    literal = NEW_PLAN_LITERAL,
                     days = emptyList(),
                 )
             } else {
@@ -210,18 +214,38 @@ class PlanEditorViewModel @Inject constructor(
     fun newWorkoutId(): String? = draft.value?.programId?.let { programRepo.newWorkoutId(it) }
 
     /**
-     * Kopia treningu do planu dostaje tryb planu ze szkicu, jak „Nowy trening”: w planie dosłownym bloki `fixed`,
-     * w dopasowanym bez. Inaczej kopia z kreatora w planie dosłownym przełączyłaby go przy zapisie na dopasowany.
+     * Kopia treningu jako nowy trening tego planu: „Skopiuj trening” bierze trening z innego planu (albo wbudowany
+     * z historią), a „×2” przy treningu planu (D-49) jego kopię obok, żeby trening B ułożyć z A zamiast od zera.
+     * Kopia dostaje tryb planu ze szkicu, jak „Nowy trening”: w planie dosłownym bloki `fixed`, w dopasowanym bez.
+     * Inaczej kopia z kreatora w planie dosłownym przełączyłaby go przy zapisie na dopasowany. Bloki i nazwę liczy
+     * domena ([PlanEditing.copyBlocks], [PlanEditing.copyName]): kopia z innego planu do planu dosłownego niesie
+     * liczby, które użytkownik widział, a kopia z tego samego planu dostaje „(kopia)”. Kopie idą po kolei pod zamkiem:
+     * dwa szybkie tapnięcia dają „(kopia)” i „(kopia 2)”, a nie dwie takie same nazwy.
      */
     fun copyWorkout(workoutId: String) {
         val d = draft.value ?: return
         viewModelScope.launch {
-            runCatching {
-                val copy = programRepo.copyWorkoutInto(d.programId, workoutId) ?: return@runCatching
-                if (copy.blocks.any { it.fixed != d.literal }) {
-                    workoutRepo.save(copy.copy(blocks = WorkoutEditing.setFixed(copy.blocks, d.literal)))
-                }
-            }.onFailure { Log.e(TAG, "Kopia treningu nie wyszła", it) }
+            copying.withLock {
+                runCatching {
+                    val planWorkouts = workoutRepo.ofProgram(d.programId)
+                    val fromSamePlan = planWorkouts.any { it.id == workoutId }
+                    val settings = settingsRepo.current()
+                    val exercises = exerciseRepo.getMap()
+                    programRepo.copyWorkoutInto(d.programId, workoutId) { source ->
+                        source.copy(
+                            name = PlanEditing.copyName(source.name, planWorkouts.map { it.name }),
+                            blocks = PlanEditing.copyBlocks(
+                                blocks = source.blocks,
+                                literal = d.literal,
+                                fromSamePlan = fromSamePlan,
+                                difficulty = settings.difficulty,
+                                exercises = exercises,
+                                owned = settings.ownedEquipment,
+                            ),
+                        )
+                    }
+                }.onFailure { Log.e(TAG, "Kopia treningu nie wyszła", it) }
+            }
         }
     }
 
@@ -229,7 +253,10 @@ class PlanEditorViewModel @Inject constructor(
         val d = draft.value ?: return false
         // Nowy plan bez zmian i bez treningów nie zostawia nic w bazie, więc wychodzi bez pytania.
         if (d.isNew) return d != original || ui.value.workouts.isNotEmpty()
-        return d != original
+        // Trening dodany w tej edycji (nowy, skopiowany, „×2”) jest już w bazie. Wyjście bez pytania zostawiłoby go
+        // w planie bez dnia i bez sposobu na usunięcie, więc pytamy: „Porzuć” go zabiera, „Zapisz plan” zostawia.
+        val initial = savedStateHandle.get<ArrayList<String>>(KEY_INITIAL_WORKOUTS)?.toSet() ?: return d != original
+        return d != original || ui.value.workouts.any { it.id !in initial }
     }
 
     fun save() {
@@ -280,13 +307,13 @@ class PlanEditorViewModel @Inject constructor(
 
     /**
      * Tryb planu z treningów, które stoją w dniach: nieużyta kopia treningu nie przełącza planu dosłownego
-     * na dopasowany. Plan bez dni ocenia po wszystkich swoich treningach. Plan własny domyślnie dopasowuje
-     * się do poziomu i trenera, jak plan z kreatora (D-42).
+     * na dopasowany. Plan bez dni ocenia po wszystkich swoich treningach, a plan bez treningów dostaje tryb
+     * nowego planu własnego ([NEW_PLAN_LITERAL]).
      */
     private fun literalOf(days: List<PlanDay>, workouts: List<Workout>): Boolean {
         val used = days.mapNotNull { it.workoutId }.toSet()
         val deciding = workouts.filter { it.id in used }.ifEmpty { workouts }
-        return deciding.isNotEmpty() && deciding.all { it.isFixed }
+        return if (deciding.isEmpty()) NEW_PLAN_LITERAL else deciding.all { it.isFixed }
     }
 
     /**
@@ -334,5 +361,11 @@ class PlanEditorViewModel @Inject constructor(
         const val KEY_DRAFT = "plan_draft"
         const val KEY_INITIAL_WORKOUTS = "plan_initial_workouts"
         const val NEW_PLAN_NAME = "Nowy plan"
+
+        /**
+         * Nowy plan własny startuje dosłownie (D-49, zmiana względem D-42): cele dokładnie jak wpisane, a „Wyślij plan”
+         * nie przelicza ich na poziom i sprzęt autora. Plan dla siebie przełącza się na dopasowany jednym przełącznikiem.
+         */
+        const val NEW_PLAN_LITERAL = true
     }
 }

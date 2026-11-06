@@ -372,33 +372,34 @@ def przebieg(u: Urzadzenie, wyczysc: bool, tempo: float = 0.0) -> None:
     time.sleep(1.0)
     u.zrzut("dzis-bez-planu")
 
-    print("Kreator, krok 1: sylwetka i poziom")
+    # Kolejność kroków od D-57: sprzęt, sylwetka i poziom, cel, czas.
+    print("Kreator, krok 1: sprzęt")
     u.tapnij("Ułóż plan")
     u.czekaj("Krok 1 z 4")
+    u.zrzut("kreator-1-sprzet")
+
+    print("Kreator, krok 2: sylwetka i poziom")
+    u.tapnij("Dalej: sylwetka")
+    u.czekaj("Krok 2 z 4")
     u.tapnij("Poziom 1")  # DifficultySelector podpisuje pigułki „Poziom 1..3”, nie nazwami poziomów
     # Waga: drugi klawisz „−” na ekranie (pierwszy należy do wzrostu). Przytrzymanie powtarza krok.
     u.przytrzymaj_pod("Waga", "−", ms=1300)
-    u.zrzut("kreator-1-sylwetka")
+    u.zrzut("kreator-2-sylwetka")
 
-    print("Kreator, krok 2: cel")
+    print("Kreator, krok 3: cel")
     u.tapnij("Dalej: cel")
-    u.czekaj("Krok 2 z 4")
-    u.tapnij("Kondycja")
-    u.zrzut("kreator-2-cel")
-
-    print("Kreator, krok 3: czas")
-    u.tapnij("Dalej: czas")
     u.czekaj("Krok 3 z 4")
+    u.tapnij("Kondycja")
+    u.zrzut("kreator-3-cel")
+
+    print("Kreator, krok 4: czas")
+    u.tapnij("Dalej: czas")
+    u.czekaj("Krok 4 z 4")
     u.tapnij("2")
     for _ in range(3):
         u.tapnij("−", pauza=0.3)  # 30 → 15 min
     time.sleep(0.5)
-    u.zrzut("kreator-3-czas")
-
-    print("Kreator, krok 4: sprzęt")
-    u.tapnij("Dalej: sprzęt")
-    u.czekaj("Krok 4 z 4")
-    u.zrzut("kreator-4-sprzet")
+    u.zrzut("kreator-4-czas")
     u.tapnij("Ułóż plan")
 
     print("Podgląd cyklu po kreatorze, Dziś z planem i szczegóły treningu")

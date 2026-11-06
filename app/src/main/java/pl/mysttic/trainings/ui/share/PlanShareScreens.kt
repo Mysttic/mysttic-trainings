@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -31,16 +32,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.mysttic.trainings.MainActivity
 import pl.mysttic.trainings.domain.engine.Announcer
 import pl.mysttic.trainings.domain.plan.share.PlanFile
+import pl.mysttic.trainings.domain.plan.share.PlanSealInfo
+import pl.mysttic.trainings.domain.plan.share.PlanSeal
 import pl.mysttic.trainings.ui.adaptive.ReadableBox
+import pl.mysttic.trainings.ui.common.AppIcons
+import pl.mysttic.trainings.ui.common.AppSwitch
 import pl.mysttic.trainings.ui.common.InfoCard
 import pl.mysttic.trainings.ui.common.Overline
 import pl.mysttic.trainings.ui.common.PrimaryAction
 import pl.mysttic.trainings.ui.common.SecondaryAction
+import pl.mysttic.trainings.ui.common.TextInput
+import pl.mysttic.trainings.ui.common.SettingRow
 import pl.mysttic.trainings.ui.theme.Dimens
 
 /**
  * Wysłanie planu (D-42). Plik idzie przez systemowe okno udostępniania (Messenger, Gmail, Pliki) albo do miejsca
- * wybranego w SAF. Ekran mówi wprost, co jest w pliku, a czego nie ma — plan idzie do innej osoby.
+ * wybranego w SAF. Ekran mówi wprost, co jest w pliku, a czego nie ma: plan idzie do innej osoby. Od D-58 plik jest
+ * podpisany imieniem z „O mnie” i kluczem telefonu, a na życzenie zamknięty hasłem.
  */
 @Composable
 fun PlanShareScreen(onBack: () -> Unit, viewModel: PlanShareViewModel = hiltViewModel()) {
@@ -77,20 +85,51 @@ fun PlanShareScreen(onBack: () -> Unit, viewModel: PlanShareViewModel = hiltView
             verticalArrangement = Arrangement.spacedBy(Dimens.sectionGap),
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
             }
             Text("Wyślij plan", style = MaterialTheme.typography.headlineMedium)
             Text(
                 text = "${state.name} · ${daysLabel(state.days)}, ${trainingsLabel(state.trainingDays)}" +
-                    if (state.author.isNotBlank()) "\nPodpis: ${state.author}" else "\nBez podpisu — imię ustawisz w Ustawieniach.",
+                    state.otherAuthor?.let { "\nAutor planu: $it. Zostaje w pliku, a Ty go przekazujesz." }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            TextInput(label = "Podpis", value = state.signer, onValueChange = viewModel::setSigner)
+            Text(
+                text = if (state.signer.isBlank()) {
+                    "Plik podpisuje się Twoim imieniem. To samo imię stoi w Ustawieniach, w „O mnie”."
+                } else {
+                    "Plik podpiszesz tym imieniem i kluczem tego telefonu" + state.fingerprint?.let { " ($it)" }.orEmpty() +
+                        ". Zmiana autora albo treści po podpisaniu zablokuje import u odbiorcy."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            SettingRow(
+                title = "Chroń hasłem",
+                description = "Bez hasła pliku nie otworzy nikt, także ta aplikacja.",
+                trailing = { AppSwitch(checked = state.usePassword, onCheckedChange = viewModel::setUsePassword) },
+            )
+            if (state.usePassword) {
+                TextInput(label = "Hasło", value = state.password, onValueChange = viewModel::setPassword, password = true)
+                Text(
+                    text = if (state.passwordTooShort) {
+                        "Co najmniej ${PlanSeal.MIN_PASSWORD} znaków."
+                    } else {
+                        "Przekaż je odbiorcy osobno, na przykład SMS-em. Hasła nie da się odzyskać ani zmienić w wysłanym pliku."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.passwordTooShort) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             InfoCard {
                 Overline("Co jest w pliku")
                 Text(
-                    "Nazwa, opis, dni, treningi z seriami, powtórzeniami, czasem, przerwami, ciężarem i wskazówkami " +
-                        "oraz opisy użytych ćwiczeń.",
+                    "Nazwa, opis, dni, treningi z seriami, powtórzeniami, czasem, przerwami, ciężarem i wskazówkami, " +
+                        "opisy użytych ćwiczeń oraz podpis: imię i klucz tego telefonu.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Overline("Czego nie ma")
@@ -100,16 +139,17 @@ fun PlanShareScreen(onBack: () -> Unit, viewModel: PlanShareViewModel = hiltView
                 )
             }
             Text(
-                text = "Odbiorca dostanie plan dokładnie taki, jak go ułożyłeś — bez skalowania do swojego poziomu.",
+                text = "Odbiorca dostanie plan dokładnie taki, jak go ułożyłeś, bez skalowania do swojego poziomu.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            PrimaryAction("Udostępnij", onClick = viewModel::prepareShare, enabled = !state.busy)
+            PrimaryAction("Udostępnij", onClick = viewModel::prepareShare, enabled = state.canExport)
             SecondaryAction(
                 "Zapisz do pliku",
                 onClick = { saveFile.launch(state.fileName) },
                 modifier = Modifier.fillMaxWidth(),
                 height = 48.dp,
+                enabled = state.canExport,
             )
             state.message?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
@@ -154,13 +194,26 @@ fun PlanImportScreen(
             verticalArrangement = Arrangement.spacedBy(Dimens.sectionGap),
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
             }
             Text("Plan z pliku", style = MaterialTheme.typography.headlineMedium)
 
             state.error?.let { error ->
                 Text(error, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
                 SecondaryAction("Wybierz inny plik", onClick = viewModel::pickAgain, modifier = Modifier.fillMaxWidth(), height = 48.dp)
+            }
+            if (state.needsPassword) {
+                // Hasło tylko w pamięci ekranu: nie trafia do zapisanego stanu ani do ViewModelu na dłużej niż odczyt.
+                var password by remember { mutableStateOf("") }
+                Text(
+                    "Plan jest chroniony hasłem. Wpisz hasło, które dostałeś od autora.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                TextInput(label = "Hasło", value = password, onValueChange = { password = it.take(128) }, password = true)
+                if (state.wrongPassword) {
+                    Text("Hasło nie pasuje.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                }
+                PrimaryAction("Otwórz plan", onClick = { viewModel.unlock(password) }, enabled = password.isNotEmpty() && !state.loading)
             }
             if (state.loading) {
                 Text("Czytam plik…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -177,6 +230,7 @@ fun PlanImportScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            SealNote(preview.seal, author = plan.author, signer = plan.signer)
             if (plan.description.isNotBlank()) Text(plan.description, style = MaterialTheme.typography.bodyLarge)
 
             InfoCard {
@@ -223,6 +277,25 @@ fun PlanImportScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+/**
+ * Podpis pliku przy imporcie (D-58): zgodny z treścią (z kluczem do porównania z „O mnie” autora i z tym, kto
+ * przekazuje plan od kogoś) albo jego brak. Plik z podpisem niezgodnym z treścią w ogóle nie dochodzi do podglądu.
+ */
+@Composable
+private fun SealNote(seal: PlanSealInfo, author: String, signer: String) {
+    val text = if (seal.signed) {
+        listOfNotNull(
+            signer.takeIf { it.isNotBlank() && it != author }?.let { "Przekazuje: $it." },
+            "Podpis zgodny z treścią, klucz ${seal.fingerprint}.",
+            "Autor widzi swój klucz w Ustawieniach, w „O mnie”: jeśli się zgadza, plan jest od niego.",
+            "Plik był chroniony hasłem.".takeIf { seal.passwordProtected },
+        ).joinToString(" ")
+    } else {
+        "Bez podpisu: plik z wersji aplikacji sprzed 1.2.0 albo zmieniony ręcznie, więc autora nie da się potwierdzić."
+    }
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
 }
 
 private fun daysLabel(n: Int): String = "$n ${Announcer.plural(n, "dzień", "dni", "dni")}"

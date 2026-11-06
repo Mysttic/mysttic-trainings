@@ -58,6 +58,7 @@ class BackupFormatTest {
         assertEquals(false, ustawienia.updateChecks)
         assertEquals(true, ustawienia.libraryTiles)
         assertEquals("fire", ustawienia.themeId)
+        assertTrue(ustawienia.backgrounds.isEmpty())
         // Cykli w wersji 1 nie było — pusta lista, nie wyjątek.
         assertTrue(plik.programs.isEmpty())
         assertTrue(plik.tuning.isEmpty())
@@ -78,6 +79,7 @@ class BackupFormatTest {
                 updateChecks = true,
                 libraryTiles = false,
                 themeId = "steel",
+                backgrounds = mapOf("steel" to "granat", "fire" to "zar"),
             ),
             programs = listOf(
                 BackupProgram(
@@ -102,14 +104,15 @@ class BackupFormatTest {
         assertEquals(plik.settings, odczytany.settings)
         assertEquals(plik.programs, odczytany.programs)
         assertEquals("steel", odczytany.settings?.themeId)
+        assertEquals(mapOf("steel" to "granat", "fire" to "zar"), odczytany.settings?.backgrounds)
         assertEquals(1, odczytany.programs.single().days.count { it.workoutId != null })
     }
 
     @Test
     fun `wersja pliku rosnie razem z tym, co do niego wkladamy`() {
         // Zmiana formatu bez podbicia VERSION sprawia, że starsza aplikacja wczyta plik i po cichu zgubi dane.
-        // 4: notatki do ćwiczeń w planach (D-44).
-        assertEquals(4, BackupFile.VERSION)
+        // 4: notatki do ćwiczeń w planach (D-44). 5: tło w każdym motywie (D-50).
+        assertEquals(5, BackupFile.VERSION)
     }
 
     @Test
@@ -207,6 +210,17 @@ class BackupFormatTest {
         assertTrue(BackupFile.VERSION >= BackupFile.AUTHOR_NAME_SINCE)
     }
 
+    /** Kopia sprzed wersji 5 nie niesie teł motywów (D-50), więc import nie może nimi zgasić wybranego gradientu. */
+    @Test
+    fun `tla motywow wracaja tylko z kopii, ktora je zna`() {
+        val v4 = BackupFile.parse("""{"app":"mysttic-trainings","version":4,"settings":{"themeId":"steel"}}""", json)
+        assertEquals("steel", v4.settings?.themeId)
+        assertTrue(v4.settings?.backgrounds.orEmpty().isEmpty())
+        assertTrue(v4.version < BackupFile.BACKGROUNDS_SINCE)
+        assertEquals(5, BackupFile.BACKGROUNDS_SINCE)
+        assertTrue(BackupFile.VERSION >= BackupFile.BACKGROUNDS_SINCE)
+    }
+
     @Test
     fun `notatki do cwiczen w planach wracaja z kopii, starsza kopia ich nie ma`() {
         val plik = BackupFile(
@@ -215,7 +229,7 @@ class BackupFormatTest {
         )
         val odczytany = BackupFile.parse(json.encodeToString(BackupFile.serializer(), plik), json)
         assertEquals(plik.planNotes, odczytany.planNotes)
-        assertEquals(4, odczytany.version)
+        assertEquals(BackupFile.VERSION, odczytany.version)
 
         val v3 = BackupFile.parse("""{"version":3,"app":"mysttic-trainings","exportedAt":1}""", json)
         assertTrue(v3.planNotes.isEmpty())

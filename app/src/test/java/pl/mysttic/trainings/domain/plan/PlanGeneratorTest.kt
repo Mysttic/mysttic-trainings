@@ -73,6 +73,32 @@ class PlanGeneratorTest {
     )
 
     private fun idsIn(plan: GeneratedPlan) = plan.workouts.flatMap { idsOf(it) }
+
+    @Test
+    fun `licznik kreatora bierze te same cwiczenia co generator`() {
+        val ergometr = exercise(
+            "rower", listOf(MuscleGroup.QUADS), category = ExerciseCategory.CARDIO, kind = ExerciseKind.TIME,
+            equipment = setOf(Equipment.STATIONARY_BIKE),
+        )
+        val oddech = exercise("oddech", listOf(MuscleGroup.FULL_BODY), category = ExerciseCategory.BREATHING, kind = ExerciseKind.TIME)
+        val wycofane = exercise("stare", listOf(MuscleGroup.CHEST)).copy(retiredAt = "2026-10-01")
+        val wszystko = library + ergometr + oddech + wycofane
+
+        val bezSprzetu = PlanGenerator.candidates(wszystko, emptySet()).map { it.id }
+        assertTrue(bezSprzetu.none { id -> wszystko.first { it.id == id }.equipment.isNotEmpty() })
+        assertTrue(listOf("rower", "oddech", "stare").none { it in bezSprzetu })
+
+        val zHantlamiIRowerem = PlanGenerator.candidates(wszystko, setOf(Equipment.DUMBBELLS, Equipment.STATIONARY_BIKE)).map { it.id }
+        assertTrue("rows" in zHantlamiIRowerem)
+        assertTrue("ergometr nigdy nie wchodzi do kreatora (D-44)", "rower" !in zHantlamiIRowerem)
+
+        // Wszystko, co generator wstawia do planu, jest wśród kandydatów tego sprzętu.
+        val sprzet = setOf(Equipment.DUMBBELLS, Equipment.BENCH)
+        val plan = PlanGenerator.generate(profile.copy(equipment = sprzet), wszystko, now = 0L)
+        val kandydaci = PlanGenerator.candidates(wszystko, sprzet).map { it.id }.toSet()
+        assertTrue(idsIn(plan).isNotEmpty())
+        assertTrue(idsIn(plan).all { it in kandydaci })
+    }
     private fun idsOf(workout: Workout) = workout.blocks.flatMap { b -> b.items.map { it.exerciseId } }
     private fun itemsOf(workout: Workout) = workout.blocks.flatMap { it.items }
 

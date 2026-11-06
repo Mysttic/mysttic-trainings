@@ -1,6 +1,5 @@
 package pl.mysttic.trainings.ui.screenshot
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,12 +29,16 @@ import pl.mysttic.trainings.ui.common.SectionTitle
 import pl.mysttic.trainings.ui.common.StatCellData
 import pl.mysttic.trainings.ui.common.StatRow
 import pl.mysttic.trainings.ui.common.WorkoutCard
+import pl.mysttic.trainings.ui.theme.AppBackground
 import pl.mysttic.trainings.ui.theme.AppTheme
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.TrainingsTheme
+import pl.mysttic.trainings.ui.theme.appBackground
+import pl.mysttic.trainings.ui.theme.gradientOverPhoto
 
 /**
  * Zrzuty motywów bez emulatora (D-40): Robolectric rysuje natywnie, Roborazzi zapisuje PNG.
- * Nie zastępują telefonu — pokazują, jak każdy motyw trzyma komponenty systemu,
+ * Nie zastępują telefonu — pokazują, jak każdy motyw i każde jego tło (D-50) trzyma komponenty systemu,
  * i sprawiają, że zmiana odcienia jest widoczna w diffie zamiast dopiero po instalacji.
  *
  * - `./gradlew testDebugUnitTest` — rysuje i nic nie porównuje (tyle robi CI),
@@ -60,6 +63,21 @@ class ThemeScreenshotTest {
             }
         }
     }
+
+    /**
+     * Tła (D-50, D-51, D-55): te same komponenty na każdym wariancie. Zdjęcie przychodzi z bazy asynchronicznie, więc
+     * zrzut pokazuje to, co widać przed jego wczytaniem: dół pasma, na nim gradient, a nad tym szklane karty.
+     */
+    @Test
+    fun `kazde tlo`() {
+        AppBackground.entries.forEach { tlo ->
+            captureRoboImage(filePath = "src/test/screenshots/${tlo.theme.id}-${tlo.id}.png") {
+                TrainingsTheme(theme = tlo.theme, background = tlo) {
+                    Sampler(tlo.theme.labelPl, "tło ${tlo.labelPl}")
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -72,11 +90,12 @@ private fun Sampler(nazwa: String, motyw: String) {
     Column(
         modifier = Modifier
             .width(360.dp)
-            .background(MaterialTheme.colorScheme.surface)
+            .appBackground(LocalAppBackground.current)
+            .gradientOverPhoto(LocalAppBackground.current)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(nazwa, style = MaterialTheme.typography.headlineMedium)
+        Text(nazwa, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
         Overline("$motyw · seria 6 dni")
 
         WorkoutCard(

@@ -1,0 +1,184 @@
+{
+  "photos": [
+    {
+      "id": "brzuch-k-1",
+      "topic": "CORE",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "brzuch-k-2",
+      "topic": "CORE",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "brzuch-k-3",
+      "topic": "CORE",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "brzuch-m-1",
+      "topic": "CORE",
+      "sex": "MALE"
+    },
+    {
+      "id": "brzuch-m-2",
+      "topic": "CORE",
+      "sex": "MALE"
+    },
+    {
+      "id": "brzuch-m-3",
+      "topic": "CORE",
+      "sex": "MALE"
+    },
+    {
+      "id": "calosc-k-1",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "calosc-k-2",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "calosc-k-3",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "calosc-m-1",
+      "topic": "FULL_BODY",
+      "sex": "MALE"
+    },
+    {
+      "id": "calosc-m-2",
+      "topic": "FULL_BODY",
+      "sex": "MALE"
+    },
+    {
+      "id": "calosc-m-3",
+      "topic": "FULL_BODY",
+      "sex": "MALE"
+    },
+    {
+      "id": "gora-k-1",
+      "topic": "UPPER",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "gora-k-2",
+      "topic": "UPPER",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "gora-k-3",
+      "topic": "UPPER",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "gora-m-1",
+      "topic": "UPPER",
+      "sex": "MALE"
+    },
+    {
+      "id": "gora-m-2",
+      "topic": "UPPER",
+      "sex": "MALE"
+    },
+    {
+      "id": "gora-m-3",
+      "topic": "UPPER",
+      "sex": "MALE"
+    },
+    {
+      "id": "joga-k-1",
+      "topic": "YOGA",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "joga-k-2",
+      "topic": "YOGA",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "joga-k-3",
+      "topic": "YOGA",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "joga-m-1",
+      "topic": "YOGA",
+      "sex": "MALE"
+    },
+    {
+      "id": "joga-m-2",
+      "topic": "YOGA",
+      "sex": "MALE"
+    },
+    {
+      "id": "joga-m-3",
+      "topic": "YOGA",
+      "sex": "MALE"
+    },
+    {
+      "id": "kardio-k-1",
+      "topic": "CARDIO",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "kardio-k-2",
+      "topic": "CARDIO",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "kardio-k-3",
+      "topic": "CARDIO",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "kardio-m-1",
+      "topic": "CARDIO",
+      "sex": "MALE"
+    },
+    {
+      "id": "kardio-m-2",
+      "topic": "CARDIO",
+      "sex": "MALE"
+    },
+    {
+      "id": "kardio-m-3",
+      "topic": "CARDIO",
+      "sex": "MALE"
+    },
+    {
+      "id": "nogi-k-1",
+      "topic": "LEGS",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "nogi-k-2",
+      "topic": "LEGS",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "nogi-k-3",
+      "topic": "LEGS",
+      "sex": "FEMALE"
+    },
+    {
+      "id": "nogi-m-1",
+      "topic": "LEGS",
+      "sex": "MALE"
+    },
+    {
+      "id": "nogi-m-2",
+      "topic": "LEGS",
+      "sex": "MALE"
+    },
+    {
+      "id": "nogi-m-3",
+      "topic": "LEGS",
+      "sex": "MALE"
+    }
+  ]
+}

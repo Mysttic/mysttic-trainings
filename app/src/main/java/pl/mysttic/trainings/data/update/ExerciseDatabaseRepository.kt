@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import pl.mysttic.trainings.BuildConfig
+import pl.mysttic.trainings.data.background.PhotoFile
 import pl.mysttic.trainings.data.repo.ExerciseRepository
 import pl.mysttic.trainings.data.seed.SeedFile
 import pl.mysttic.trainings.data.seed.SeedImporter
@@ -113,6 +114,15 @@ class ExerciseDatabaseRepository @Inject constructor(
                 return DatabaseInstall.Rejected(listOf("plik ma bazę v${seed.version}, a wydanie v$expectedVersion"))
             }
             val images = File(staging, "images").list()?.toSet().orEmpty()
+            // Zdjęcia tła (D-51) są w bazie opcjonalne; plik, którego ta wersja nie odczyta, odrzuca całą bazę jak wyżej.
+            val photosFile = File(staging, DatabaseArchive.PHOTOS_JSON)
+            val photos = if (photosFile.isFile) {
+                runCatching { json.decodeFromString(PhotoFile.serializer(), photosFile.readText()) }
+                    .getOrElse { return DatabaseInstall.Rejected(listOf("zdjęcia tła są dla nowszej aplikacji albo plik jest uszkodzony")) }
+                    .photos
+            } else {
+                emptyList()
+            }
             val problems = ExerciseDatabaseCheck.problems(
                 version = seed.version,
                 format = seed.format,
@@ -122,6 +132,8 @@ class ExerciseDatabaseRepository @Inject constructor(
                 installed = exerciseRepo.getAll(),
                 installedVersion = settings.current().seedVersion,
                 appVersion = BuildConfig.VERSION_NAME,
+                photoIds = photos.map { it.id },
+                photoFiles = File(staging, "tla").list()?.toSet().orEmpty(),
             )
             if (problems.isNotEmpty()) return DatabaseInstall.Rejected(problems)
             val ready = SeedImporter.downloadedDir(context, seed.version).apply { deleteRecursively() }

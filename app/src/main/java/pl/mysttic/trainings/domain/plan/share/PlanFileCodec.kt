@@ -39,6 +39,8 @@ data class ImportedPlan(
     val newExercises: List<Exercise>,
     val seedVersion: Int,
     val warnings: List<String>,
+    /** Kto podpisał plik (D-58); pusty w plikach formatu 1. */
+    val signer: String = "",
     /** Notatki do ćwiczeń (D-44) pod id ćwiczeń u odbiorcy. */
     val notes: Map<String, String> = emptyMap(),
 ) {
@@ -92,6 +94,8 @@ object PlanFileCodec {
         planner: WorkoutPlanner = WorkoutPlanner(),
         /** Notatki do ćwiczeń planu (D-44); jadą tylko te, których ćwiczenie jest w pliku. */
         notes: Map<String, String> = emptyMap(),
+        /** Kto podpisuje plik (D-58): imię z „O mnie”; [author] to autor planu. */
+        signer: String = "",
     ): PlanFile {
         val keys = LinkedHashMap<String, String>()
         program.days.sortedBy { it.dayIndex }.forEach { day ->
@@ -111,6 +115,7 @@ object PlanFileCodec {
             appVersion = appVersion,
             seedVersion = seedVersion,
             exportedAt = exportedAt,
+            signer = signer,
             plan = SharedPlan(
                 uid = uid,
                 name = program.name,
@@ -142,11 +147,24 @@ object PlanFileCodec {
 
     // ---------------------------------------------------------------- odczyt
 
-    /** Odczyt z tekstu z kontrolą formatu; walidację treści robi [validate]. */
+    /**
+     * Odczyt treści pliku z kontrolą formatu; walidację treści robi [validate]. Plik z podpisem albo hasłem (D-58)
+     * otwiera `PlanSeal.open`, który woła tę funkcję dla treści spod podpisu.
+     */
     fun decode(text: String, json: Json): PlanFile {
         if (text.length > PlanFile.MAX_BYTES) throw PlanFileException("Plik jest za duży jak na plan treningowy.")
-        val root = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
-            ?: throw PlanFileException("To nie jest plik planu.")
+        val root = parseRoot(text, json)
+        checkHeader(root)
+        return runCatching { json.decodeFromJsonElement(PlanFile.serializer(), JsonObject(root)) }
+            .getOrElse { throw PlanFileException("Plik planu jest uszkodzony.") }
+    }
+
+    /** Korzeń pliku jako obiekt JSON; byle co innego to „nie plik planu”. */
+    internal fun parseRoot(text: String, json: Json): JsonObject =
+        runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull() ?: throw PlanFileException("To nie jest plik planu.")
+
+    /** Znacznik formatu i numer wersji: kopia zapasowa, obcy JSON i plik z nowszej aplikacji dostają czytelny komunikat. */
+    internal fun checkHeader(root: JsonObject) {
         val format = (root["format"] as? JsonPrimitive)?.content
         if (format == null) {
             if (root.containsKey("app")) throw PlanFileException("To kopia zapasowa, nie plan. Wczytaj ją w Ustawieniach.")
@@ -158,8 +176,6 @@ object PlanFileCodec {
         if (version > PlanFile.VERSION) {
             throw PlanFileException("Plan zapisano w nowszej wersji aplikacji. Zaktualizuj aplikację i spróbuj jeszcze raz.")
         }
-        return runCatching { json.decodeFromJsonElement(PlanFile.serializer(), JsonObject(root)) }
-            .getOrElse { throw PlanFileException("Plik planu jest uszkodzony.") }
     }
 
     /**
@@ -237,6 +253,7 @@ object PlanFileCodec {
             newExercises = resolved.added.filter { added -> workouts.any { added.id in it.exerciseIds } },
             seedVersion = file.seedVersion,
             warnings = warnings.distinct().take(20),
+            signer = WorkoutEditing.cleanText(file.signer, 60),
             notes = notes,
         )
     }

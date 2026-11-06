@@ -13,7 +13,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,15 +38,19 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -74,6 +82,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pl.mysttic.trainings.domain.model.Rpe
 import pl.mysttic.trainings.ui.theme.Dimens
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
 import pl.mysttic.trainings.ui.theme.Pill
 import pl.mysttic.trainings.ui.theme.StatValue
 import pl.mysttic.trainings.ui.theme.StepperValue
@@ -85,6 +94,43 @@ import pl.mysttic.trainings.ui.theme.Overline as OverlineStyle
  * a zrobione rysujemy ogniem, resztki kolorem outlineVariant.
  * Elewacje są zerowe: warstwy rozdziela stopień surfaceContainer i linia włosowa.
  */
+
+/**
+ * Scaffold ekranu na tle aplikacji (D-50): bez własnego wypełnienia, bo zasłoniłby tło, które maluje korzeń
+ * nawigacji (zdjęcie dnia, na nim gradient). Kolor treści idzie wprost: przezroczysty kontener nie ma pary w schemacie,
+ * więc `contentColorFor` oddałby domyślną czerń zamiast `onSurface`.
+ */
+@Composable
+fun ScreenScaffold(
+    modifier: Modifier = Modifier,
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = topBar,
+        bottomBar = bottomBar,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        content = content,
+    )
+}
+
+/**
+ * Wypełnienie karty leżącej na tle ekranu: szkło, czyli `onSurface` z alfą motywu, przez które prześwituje zdjęcie
+ * dnia (D-51), od D-55 obecne pod każdym tłem. Tylko karty: paski, menu, okna i miniatury zostają pełne, bo pod nimi
+ * przewija się treść albo inny ekran. Kontrast tekstu na szkle pilnuje `ThemeContractTest` w całym paśmie zdjęcia
+ * i w każdym punkcie gradientu.
+ */
+@Composable
+fun cardColor(): Color = MaterialTheme.colorScheme.onSurface.copy(alpha = LocalAppBackground.current.band.glass)
+
+/** Pasek tytułu nad tłem aplikacji (D-50): bez wypełnienia, jak `ScreenScaffold`, tytuł i ikony bez zmian. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun screenTopBarColors(): TopAppBarColors =
+    TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
 
 /** Nagłówek sekcji, etykieta stanu playera, data: wersaliki w kolorze żaru. */
 @Composable
@@ -232,10 +278,12 @@ fun SecondaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = Dimens.secondaryButton,
+    enabled: Boolean = true,
 ) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(height),
+        enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
@@ -247,7 +295,8 @@ fun SecondaryAction(
 
 /**
  * Karta dnia: jedyna karta na „Dziś” i jedyne wyróżnienie w kolejce planu.
- * `roundsDone`/`roundsTotal` rysują pasek postępu tygodnia nad przyciskiem Start.
+ * `weekDone`/`weekTotal` rysują pasek postępu tygodnia nad przyciskiem Start, a [top] (D-52) to miejsce na pasek
+ * miniatur ćwiczeń nad nazwą — karta przestaje być samym tekstem.
  */
 @Composable
 fun WorkoutCard(
@@ -257,17 +306,19 @@ fun WorkoutCard(
     modifier: Modifier = Modifier,
     weekDone: Int = 0,
     weekTotal: Int = 0,
+    top: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(26.dp),
     ) {
         Column(
-            modifier = Modifier.padding(Dimens.cardInner),
+            modifier = Modifier.padding(if (top != null) Dimens.cardPreviewInner else Dimens.cardInner),
             verticalArrangement = Arrangement.spacedBy(Dimens.cardGap),
         ) {
+            top?.invoke()
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = name,
@@ -345,7 +396,7 @@ fun ProgressionCard(
     if (boxed) {
         Surface(
             modifier = modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = cardColor(),
             shape = RoundedCornerShape(20.dp),
         ) {
             Box(Modifier.padding(14.dp)) { body() }
@@ -439,7 +490,10 @@ fun BlockHeader(title: String, param: String, modifier: Modifier = Modifier, fir
     }
 }
 
-/** Pigułka filtra: wybrana wypełniona ogniem, reszta na obwódce. `trailingIcon` (np. strzałka) dla pigułki, która coś rozwija. */
+/**
+ * Pigułka filtra: wybrana wypełniona ogniem, reszta na obwódce. `trailingIcon` (np. strzałka) dla pigułki, która coś rozwija.
+ * Niewybrana jest przezroczysta, jak `SecondaryAction`: na gradiencie tła (D-50) wypełnienie `surface` byłoby łatą.
+ */
 @Composable
 fun FilterPill(
     text: String,
@@ -453,7 +507,7 @@ fun FilterPill(
         onClick = onClick,
         modifier = modifier.height(34.dp),
         shape = Pill,
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
         border = if (selected) null else BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline),
     ) {
         Row(
@@ -469,71 +523,25 @@ fun FilterPill(
 }
 
 /**
- * Przełącznik widoku listy i kafelków: dwie ikony w jednej pigułce, wybrana wypełniona ogniem jak `FilterPill`.
- * Glify rysowane na `Canvas`, bo `material-icons-core` nie ma siatki; opisy „Lista” / „Kafelki” dla czytnika i testów.
+ * Pole szukania: bez obwódki, na stopniu surfaceContainerLow. [leadingIcon] i [trailingIcon] (D-52): lupa i przycisk
+ * filtrów w samym polu, zamiast osobnego rzędu pigułek nad listą.
  */
 @Composable
-fun ViewToggle(tiles: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .height(34.dp)
-            .clip(Pill)
-            .border(BorderStroke(Dimens.hairline, MaterialTheme.colorScheme.outline), Pill),
-    ) {
-        ViewToggleCell(selected = !tiles, description = "Lista", onClick = { onChange(false) }) { color ->
-            Canvas(Modifier.size(18.dp)) {
-                listOf(0.2f, 0.5f, 0.8f).forEach { fy ->
-                    val y = size.height * fy
-                    drawLine(
-                        color = color,
-                        start = Offset(size.width * 0.08f, y),
-                        end = Offset(size.width * 0.92f, y),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                    )
-                }
-            }
-        }
-        ViewToggleCell(selected = tiles, description = "Kafelki", onClick = { onChange(true) }) { color ->
-            Canvas(Modifier.size(18.dp)) {
-                val gap = size.width * 0.16f
-                val cell = (size.width - gap) / 2f
-                val radius = CornerRadius(cell * 0.28f)
-                listOf(Offset(0f, 0f), Offset(cell + gap, 0f), Offset(0f, cell + gap), Offset(cell + gap, cell + gap))
-                    .forEach { drawRoundRect(color = color, topLeft = it, size = Size(cell, cell), cornerRadius = radius) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ViewToggleCell(
-    selected: Boolean,
-    description: String,
-    onClick: () -> Unit,
-    glyph: @Composable (Color) -> Unit,
+fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(46.dp)
-            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        glyph(if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** Pole szukania: bez obwódki, na stopniu surfaceContainerLow. */
-@Composable
-fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     TextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyLarge) },
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
         singleLine = true,
         shape = RoundedCornerShape(16.dp),
         textStyle = MaterialTheme.typography.bodyLarge,
@@ -604,7 +612,7 @@ fun SettingRow(
 fun InfoCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = cardColor(),
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
@@ -660,7 +668,7 @@ fun ChoiceCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+        color = if (selected) MaterialTheme.colorScheme.primary else cardColor(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -872,6 +880,8 @@ fun TextInput(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    /** Pole hasła (D-58): znaki ukryte, klawiatura bez podpowiedzi słów. */
+    password: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Overline(label)
@@ -882,6 +892,8 @@ fun TextInput(
             modifier = Modifier.fillMaxWidth(),
             singleLine = singleLine,
             minLines = minLines,
+            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = if (password) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
             shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = TextFieldDefaults.colors(

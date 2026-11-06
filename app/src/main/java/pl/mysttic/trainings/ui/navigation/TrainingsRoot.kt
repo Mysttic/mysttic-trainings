@@ -1,7 +1,7 @@
 package pl.mysttic.trainings.ui.navigation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,8 +23,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -51,7 +55,9 @@ import kotlinx.coroutines.flow.emptyFlow
 import pl.mysttic.trainings.data.share.IncomingPlanFile
 import pl.mysttic.trainings.ui.adaptive.AppLayout
 import pl.mysttic.trainings.ui.adaptive.LocalAppLayout
+import pl.mysttic.trainings.ui.common.AppIcons
 import pl.mysttic.trainings.ui.common.Hairline
+import pl.mysttic.trainings.ui.common.PhotoBackdrop
 import pl.mysttic.trainings.ui.plans.PlansScreen
 import pl.mysttic.trainings.ui.planeditor.PlanEditorScreen
 import pl.mysttic.trainings.ui.share.PlanImportScreen
@@ -67,11 +73,16 @@ import pl.mysttic.trainings.ui.plan.PlanWizardScreen
 import pl.mysttic.trainings.ui.player.PlayerScreen
 import pl.mysttic.trainings.ui.presets.PresetsScreen
 import pl.mysttic.trainings.ui.settings.SettingsScreen
+import pl.mysttic.trainings.ui.theme.LocalAppBackground
+import pl.mysttic.trainings.ui.theme.LocalBackgroundPhoto
+import pl.mysttic.trainings.ui.theme.appBackground
+import pl.mysttic.trainings.ui.theme.gradientOverPhoto
 import pl.mysttic.trainings.ui.today.TodayScreen
 import pl.mysttic.trainings.ui.workout.WorkoutDetailScreen
 
 private class TopLevelDestination(
     val label: String,
+    val icon: ImageVector,
     val matches: (NavDestination) -> Boolean,
     val navigate: (NavController) -> Unit,
 )
@@ -85,52 +96,71 @@ private fun NavController.navigateTopLevel(route: Any) {
 }
 
 private val topLevel = listOf(
-    TopLevelDestination("Dziś", { it.hasRoute<TodayRoute>() }, { it.navigateTopLevel(TodayRoute) }),
-    TopLevelDestination("Ćwiczenia", { it.hasRoute<LibraryRoute>() }, { it.navigateTopLevel(LibraryRoute) }),
-    TopLevelDestination("Historia", { it.hasRoute<HistoryRoute>() }, { it.navigateTopLevel(HistoryRoute) }),
-    TopLevelDestination("Ustawienia", { it.hasRoute<SettingsRoute>() }, { it.navigateTopLevel(SettingsRoute) }),
+    TopLevelDestination("Dziś", AppIcons.Today, { it.hasRoute<TodayRoute>() }, { it.navigateTopLevel(TodayRoute) }),
+    // Plany z głównej nawigacji (issue #1, D-53): wiele planów i dodawanie nowego jednym tapnięciem od „Dziś”.
+    TopLevelDestination("Plany", AppIcons.Plans, { it.hasRoute<PlansRoute>() }, { it.navigateTopLevel(PlansRoute) }),
+    TopLevelDestination("Ćwiczenia", AppIcons.Exercises, { it.hasRoute<LibraryRoute>() }, { it.navigateTopLevel(LibraryRoute) }),
+    TopLevelDestination("Historia", AppIcons.History, { it.hasRoute<HistoryRoute>() }, { it.navigateTopLevel(HistoryRoute) }),
+    TopLevelDestination("Ustawienia", AppIcons.Settings, { it.hasRoute<SettingsRoute>() }, { it.navigateTopLevel(SettingsRoute) }),
 )
 
 /**
- * Dolny pasek bez ikon (D-32): sama etykieta, a nad aktywną wskaźnik 34 x 4 dp w kolorze ognia.
- * Player i kreator zakrywają nawigację, więc pasek pokazujemy tylko na czterech ekranach głównych.
+ * Dolny pasek: ikona z etykietą (D-52), a nad aktywną wskaźnik 34 x 4 dp w kolorze ognia (D-32).
+ * Player i kreator zakrywają nawigację, więc pasek pokazujemy tylko na pięciu ekranach głównych (D-53).
+ * Bez własnego wypełnienia: leży na tle ekranów (D-50), od treści oddziela go linia włosowa.
  */
 @Composable
-private fun BottomNav(currentDestination: NavDestination?, navController: NavController) {
+internal fun BottomNav(selectedIndex: Int, onSelect: (Int) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding(),
     ) {
         Hairline()
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
-            topLevel.forEach { dest ->
-                val selected = currentDestination != null && dest.matches(currentDestination)
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { dest.navigate(navController) }
-                        .padding(top = 10.dp, bottom = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(34.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
-                    )
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        text = dest.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+            topLevel.forEachIndexed { index, dest ->
+                NavItem(
+                    dest = dest,
+                    selected = index == selectedIndex,
+                    onClick = { onSelect(index) },
+                    modifier = Modifier.weight(1f).padding(top = 4.dp, bottom = 6.dp),
+                )
             }
         }
+    }
+}
+
+/**
+ * Pozycja nawigacji: wskaźnik ognia nad aktywną, ikona i etykieta. Ikona nie ma opisu — czyta się etykietę,
+ * a cała pozycja jest jednym przyciskiem z rolą karty.
+ */
+@Composable
+private fun NavItem(dest: TopLevelDestination, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(34.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
+        )
+        Spacer(Modifier.height(4.dp))
+        Icon(dest.icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = dest.label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = color,
+            maxLines = 1,
+        )
     }
 }
 
@@ -142,13 +172,14 @@ private val railInsets: WindowInsets
     @Composable get() = WindowInsets.systemBars.union(WindowInsets.displayCutout)
 
 /**
- * Szyna nawigacji na tablecie i w poziomie (D-42): ten sam język co dolny pasek — etykiety bez ikon (D-32),
+ * Szyna nawigacji na tablecie i w poziomie (D-42): ten sam język co dolny pasek — ikona z etykietą (D-52),
  * wskaźnik 34 x 4 dp nad aktywną — tylko w pionie, z linią włosową oddzielającą ją od treści.
  * Wcięcie od strony szyny (otwór aparatu, pasek nawigacji) poszerza szynę, a etykiety zostają poza nim.
+ * Jak dolny pasek leży na tle ekranów (D-50), bez własnego wypełnienia.
  */
 @Composable
-private fun NavRail(currentDestination: NavDestination?, navController: NavController) {
-    Row(modifier = Modifier.fillMaxHeight().background(MaterialTheme.colorScheme.surface)) {
+internal fun NavRail(selectedIndex: Int, onSelect: (Int) -> Unit) {
+    Row(modifier = Modifier.fillMaxHeight()) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
@@ -157,30 +188,13 @@ private fun NavRail(currentDestination: NavDestination?, navController: NavContr
                 .padding(vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            topLevel.forEach { dest ->
-                val selected = currentDestination != null && dest.matches(currentDestination)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { dest.navigate(navController) }
-                        .padding(vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(34.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
-                    )
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        text = dest.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            topLevel.forEachIndexed { index, dest ->
+                NavItem(
+                    dest = dest,
+                    selected = index == selectedIndex,
+                    onClick = { onSelect(index) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                )
             }
         }
         Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
@@ -206,8 +220,10 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    val showNav = currentDestination != null && topLevel.any { it.matches(currentDestination) }
+    val selectedIndex = currentDestination?.let { dest -> topLevel.indexOfFirst { it.matches(dest) } } ?: -1
+    val showNav = selectedIndex >= 0
     val rail = showNav && layout.navRail
+    val onSelect: (Int) -> Unit = { index -> topLevel[index].navigate(navController) }
 
     LaunchedEffect(openPlayer) {
         openPlayer.collect { workoutId ->
@@ -226,14 +242,25 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
         }
     }
 
-    Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-    if (rail) NavRail(currentDestination, navController)
+    // Tło ekranów (D-50, D-55) maluje tylko ten wiersz, pod szyną, paskami systemu i treścią; wszystko nad nim
+    // jest przezroczyste, więc tło nie przesuwa się przy przewijaniu ani przy przejściu między ekranami.
+    // Warstwy od dołu: dół pasma (widać go, zanim zdjęcie się wczyta), zdjęcie dnia (D-51), gradient na zdjęciu.
+    val background = LocalAppBackground.current
+    val photo = LocalBackgroundPhoto.current
+    Box(modifier = Modifier.fillMaxSize().appBackground(background)) {
+    photo?.let { PhotoBackdrop(it, background.band) }
+    Spacer(modifier = Modifier.fillMaxSize().gradientOverPhoto(background))
+    Row(modifier = Modifier.fillMaxSize()) {
+    if (rail) NavRail(selectedIndex, onSelect)
     // Wcięcie od strony szyny już wzięła szyna: treść obok niej nie dolicza go drugi raz (Scaffold i paski ekranów).
     val railSide = if (rail) Modifier.consumeWindowInsets(railInsets.only(WindowInsetsSides.Start)) else Modifier
     Scaffold(
         modifier = Modifier.weight(1f).then(railSide),
-        bottomBar = { if (showNav && !rail) BottomNav(currentDestination, navController) },
-        containerColor = MaterialTheme.colorScheme.surface,
+        bottomBar = { if (showNav && !rail) BottomNav(selectedIndex, onSelect) },
+        // Przezroczysty kontener nie ma pary w schemacie, więc kolor treści trzeba podać wprost:
+        // `contentColorFor(Color.Transparent)` oddałby domyślną czerń.
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -250,7 +277,7 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
                     onOpenPlan = { navController.navigate(PlanRoute()) },
                     onNewPlan = { step -> navController.navigate(PlanWizardRoute(step)) },
                     onPresets = { navController.navigate(PresetsRoute) },
-                    onPlans = { navController.navigate(PlansRoute) },
+                    onPlans = { navController.navigateTopLevel(PlansRoute) },
                 )
             }
             composable<PlanRoute> {
@@ -260,7 +287,7 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
                     onOpenWorkout = { id -> navController.navigate(WorkoutDetailRoute(id)) },
                     onNewCycle = { navController.navigate(PlanWizardRoute()) },
                     onPresets = { navController.navigate(PresetsRoute) },
-                    onPlans = { navController.navigate(PlansRoute) { launchSingleTop = true } },
+                    onPlans = { navController.navigateTopLevel(PlansRoute) },
                     onOpenPlan = { id -> navController.navigate(PlanRoute(id)) },
                     onEditPlan = { id -> navController.navigate(PlanEditorRoute(id)) },
                     onExport = { id -> navController.navigate(PlanShareRoute(id)) },
@@ -269,7 +296,6 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
             }
             composable<PlansRoute> {
                 PlansScreen(
-                    onBack = { navController.popBackStack() },
                     onOpenPlan = { id -> navController.navigate(PlanRoute(id)) },
                     onWizard = { navController.navigate(PlanWizardRoute()) },
                     onPresets = { navController.navigate(PresetsRoute) },
@@ -366,6 +392,7 @@ private fun TrainingsNav(layout: AppLayout, openPlayer: Flow<String>, openPlanFi
                 SessionDetailScreen(onBack = { navController.popBackStack() })
             }
         }
+    }
     }
     }
 }

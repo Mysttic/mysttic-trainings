@@ -34,6 +34,16 @@ class LibraryFilterTest {
     }
 
     @Test
+    fun `panel count adds my equipment to chips because both live in the panel`() {
+        assertEquals(0, LibraryFilter(query = "pomp").panelCount)
+        assertEquals(1, LibraryFilter(onlyOwned = true).panelCount)
+        val mixed = LibraryFilter(onlyOwned = true, noEquipment = true, equipment = setOf(Equipment.DUMBBELLS), levels = setOf(Difficulty.BEGINNER))
+        assertEquals(3, mixed.selectedCount)
+        assertEquals(4, mixed.panelCount)
+        assertEquals(0, mixed.cleared().panelCount)
+    }
+
+    @Test
     fun `no equipment keeps only bodyweight`() {
         assertEquals(listOf("pushups", "squats", "plank", "climbers"), ids(LibraryFilter(noEquipment = true)))
     }

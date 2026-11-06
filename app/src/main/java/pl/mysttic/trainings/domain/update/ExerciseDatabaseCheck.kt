@@ -33,6 +33,10 @@ object ExerciseDatabaseCheck {
         installed: List<Exercise>,
         installedVersion: Int,
         appVersion: String,
+        /** Zdjęcia tła z `tla.json` (D-51); baza bez zdjęć ma obie listy puste. */
+        photoIds: List<String> = emptyList(),
+        /** Nazwy plików w `tla/` pobranej bazy, np. `brzuch-k-1.jpg`. */
+        photoFiles: Set<String> = emptySet(),
     ): List<String> {
         val problems = LinkedHashSet<String>()
         if (version <= installedVersion) problems += "baza v$version nie jest nowsza od wczytanej v$installedVersion"
@@ -80,7 +84,25 @@ object ExerciseDatabaseCheck {
         }
         val orphans = imageFiles - byId.keys.map { "$it.jpg" }.toSet()
         if (orphans.isNotEmpty()) problems += "obrazy bez ćwiczeń: ${orphans.sorted().take(3).joinToString()}"
+        problems += photoProblems(photoIds, photoFiles)
         problems += PresetCatalog.libraryProblems(byId)
         return problems.toList()
+    }
+
+    /** Zdjęcia tła (D-51): id jak u ćwiczeń, każde z plikiem i każdy plik ze zdjęciem. Temat i płeć sprawdza odczyt JSON-a. */
+    private fun photoProblems(ids: List<String>, files: Set<String>): List<String> {
+        val problems = mutableListOf<String>()
+        val seen = HashSet<String>()
+        for (id in ids) {
+            if (!ID.matches(id) || id.length > ID_MAX) {
+                problems += "zdjęcie ${id.take(ID_MAX)}: id poza formatem"
+                continue
+            }
+            if (!seen.add(id)) problems += "zdjęcie $id: id powtórzone"
+            if ("$id.jpg" !in files) problems += "zdjęcie $id: brak pliku"
+        }
+        val orphans = files - seen.map { "$it.jpg" }.toSet()
+        if (orphans.isNotEmpty()) problems += "pliki zdjęć bez wpisu: ${orphans.sorted().take(3).joinToString()}"
+        return problems
     }
 }

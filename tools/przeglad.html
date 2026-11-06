@@ -348,6 +348,25 @@
   .draft img, .draft .ph { flex: 0 0 96px; width: 96px; aspect-ratio: 3 / 2; border-radius: 8px; object-fit: cover; background: #fff; }
   .draft .ph { display: grid; place-items: center; border: 1px dashed var(--line); background: transparent; color: var(--muted); font-size: 11px; text-align: center; }
   .draft .grow { flex: 1 1 auto; min-width: 0; }
+  /* Zdjęcia tła (D-51): kadr telefonu 360×780, podgląd w kolorach motywu przez filtr SVG z pasmem aplikacji. */
+  .tla { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
+  .tlo { position: relative; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .tlo.over { border-color: var(--fire); }
+  .tlo img, .tlo .ph { display: block; width: 100%; aspect-ratio: 360 / 780; border-radius: 8px; object-fit: cover; background: #000; }
+  .tlo .ph { display: grid; place-items: center; color: var(--muted); font-size: 11px; background: transparent; border: 1px dashed var(--line); }
+  .tlo .pid { margin: 6px 2px 0; }
+  .tlo .actions { margin-top: 6px; gap: 6px; }
+  .tlo .actions > * { padding: 4px 8px; font-size: 12px; }
+  .tlo-add { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  /* Miejsca z promptami (issue #8): miniatura obok promptu; wybrana karta przyjmuje Ctrl+V. */
+  .tla.sloty { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .tlo.slot { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; cursor: pointer; outline: none; }
+  .tlo.slot img, .tlo.slot .ph { width: 96px; }
+  .tlo.slot.sel { border-color: var(--fire); box-shadow: inset 0 0 0 1px var(--fire); }
+  .tlo .prompt { margin: 6px 0 0; font-size: 12px; line-height: 1.35; color: var(--ink); max-height: 10.8em; overflow: auto; white-space: pre-wrap; }
+  .tlo .nowe { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 8px; background: var(--fire); color: var(--bg); font-size: 10.5px; font-weight: 700; }
+  .tlo .actions { flex-wrap: wrap; }
+  .tlo-add .drop { grid-column: 1 / -1; aspect-ratio: auto; min-height: 96px; margin-top: 0; }
 
   @media (max-width: 720px) {
     .panel, .panel.wide { width: 100%; border-left: none; }
@@ -439,6 +458,7 @@
     EDIT && [count("status", "nowe"), `nowych od ${EDIT.ref}`, () => only("status", "nowe")],
     [count("status", "wycofane"), "wycofanych", () => only("status", "wycofane")],
     EDIT && [EDIT.szkice.length, "szkiców", () => openDrafts()],
+    EDIT && EDIT.tla && [EDIT.tla.zdjecia.length, "zdjęć tła", () => openBackgrounds()],
   ].filter(Boolean).forEach(([n, label, fn]) => {
     const b = el("button", { type: "button" }, [el("b", { textContent: String(n) }), el("span", { textContent: label })]);
     b.onclick = fn;
@@ -693,6 +713,8 @@
     add.onclick = () => openForm(null);
     const drafts = el("button", { type: "button", className: "ghost", textContent: `Szkice (${EDIT.szkice.length})` });
     drafts.onclick = () => openDrafts();
+    const photos = el("button", { type: "button", className: "ghost", textContent: `Zdjęcia tła (${EDIT.tla.zdjecia.length})` });
+    photos.onclick = () => openBackgrounds();
     const bump = el("button", {
       type: "button",
       className: "ghost",
@@ -705,7 +727,7 @@
       textContent: EDIT.bledy.length ? `Błędy: ${EDIT.bledy.length}` : "Reguły bazy: bez błędów",
     });
     st.onclick = () => openStatus();
-    bar.append(add, drafts, bump, st, ...EDIT.uwagi.map(u => el("p", { className: "note", textContent: u })));
+    bar.append(add, drafts, photos, bump, st, ...EDIT.uwagi.map(u => el("p", { className: "note", textContent: u })));
   }
 
   function openStatus() {
@@ -773,6 +795,247 @@
         del,
       ]));
     }
+  }
+
+  // ---- zdjęcia tła (D-51) ----
+  // Pasmo motywu jako filtr SVG: to samo przekształcenie co `PhotoBand.colorFilter()` w aplikacji (jasność piksela
+  // wybiera punkt między dwoma kolorami motywu), liczone w sRGB, żeby podgląd zgadzał się z telefonem.
+  function bandFilters() {
+    if (document.getElementById("pasma")) return;
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.id = "pasma";
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    for (const band of EDIT.tla.pasma) {
+      const filter = document.createElementNS(ns, "filter");
+      filter.id = `pasmo-${band.id}`;
+      filter.setAttribute("color-interpolation-filters", "sRGB");
+      const matrix = document.createElementNS(ns, "feColorMatrix");
+      matrix.setAttribute("type", "matrix");
+      const [lo, hi] = [rgb(band.low), rgb(band.high)];
+      const row = k => [0.2126, 0.7152, 0.0722].map(w => ((hi[k] - lo[k]) * w).toFixed(5)).join(" ") + ` 0 ${lo[k].toFixed(5)}`;
+      matrix.setAttribute("values", `${row(0)} ${row(1)} ${row(2)} 0 0 0 1 0`);
+      filter.append(matrix);
+      svg.append(filter);
+    }
+    document.body.append(svg);
+  }
+
+  let bandPreview = "";
+  let tloWybrane = null;  // id karty zdjęcia tła, do której trafi Ctrl+V (issue #8)
+  let wklejDo = null;
+
+  // Ctrl+V w otwartym panelu zdjęć tła wkleja obraz ze schowka do wybranej karty.
+  document.addEventListener("paste", ev => {
+    if (!wklejDo || !document.querySelector("#panel .tla")) return;
+    const item = [...((ev.clipboardData && ev.clipboardData.items) || [])].find(i => i.type.startsWith("image/"));
+    if (!item) return;
+    ev.preventDefault();
+    wklejDo(item.getAsFile());
+  });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const area = el("textarea", { value: text });
+      document.body.append(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+  }
+
+  function openBackgrounds() {
+    const T = EDIT.tla;
+    const label = key => T.etykiety[key] || key;
+    const panel = shell("Zdjęcia tła", "baza/tla/ · Zdjęcie dnia w aplikacji (D-51)", true);
+    bandFilters();
+    const prompts = T.zdjecia.some(z => z.prompt);
+    panel.append(el("p", { className: "note", style: "margin-top:12px", textContent:
+      "Zdjęcie dnia losuje się raz dziennie z trzech tematów, których najwięcej w dzisiejszych treningach, z osobami płci " +
+      "z „O mnie” w aplikacji. Edytor wykadruje każde zdjęcie ze środka pod telefon (360×780), zamieni na skalę szarości, " +
+      "rozciągnie jasność i rozmyje, a kolor nada motyw w aplikacji. Najlepiej wychodzi pionowa postać w środkowej połowie " +
+      "kadru, na ciemnym tle, z twarzą w cieniu. Podmiana zostawia id, temat i płeć zdjęcia. Każdy temat potrzebuje zdjęcia z kobietą i z mężczyzną." }));
+    if (prompts) panel.append(el("p", { className: "note", textContent:
+      "Przy każdym miejscu jest prompt z tools/tla_prompty.json. Skopiuj go, wygeneruj obraz, kliknij kartę i wklej obraz " +
+      "(Ctrl+V), użyj „Wklej” albo przeciągnij plik na kartę. Oryginał z generatora zostaje w build/zdjecia-tla/." }));
+    if (T.instrukcja) {
+      // Pierwsza wiadomość do agenta generującego: kontekst serii i zasady; karty mają potem już tylko opisy zdjęć.
+      const label0 = "Kopiuj instrukcję dla agenta";
+      const brief = el("button", { type: "button", className: "ghost", textContent: label0,
+        title: "Wklej ją agentowi raz, na początku rozmowy; potem wklejaj prompty z kart." });
+      brief.onclick = async () => {
+        await copyText(T.instrukcja);
+        brief.textContent = "Skopiowano";
+        setTimeout(() => { brief.textContent = label0; }, 1500);
+      };
+      panel.append(el("div", { className: "actions" }, [brief]));
+    }
+    if (!EDIT.pillow) panel.append(el("p", { className: "note", textContent: "Obróbka zdjęć potrzebuje Pillow: pip install pillow." }));
+
+    const send = async (body, done) => {
+      try { await api("/api/tlo", body); reloadAt("tla"); } catch (err) { alert(problems(err).join("\n")); done && done(); }
+    };
+
+    // podgląd: zdjęcie z bazy albo w kolorach motywu
+    const look = el("select");
+    look.setAttribute("aria-label", "Podgląd zdjęć");
+    look.append(el("option", { value: "", textContent: "Podgląd: zdjęcie z bazy (szare, rozmyte)" }));
+    T.pasma.forEach(b => look.append(el("option", { value: b.id, textContent: `Podgląd: ${b.nazwa}, jak w aplikacji` })));
+    look.value = bandPreview;
+    const counter = el("span", { className: "pid" });
+    const count = () => {
+      const fresh = T.zdjecia.filter(z => z.nowe).length;
+      counter.textContent = T.porownanie ? `Nowe względem ${T.porownanie}: ${fresh} z ${T.zdjecia.length}` : `${T.zdjecia.length} zdjęć`;
+    };
+
+    // nowe zdjęcie: temat, płeć, plik
+    const topic = el("select");
+    T.tematy.forEach(t => topic.append(el("option", { value: t, textContent: label(t) })));
+    const sex = el("select");
+    T.plcie.forEach(x => sex.append(el("option", { value: x, textContent: label(x) })));
+    const fileIn = el("input", { type: "file", accept: "image/*", hidden: true });
+    const drop = el("label", { className: "drop" }, [
+      el("span", { textContent: "Przeciągnij tu nowe zdjęcie albo kliknij, żeby wybrać plik: wejdzie z tematem i płcią wybranymi wyżej." }),
+      fileIn,
+    ]);
+    const addFile = async file => {
+      if (!file || !file.type.startsWith("image/")) return;
+      drop.classList.add("over");
+      send({ obraz: await readAsDataUrl(file), temat: topic.value, plec: sex.value }, () => drop.classList.remove("over"));
+    };
+    fileIn.onchange = () => addFile(fileIn.files[0]);
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add("over"); };
+    drop.ondragleave = () => drop.classList.remove("over");
+    drop.ondrop = ev => { ev.preventDefault(); drop.classList.remove("over"); addFile(ev.dataTransfer.files[0]); };
+    if (!prompts) {
+      panel.append(el("section", { className: "sect" }, [
+        el("h3", { textContent: "Dodaj zdjęcie" }),
+        el("div", { className: "tlo-add" }, [
+          el("label", {}, [el("span", { className: "glabel", textContent: "Temat" }), topic]),
+          el("label", {}, [el("span", { className: "glabel", textContent: "Na zdjęciu" }), sex]),
+          drop,
+        ]),
+      ]));
+    }
+
+    const gaps = [];
+    for (const t of T.tematy) for (const x of T.plcie) {
+      if (!T.zdjecia.some(z => z.temat === t && z.plec === x && z.obraz)) gaps.push(`${label(t)} / ${label(x)}`);
+    }
+    if (gaps.length) panel.append(el("ul", { className: "errors" }, gaps.map(g => el("li", { textContent: `Brak zdjęcia: ${g}` }))));
+
+    const thumbs = [];
+    const applyLook = () => {
+      bandPreview = look.value;
+      thumbs.forEach(img => { img.style.filter = bandPreview ? `url(#pasmo-${bandPreview})` : ""; });
+    };
+    look.onchange = applyLook;
+    panel.append(el("div", { className: "actions" }, [look, counter]));
+
+    const cards = [];
+    const select = (z, card) => {
+      tloWybrane = z.id;
+      cards.forEach(c => c.classList.toggle("sel", c === card));
+      wklejDo = file => upload(z, card, file);
+    };
+    // Wgranie do karty bez przeładowania strony: przy 36 miejscach przewijanie po każdym zdjęciu by męczyło.
+    const upload = async (z, card, file) => {
+      if (!file || !file.type.startsWith("image/")) return;
+      card.classList.add("over");
+      try {
+        const out = await api("/api/tlo", { id: z.id, obraz: await readAsDataUrl(file) });
+        Object.assign(z, { obraz: out.obraz, nowe: out.nowe, puste: false });
+        card.replaceWith(slotCard(z));
+        count();
+      } catch (err) {
+        alert(problems(err).join("\n"));
+      } finally {
+        card.classList.remove("over");
+      }
+    };
+
+    function slotCard(z) {
+      const img = z.obraz ? el("img", { src: z.obraz, alt: `${label(z.temat)}, ${label(z.plec)}` })
+        : el("span", { className: "ph", textContent: prompts ? "Brak zdjęcia. Kliknij i wklej obraz." : "brak pliku" });
+      if (z.obraz) {
+        thumbs.push(img);
+        img.style.filter = bandPreview ? `url(#pasmo-${bandPreview})` : "";
+      }
+      const swapIn = el("input", { type: "file", accept: "image/*", hidden: true });
+      const swap = el("label", { className: "ghost", title: "Plik w to miejsce: to samo id, temat i płeć" },
+        [document.createTextNode(z.obraz ? "Podmień" : "Plik"), swapIn]);
+      swapIn.onchange = () => upload(z, card, swapIn.files[0]);
+      const buttons = [];
+      if (z.prompt) {
+        const copy = el("button", { type: "button", className: "ghost", textContent: "Kopiuj prompt" });
+        copy.onclick = async ev => {
+          ev.stopPropagation();
+          select(z, card);
+          await copyText(z.prompt);
+          copy.textContent = "Skopiowano";
+          setTimeout(() => { copy.textContent = "Kopiuj prompt"; }, 1500);
+        };
+        buttons.push(copy);
+      }
+      const paste = el("button", { type: "button", className: "ghost", textContent: "Wklej" });
+      paste.onclick = async ev => {
+        ev.stopPropagation();
+        select(z, card);
+        try {
+          for (const item of await navigator.clipboard.read()) {
+            const type = item.types.find(t => t.startsWith("image/"));
+            if (type) return upload(z, card, new File([await item.getType(type)], "schowek", { type }));
+          }
+          alert("W schowku nie ma obrazu.");
+        } catch (err) {
+          alert("Przeglądarka nie dała dostępu do schowka. Kliknij kartę i wciśnij Ctrl+V.");
+        }
+      };
+      buttons.push(paste, swap);
+      if (!z.puste) {
+        const del = el("button", { type: "button", className: "ghost", textContent: "Usuń" });
+        del.onclick = async ev => {
+          ev.stopPropagation();
+          if (!confirm(`Usunąć zdjęcie ${z.id}?`)) return;
+          try { await api("/api/tlo/usun", { id: z.id }); reloadAt("tla"); } catch (err) { alert(problems(err).join("\n")); }
+        };
+        buttons.push(del);
+      }
+      const head = el("p", { className: "pid", textContent: `${z.id} · ${label(z.plec)}` });
+      if (z.nowe) head.append(el("span", { className: "nowe", textContent: "nowe" }));
+      const text = [head];
+      if (z.prompt) text.push(el("p", { className: "prompt", textContent: z.prompt }));
+      text.push(el("div", { className: "actions" }, buttons));
+      const card = prompts
+        ? el("div", { className: "tlo slot", tabIndex: 0 }, [img, el("div", {}, text)])
+        : el("div", { className: "tlo" }, [img, ...text]);
+      card.dataset.id = z.id;
+      card.onclick = () => select(z, card);
+      card.ondragover = ev => { ev.preventDefault(); card.classList.add("over"); };
+      card.ondragleave = () => card.classList.remove("over");
+      card.ondrop = ev => { ev.preventDefault(); card.classList.remove("over"); select(z, card); upload(z, card, ev.dataTransfer.files[0]); };
+      const i = cards.findIndex(c => c.dataset.id === z.id);
+      if (i >= 0) cards[i] = card; else cards.push(card);
+      if (tloWybrane === z.id) { card.classList.add("sel"); wklejDo = file => upload(z, card, file); }
+      return card;
+    }
+
+    for (const t of T.tematy) {
+      const list = T.zdjecia.filter(z => z.temat === t);
+      const grid = el("div", { className: prompts ? "tla sloty" : "tla" });
+      list.forEach(z => grid.append(slotCard(z)));
+      if (!list.length) grid.append(el("p", { className: "hint", textContent: "Brak zdjęć." }));
+      panel.append(el("section", { className: "sect" }, [el("h3", { textContent: `${label(t)} (${list.filter(z => z.obraz).length})` }), grid]));
+    }
+    panel.append(el("p", { className: "hint", textContent:
+      "Przeciągnięcie pliku na kartę też podmienia zdjęcie. Z terminala to samo robi: python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE --id brzuch-k-1" }));
+    count();
+    applyLook();
   }
 
   /** Formularz nowego ćwiczenia, szkicu albo edycji. `rec` w układzie exercises.json. */
@@ -993,6 +1256,8 @@
   if (EDIT) renderEditBar();
   // Po zapisie strona wraca tam, gdzie była: do ćwiczenia albo do szkiców.
   const wanted = decodeURIComponent(location.hash.slice(1));
-  if (EDIT && wanted === "szkice") openDrafts(); else if (wanted && byId[wanted]) open(wanted);
+  if (EDIT && wanted === "szkice") openDrafts();
+  else if (EDIT && wanted === "tla") openBackgrounds();
+  else if (wanted && byId[wanted]) open(wanted);
   if (location.hash) history.replaceState(null, "", location.pathname);
 </script>

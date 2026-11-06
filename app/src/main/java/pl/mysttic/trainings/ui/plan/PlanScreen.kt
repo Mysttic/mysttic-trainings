@@ -16,22 +16,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.runtime.saveable.rememberSaveable
-import pl.mysttic.trainings.ui.adaptive.ReadableBox
-import pl.mysttic.trainings.ui.common.TextInput
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,18 +44,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import pl.mysttic.trainings.domain.plan.Program
+import pl.mysttic.trainings.ui.adaptive.LocalAppLayout
+import pl.mysttic.trainings.ui.adaptive.centeredReadable
+import pl.mysttic.trainings.ui.common.AppIcons
+import pl.mysttic.trainings.ui.common.BackTopBar
+import pl.mysttic.trainings.ui.common.DisclosureRow
 import pl.mysttic.trainings.ui.common.EmptyState
+import pl.mysttic.trainings.ui.common.MenuAction
 import pl.mysttic.trainings.ui.common.Overline
+import pl.mysttic.trainings.ui.common.OverflowMenu
 import pl.mysttic.trainings.ui.common.PrimaryAction
 import pl.mysttic.trainings.ui.common.ProgressTrack
+import pl.mysttic.trainings.ui.common.QuietLink
 import pl.mysttic.trainings.ui.common.SecondaryAction
+import pl.mysttic.trainings.ui.common.SegmentBar
+import pl.mysttic.trainings.ui.common.TextInput
+import pl.mysttic.trainings.ui.common.cardColor
 import pl.mysttic.trainings.ui.theme.Dimens
 import java.time.Instant
 import java.time.LocalDate
@@ -69,9 +78,10 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * Plan jako kolejka (D-21) w oprawie „Ognia i Krwi” (D-32): odhaczone przygaszone, odpoczynek celowo szary,
- * a jedyne wyróżnienie na ekranie to karta następnego dnia z paskiem od lewej i własnym Startem.
- * Plan nieaktywny (D-42) zamiast Startu ma „Ustaw jako aktywny”; bieżący wtedy czeka na liście z postępem.
+ * Plan jako kolejka (D-21) w języku nowego interfejsu (D-54, za D-52): nazwa, postęp i jedna karta następnego dnia
+ * z własnym Startem, a rozkład tygodniami w zwijanych wierszach. Rozwinięty jest tylko tydzień z następnym treningiem,
+ * kolejne dni odpoczynku stoją jednym wierszem, a akcje planu mieszkają w menu ⋮. Plan nieaktywny (D-42) zamiast
+ * Startu ma „Ustaw jako aktywny”. Na tablecie w poziomie karta i postęp po lewej, rozkład po prawej.
  */
 @Composable
 fun PlanScreen(
@@ -145,181 +155,391 @@ fun PlanScreen(
         ConfirmDialog(title = "Nie wyszło", text = message, confirm = "OK", onConfirm = {}, onDismiss = viewModel::dismissError)
     }
 
-    if (program == null) {
-        if (!state.loading) {
-            // Plan usunięty spod otwartego ekranu: strzałka Wstecz zostaje, tekst mówi, czego brakuje.
-            ReadableBox {
-                Column(modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.screenPadding, vertical = 8.dp)) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                    EmptyState(if (state.byId) "Nie znaleziono planu." else "Nie masz jeszcze planu.")
-                }
-            }
-        }
-        return
-    }
-    val zone = ZoneId.systemDefault()
     // Plan bez ani jednego dnia z treningiem nie ma czego prowadzić: nie da się go aktywować ani zacząć od nowa.
     val hasTrainings = state.totalCount > 0
-    val activate: () -> Unit = {
-        if (state.pausing != null) dialog = PlanDialog.ACTIVATE else viewModel.activate()
-    }
-
-    ReadableBox {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = Dimens.screenPadding, vertical = 8.dp),
-        ) {
-            item(key = "naglowek") {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    PlanMenu(
-                        active = state.isActive,
-                        hasTrainings = hasTrainings,
-                        canEdit = program.editableInPlace && !state.locked,
-                        canDelete = !state.locked,
-                        onActivate = activate,
-                        onRename = { dialog = PlanDialog.RENAME },
-                        onEdit = onEditPlan?.let { edit -> { edit(program.id) } },
-                        onDuplicate = { viewModel.duplicate(thenEdit = !(program.editableInPlace && !state.locked)) },
-                        onRepeat = { dialog = PlanDialog.REPEAT },
-                        onExport = onExport?.let { export -> { export(program.id) } },
-                        onStats = onStats?.let { stats -> { stats(program.id) } },
-                        onPlans = onPlans,
-                        onDelete = { dialog = PlanDialog.DELETE },
-                    )
-                }
-                Text(program.name, style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = state.subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Light)) {
-                            append(state.doneCount.toString())
-                        }
-                        append("  z ${state.totalCount} treningów")
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                ProgressTrack(fraction = if (state.totalCount == 0) 0f else state.doneCount.toFloat() / state.totalCount)
-                Spacer(Modifier.height(18.dp))
-                if (!state.isActive && !state.isComplete && hasTrainings) {
-                    PrimaryAction("Ustaw jako aktywny", onClick = activate, enabled = !state.busy)
-                    Spacer(Modifier.height(18.dp))
-                }
-            }
-
-            items(state.days, key = { it.dayIndex }) { day ->
-                // Dzień tygodnia ma sens tylko w aktywnym planie: rytm liczy się od chwili, w której plan wrócił.
-                // Zrobiony dzień bierze dzień tygodnia z sesji, która go odhaczyła, bo rytm po wznowieniu się przesuwa.
-                val weekday = when {
-                    !state.isActive -> "dzień ${day.dayIndex}"
-                    day.doneAt != null -> weekdayName(Instant.ofEpochMilli(day.doneAt).atZone(zone).toLocalDate())
-                    else -> weekdayName(program.dateOf(day.dayIndex, zone))
-                }
-                DayRow(
-                    day = day,
-                    weekday = weekday,
-                    canStart = state.isActive,
-                    onStart = startDay,
-                    onOpen = onOpenWorkout,
-                )
-            }
-
-            item(key = "stopka") {
-                Spacer(Modifier.height(20.dp))
-                if (state.isComplete) {
-                    if (program.isWizard) {
-                        SecondaryAction("Wygeneruj kolejny cykl", onClick = onNewCycle, modifier = Modifier.fillMaxWidth(), height = 48.dp)
-                    } else {
-                        SecondaryAction(
-                            "Zacznij od nowa",
-                            onClick = { dialog = PlanDialog.REPEAT },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 48.dp,
-                        )
-                    }
-                    TextButton(onClick = onPresets, modifier = Modifier.fillMaxWidth()) {
-                        Text("Gotowy program", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                TextButton(onClick = onPlans, modifier = Modifier.fillMaxWidth()) {
-                    Text("Twoje plany", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(24.dp))
-            }
+    val activate: () -> Unit = { if (state.pausing != null) dialog = PlanDialog.ACTIVATE else viewModel.activate() }
+    val menu = program?.let { p ->
+        val canEdit = p.editableInPlace && !state.locked
+        buildList {
+            if (!state.isActive && hasTrainings) add(MenuAction("Ustaw jako aktywny", activate))
+            if (onStats != null) add(MenuAction("Statystyki i raport", { onStats(p.id) }))
+            if (canEdit && onEditPlan != null) add(MenuAction("Edytuj plan", { onEditPlan(p.id) }))
+            if (canEdit) add(MenuAction("Zmień nazwę", { dialog = PlanDialog.RENAME }))
+            add(MenuAction(if (canEdit) "Duplikuj" else "Duplikuj i zmień", { viewModel.duplicate(thenEdit = !canEdit) }))
+            if (hasTrainings) add(MenuAction("Zacznij od nowa", { dialog = PlanDialog.REPEAT }))
+            if (onExport != null) add(MenuAction("Wyślij plan", { onExport(p.id) }))
+            add(MenuAction("Twoje plany", onPlans))
+            if (!state.locked) add(MenuAction("Usuń plan", { dialog = PlanDialog.DELETE }, destructive = true))
         }
-    }
+    }.orEmpty()
+
+    PlanContent(
+        state = state,
+        actions = PlanActions(
+            onBack = onBack,
+            onStartDay = startDay,
+            onOpenWorkout = onOpenWorkout,
+            onActivate = activate,
+            onNewCycle = onNewCycle,
+            onRepeat = { dialog = PlanDialog.REPEAT },
+            onPresets = onPresets,
+            onPlans = onPlans,
+            menu = menu,
+        ),
+    )
 }
 
 private enum class PlanDialog { DELETE, ACTIVATE, REPEAT, RENAME }
 
-private fun weekdayName(date: LocalDate): String = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pl"))
+/** Wyjścia z podglądu planu; treść jest bezstanowa, więc zrzut rysuje ją z fiksturą. */
+class PlanActions(
+    val onBack: () -> Unit = {},
+    val onStartDay: (String) -> Unit = {},
+    val onOpenWorkout: (String) -> Unit = {},
+    val onActivate: () -> Unit = {},
+    val onNewCycle: () -> Unit = {},
+    val onRepeat: () -> Unit = {},
+    val onPresets: () -> Unit = {},
+    val onPlans: () -> Unit = {},
+    val menu: List<MenuAction> = emptyList(),
+)
 
-/** Menu planu: akcje, które nie zasługują na przycisk na ekranie. Niedostępne pozycje nie są pokazywane. */
 @Composable
-private fun PlanMenu(
-    active: Boolean,
-    hasTrainings: Boolean,
-    canEdit: Boolean,
-    canDelete: Boolean,
-    onActivate: () -> Unit,
-    onRename: () -> Unit,
-    onEdit: (() -> Unit)?,
-    onDuplicate: () -> Unit,
-    onRepeat: () -> Unit,
-    onExport: (() -> Unit)?,
-    onStats: (() -> Unit)?,
-    onPlans: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) {
-            Icon(Icons.Filled.MoreVert, contentDescription = "Więcej", tint = MaterialTheme.colorScheme.onSurface)
+fun PlanContent(state: PlanUiState, actions: PlanActions) {
+    val program = state.program
+    if (program == null) {
+        if (!state.loading) {
+            // Plan usunięty spod otwartego ekranu: strzałka Wstecz zostaje, tekst mówi, czego brakuje.
+            Column(modifier = Modifier.centeredReadable().padding(horizontal = Dimens.screenPadding, vertical = 8.dp)) {
+                BackTopBar(title = null, onBack = actions.onBack)
+                EmptyState(if (state.byId) "Nie znaleziono planu." else "Nie masz jeszcze planu.")
+            }
         }
-        DropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        return
+    }
+    val weeks = remember(state.days) { PlanWeeks.of(state.days) }
+    // Pamiętamy tylko tygodnie przełączone ręcznie względem domyślnego: gdy następny trening przejdzie do kolejnego
+    // tygodnia, rozwinie się nowy, bez starego stanu.
+    var toggled by rememberSaveable { mutableStateOf(listOf<Int>()) }
+    val defaultWeek = PlanWeeks.defaultExpanded(weeks)
+    val schedule = ScheduleSpec(
+        weeks = weeks,
+        expanded = { week -> (week == defaultWeek) != (week in toggled) },
+        onToggle = { week -> toggled = if (week in toggled) toggled - week else toggled + week },
+        weekday = weekdayLabel(state, program),
+    )
+    val top: @Composable () -> Unit = {
+        BackTopBar(title = null, onBack = actions.onBack) { OverflowMenu(actions.menu) }
+    }
+
+    if (LocalAppLayout.current.twoPane) {
+        // Tablet w poziomie: karta i postęp po lewej, rozkład po prawej, każda kolumna przewija się sama.
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = WIDE_CONTENT_MAX)
+                .padding(horizontal = 32.dp),
+            horizontalArrangement = Arrangement.spacedBy(40.dp),
         ) {
-            val close: (() -> Unit) -> () -> Unit = { action -> { open = false; action() } }
-            if (!active && hasTrainings) MenuEntry("Ustaw jako aktywny", close(onActivate))
-            if (onStats != null) MenuEntry("Statystyki i raport", close(onStats))
-            if (canEdit && onEdit != null) MenuEntry("Edytuj plan", close(onEdit))
-            if (canEdit) MenuEntry("Zmień nazwę", close(onRename))
-            MenuEntry(if (canEdit) "Duplikuj" else "Duplikuj i zmień", close(onDuplicate))
-            if (hasTrainings) MenuEntry("Zacznij od nowa", close(onRepeat))
-            if (onExport != null) MenuEntry("Wyślij plan", close(onExport))
-            MenuEntry("Twoje plany", close(onPlans))
-            if (canDelete) MenuEntry("Usuń plan", close(onDelete), destructive = true)
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(Dimens.sectionGap),
+            ) {
+                top()
+                Header(state, program)
+                Main(state, actions, schedule.weekday)
+                Footer(state, program, actions)
+            }
+            LazyColumn(
+                modifier = Modifier.weight(1.1f).fillMaxHeight(),
+                contentPadding = PaddingValues(top = 72.dp, bottom = 24.dp),
+            ) {
+                item(key = "rozklad") { Overline("Rozkład", modifier = Modifier.padding(bottom = 4.dp)) }
+                schedule(schedule, actions)
+            }
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.centeredReadable(),
+        contentPadding = PaddingValues(start = Dimens.screenPadding, end = Dimens.screenPadding, top = 8.dp, bottom = 24.dp),
+    ) {
+        item(key = "pasek") { top() }
+        item(key = "naglowek") {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.sectionGap)) {
+                Header(state, program)
+                Main(state, actions, schedule.weekday)
+                if (weeks.isNotEmpty()) Overline("Rozkład", modifier = Modifier.padding(top = 6.dp))
+            }
+        }
+        schedule(schedule, actions)
+        item(key = "stopka") { Footer(state, program, actions) }
+    }
+}
+
+private class ScheduleSpec(
+    val weeks: List<PlanWeek>,
+    val expanded: (Int) -> Boolean,
+    val onToggle: (Int) -> Unit,
+    val weekday: (PlanDayRow) -> String,
+)
+
+/** Rozkład: tygodnie w zwijanych wierszach; plan na jeden tydzień od razu jako lista dni. */
+private fun LazyListScope.schedule(spec: ScheduleSpec, actions: PlanActions) {
+    if (spec.weeks.size == 1) {
+        item(key = "tydzien-1") {
+            Column { spec.weeks.first().entries.forEach { WeekEntry(it, spec.weekday, actions) } }
+        }
+        return
+    }
+    spec.weeks.forEach { week ->
+        item(key = "tydzien-${week.number}") {
+            DisclosureRow(
+                title = "Tydzień ${week.number}",
+                summary = weekSummary(week),
+                expanded = spec.expanded(week.number),
+                onToggle = { spec.onToggle(week.number) },
+            ) {
+                week.entries.forEach { WeekEntry(it, spec.weekday, actions) }
+            }
+        }
+    }
+}
+
+private fun weekSummary(week: PlanWeek): String {
+    val trainings = "${week.trainings} ${trainingsWord(week.trainings)}"
+    return when {
+        week.trainings == 0 -> "Same odpoczynki"
+        week.done == week.trainings -> "$trainings · wszystkie zrobione"
+        week.done > 0 -> "$trainings · zrobione ${week.done}"
+        week.hasNext -> "$trainings · tu jest następny"
+        else -> trainings
+    }
+}
+
+/** Nazwa, skąd plan jest i jego linijka: parametry z kreatora, tagline programu albo opis od autora. */
+@Composable
+private fun Header(state: PlanUiState, program: Program) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Overline(
+            listOfNotNull(
+                program.source.labelPl,
+                when {
+                    state.isComplete -> "zakończony"
+                    state.isActive -> "aktywny"
+                    else -> "czeka"
+                },
+            ).joinToString(" · "),
+        )
+        Text(program.name, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(state.subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Postęp i jedyna akcja ekranu: Start następnego dnia albo „Ustaw jako aktywny”. */
+@Composable
+private fun Main(state: PlanUiState, actions: PlanActions, weekday: (PlanDayRow) -> String) {
+    val hasTrainings = state.totalCount > 0
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Light)) {
+                    append(state.doneCount.toString())
+                }
+                append("  z ${state.totalCount} ${trainingsWord(state.totalCount, genitive = true)}")
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // Segmenty do czterech tygodni po trzy treningi, jak na liście planów; dłuższy plan dostaje ciągły pasek.
+        if (state.totalCount in 1..12) {
+            SegmentBar(done = state.doneCount, total = state.totalCount, current = state.isActive)
+        } else {
+            ProgressTrack(fraction = if (state.totalCount == 0) 0f else state.doneCount.toFloat() / state.totalCount)
+        }
+        if (!state.isActive && !state.isComplete && hasTrainings) {
+            PrimaryAction("Ustaw jako aktywny", onClick = actions.onActivate, enabled = !state.busy)
+        }
+        state.days.firstOrNull { it.isNext && it.workoutId != null }?.let { next ->
+            NextDayCard(day = next, weekday = weekday(next), onStart = if (state.isActive) actions.onStartDay else null, onOpen = actions.onOpenWorkout)
         }
     }
 }
 
 @Composable
-private fun MenuEntry(label: String, onClick: () -> Unit, destructive: Boolean = false) {
-    DropdownMenuItem(
-        text = {
+private fun Footer(state: PlanUiState, program: Program, actions: PlanActions) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (state.isComplete) {
+            if (program.isWizard) {
+                SecondaryAction("Wygeneruj kolejny cykl", onClick = actions.onNewCycle, modifier = Modifier.fillMaxWidth(), height = 48.dp)
+            } else {
+                SecondaryAction("Zacznij od nowa", onClick = actions.onRepeat, modifier = Modifier.fillMaxWidth(), height = 48.dp)
+            }
+            QuietLink("Gotowy program", onClick = actions.onPresets)
+        }
+        QuietLink("Twoje plany", onClick = actions.onPlans, icon = AppIcons.Plans)
+    }
+}
+
+/** Dzień tygodnia ma sens tylko w aktywnym planie: rytm liczy się od chwili, w której plan wrócił. */
+private fun weekdayLabel(state: PlanUiState, program: Program): (PlanDayRow) -> String {
+    val zone = ZoneId.systemDefault()
+    return { day ->
+        when {
+            !state.isActive -> "dzień ${day.dayIndex}"
+            // Zrobiony dzień bierze dzień tygodnia z sesji, która go odhaczyła, bo rytm po wznowieniu się przesuwa.
+            day.doneAt != null -> weekdayName(Instant.ofEpochMilli(day.doneAt).atZone(zone).toLocalDate())
+            else -> weekdayName(program.dateOf(day.dayIndex, zone))
+        }
+    }
+}
+
+private fun weekdayName(date: LocalDate): String = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pl"))
+
+@Composable
+private fun WeekEntry(entry: PlanWeekEntry, weekday: (PlanDayRow) -> String, actions: PlanActions) {
+    when (entry) {
+        is PlanWeekEntry.Training -> TrainingRow(entry.day, weekday(entry.day), onOpen = actions.onOpenWorkout)
+        is PlanWeekEntry.Rest -> RestRow(entry.days, entry.days.map(weekday))
+    }
+}
+
+@Composable
+private fun TrainingRow(day: PlanDayRow, weekday: String, onOpen: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .then(if (day.workoutId != null) Modifier.clickable(role = Role.Button) { onOpen(day.workoutId) } else Modifier)
+            .padding(vertical = 8.dp)
+            .alpha(if (day.done) 0.55f else 1f),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.rowGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DayMarker(day)
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                text = day.workoutName.orEmpty(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-        },
-        onClick = onClick,
-    )
+            Text(
+                text = "$weekday · ${day.minutes} min" + if (day.isNext) " · następny" else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (day.isNext) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Kolejne dni odpoczynku jednym wierszem; seria dni z rzędu przez nie nie pęka. */
+@Composable
+private fun RestRow(days: List<PlanDayRow>, weekdays: List<String>) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.rowGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DayMarker(days.first())
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = if (days.size == 1) "Odpoczynek" else "Odpoczynek · ${days.size} dni",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "${weekdays.joinToString(", ")} · seria dni zostaje",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Jedyna karta na ekranie: ten trening pójdzie po naciśnięciu Start. */
+@Composable
+private fun NextDayCard(day: PlanDayRow, weekday: String, onStart: ((String) -> Unit)?, onOpen: (String) -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = cardColor(),
+        shape = RoundedCornerShape(22.dp),
+        onClick = { day.workoutId?.let(onOpen) },
+    ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .width(Dimens.nowAccent)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Column(modifier = Modifier.weight(1f).padding(start = 16.dp, top = 14.dp, bottom = 14.dp)) {
+                Overline("Następny")
+                Spacer(Modifier.height(4.dp))
+                Text(day.workoutName.orEmpty(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = "$weekday · ${day.minutes} min",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (onStart != null) day.workoutId?.let { id ->
+                Box(modifier = Modifier.padding(end = 14.dp)) {
+                    PrimaryAction(text = "Start", onClick = { onStart(id) }, modifier = Modifier.width(104.dp), height = 44.dp)
+                }
+            }
+        }
+    }
+}
+
+/** Znacznik dnia: ptaszek dla zrobionych, kreska dla odpoczynku, przerywany okrąg dla przyszłych. */
+@Composable
+private fun DayMarker(day: PlanDayRow) {
+    val outline = MaterialTheme.colorScheme.outline
+    val restColor = MaterialTheme.colorScheme.secondaryContainer
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .then(
+                when {
+                    day.isRest -> Modifier.clip(CircleShape).background(restColor)
+                    day.done -> Modifier.drawBehind {
+                        drawCircle(color = outline, radius = size.minDimension / 2, style = Stroke(width = 1.dp.toPx()))
+                    }
+                    else -> Modifier.drawBehind {
+                        drawCircle(
+                            color = outline,
+                            radius = size.minDimension / 2,
+                            style = Stroke(
+                                width = 1.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())),
+                            ),
+                        )
+                    }
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            day.done -> Icon(AppIcons.Check, contentDescription = "Zrobione", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+            day.isRest -> Box(
+                modifier = Modifier
+                    .width(10.dp)
+                    .height(2.dp)
+                    .background(MaterialTheme.colorScheme.onSecondaryContainer),
+            )
+            else -> Text(
+                text = day.dayIndex.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable
@@ -377,126 +597,13 @@ private fun RenameDialog(name: String, description: String, onSave: (String, Str
     )
 }
 
-@Composable
-private fun DayRow(day: PlanDayRow, weekday: String, canStart: Boolean, onStart: (String) -> Unit, onOpen: (String) -> Unit) {
-    if (day.isNext && day.workoutId != null) {
-        NextDayCard(day, weekday, if (canStart) onStart else null, onOpen)
-        return
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (day.workoutId != null) Modifier.clickable { onOpen(day.workoutId) } else Modifier)
-            .padding(vertical = 10.dp)
-            .alpha(if (day.done) 0.55f else 1f),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.rowGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DayMarker(day)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = day.workoutName ?: "Odpoczynek",
-                style = MaterialTheme.typography.titleMedium,
-                color = if (day.isRest) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = if (day.isRest) "$weekday · seria dni zostaje" else "$weekday · ${day.minutes} min",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+/** Liczebnik treningów: „1 trening”, „3 treningi”, „5 treningów”; po „z” zawsze dopełniacz („z 18 treningów”). */
+private fun trainingsWord(n: Int, genitive: Boolean = false): String = when {
+    genitive -> if (n == 1) "treningu" else "treningów"
+    n == 1 -> "trening"
+    n % 10 in 2..4 && n % 100 !in 12..14 -> "treningi"
+    else -> "treningów"
 }
 
-/** Jedyna karta na ekranie: to jest ten trening, który pójdzie po naciśnięciu Start. */
-@Composable
-private fun NextDayCard(day: PlanDayRow, weekday: String, onStart: ((String) -> Unit)?, onOpen: (String) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(22.dp),
-        onClick = { day.workoutId?.let(onOpen) },
-    ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(Dimens.nowAccent)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-            Column(modifier = Modifier.weight(1f).padding(start = 16.dp, top = 14.dp, bottom = 14.dp)) {
-                Overline("Następny")
-                Spacer(Modifier.height(4.dp))
-                Text(day.workoutName.orEmpty(), style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    text = "$weekday · ${day.minutes} min",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (onStart != null) day.workoutId?.let { id ->
-                Box(modifier = Modifier.padding(end = 14.dp)) {
-                    PrimaryAction(
-                        text = "Start",
-                        onClick = { onStart(id) },
-                        modifier = Modifier.width(104.dp),
-                        height = 44.dp,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** Znacznik dnia: ptaszek dla zrobionych, kreska dla odpoczynku, przerywany okrąg dla przyszłych. */
-@Composable
-private fun DayMarker(day: PlanDayRow) {
-    val outline = MaterialTheme.colorScheme.outline
-    val restColor = MaterialTheme.colorScheme.secondaryContainer
-    Box(
-        modifier = Modifier
-            .size(30.dp)
-            .then(
-                when {
-                    day.isRest -> Modifier.clip(CircleShape).background(restColor)
-                    day.done -> Modifier.drawBehind {
-                        drawCircle(color = outline, radius = size.minDimension / 2, style = Stroke(width = 1.dp.toPx()))
-                    }
-                    else -> Modifier.drawBehind {
-                        drawCircle(
-                            color = outline,
-                            radius = size.minDimension / 2,
-                            style = Stroke(
-                                width = 1.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())),
-                            ),
-                        )
-                    }
-                },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        when {
-            day.done -> Icon(
-                Icons.Filled.Check,
-                contentDescription = "Zrobione",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-            day.isRest -> Box(
-                modifier = Modifier
-                    .width(10.dp)
-                    .height(2.dp)
-                    .background(MaterialTheme.colorScheme.onSecondaryContainer),
-            )
-            else -> Text(
-                text = day.dayIndex.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
+/** Szerokość dwóch kolumn na tablecie, jak „Dziś” w poziomie (D-52). */
+private val WIDE_CONTENT_MAX = 1100.dp

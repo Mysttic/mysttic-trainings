@@ -13,7 +13,8 @@ zapytanie do sieci to sprawdzenie, czy wyszła nowsza wersja, i dzieje się wył
 
 - **Układa plan.** Kreator zbiera dane, generator buduje cykl (domyślnie 30 dni) i trafia w zadeklarowany
   czas sesji z dokładnością do minuty. Ten sam profil zawsze daje ten sam plan — bez losowania.
-- **Pokazuje jeden trening.** „Dziś” to nazwa treningu, liczba ćwiczeń, czas i Start. Bez listy do wybierania.
+- **Pokazuje jeden trening.** „Dziś” to miniatury ćwiczeń, nazwa treningu, liczba ćwiczeń, czas i Start. Bez listy
+  do wybierania; wszystkie plany są obok, w zakładce Plany.
 - **Prowadzi przez trening.** Odliczanie, serie na powtórzenia i na czas, przerwy z dokładaniem sekund,
   beep na 3-2-1, wibracja i głos zapowiadający kolejne ćwiczenie. Trening idzie dalej przy zgaszonym
   ekranie, a powiadomienie ma chronometr i sterowanie.

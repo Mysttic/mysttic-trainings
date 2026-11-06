@@ -13,13 +13,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +36,7 @@ import pl.mysttic.trainings.domain.plan.SetProgression
 import pl.mysttic.trainings.domain.plan.preset.PresetCatalog
 import pl.mysttic.trainings.ui.adaptive.ReadableBox
 import pl.mysttic.trainings.ui.adaptive.readableWidth
+import pl.mysttic.trainings.ui.common.AppIcons
 import pl.mysttic.trainings.ui.common.BlockHeader
 import pl.mysttic.trainings.ui.common.DifficultySelector
 import pl.mysttic.trainings.ui.common.EmptyState
@@ -52,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.clickable
 import pl.mysttic.trainings.ui.common.TextInput
 import pl.mysttic.trainings.ui.common.formatKg
+import pl.mysttic.trainings.ui.common.ScreenScaffold
 import pl.mysttic.trainings.domain.plan.PlanNotes
 import androidx.compose.foundation.layout.Column
 
@@ -162,8 +161,7 @@ fun WorkoutDetailScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+    ScreenScaffold(
         bottomBar = {
             if (workout != null) {
                 Row(
@@ -202,7 +200,7 @@ fun WorkoutDetailScreen(
     ) { padding ->
         if (workout == null) {
             if (!state.loading) EmptyState("Nie znaleziono treningu.", Modifier.padding(padding))
-            return@Scaffold
+            return@ScreenScaffold
         }
         ReadableBox(modifier = Modifier.padding(padding)) {
             LazyColumn(
@@ -211,7 +209,7 @@ fun WorkoutDetailScreen(
             ) {
                 item(key = "naglowek") {
                     IconButton(onClick = onBack, modifier = Modifier.padding(bottom = 4.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(AppIcons.Back, contentDescription = "Wstecz", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Overline("Trening")
                     Spacer(Modifier.height(8.dp))

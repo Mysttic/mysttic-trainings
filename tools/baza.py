@@ -11,12 +11,18 @@ Gradle podpina baza/ jako assety APK, a wydanie bazy pakuje ten sam katalog do Z
   python tools/baza.py podbij --min-app 1.2.0   # do tego najniższa wersja aplikacji, która bazę przyjmie
   python tools/baza.py partia PACZKA.zip        # ilustracje z generatora zdjęć (D-36): do baza/images/ albo do szkiców
   python tools/baza.py paczka KATALOG --wzgledem REF  # ZIP, manifest i opis wydania bazy (workflow baza.yml)
+  python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE  # zdjęcie tła (D-51): kadr, szarość, rozmycie, do baza/tla/
 
 Edytor to kartoteka z tools/przeglad.html z trybem edycji: dodawanie ćwiczenia z ilustracją, edycja pól, wycofanie
-z datą, szkice, paczki z generatora i podbicie numeru. Zapisuje prosto do baza/ i tools/szkice/, niczego nie
+z datą, szkice, paczki z generatora, zdjęcia tła (dodawanie, podmiana, usuwanie, podgląd w kolorach motywów)
+i podbicie numeru. Zapisuje prosto do baza/ i tools/szkice/, niczego nie
 commituje. Słucha tylko na 127.0.0.1 i przyjmuje zapis wyłącznie z własnej strony.
 
 Szkice (tools/szkice/) to ilustracje i definicje, które jeszcze nie weszły do bazy, więc nie jadą do aplikacji.
+
+Zdjęcia tła (D-51) jadą w tej samej bazie: baza/tla.json (id, temat, płeć) i baza/tla/<id>.jpg. Temat i płeć to
+enumy `PhotoTopic` i `PhotoSex` z domain/background. Zdjęcie jest już rozmyte i w skali szarości (kolory daje filtr
+motywu w aplikacji), 360×780 px. Zmiana zdjęć to zmiana treści bazy: wyższy numer, jak przy ćwiczeniach.
 
 Reguły zgodności wstecz (D-47): id raz wydanego ćwiczenia nie znika i nie zmienia `kind`, zmiana treści podnosi
 numer, a wartość enuma, której nie zna ostatnie wydanie aplikacji, wymaga `minApp` wyższego od niego. Usunięcie
@@ -28,7 +34,7 @@ wydania bazy to sekcja „## [Baza N]” w CHANGELOG.md: nowy numer bez niej nie
 a `paczka` nie złoży wydania.
 
 `sprawdz` i `podbij` biorą tylko bibliotekę standardową (CI); skalowanie ilustracji innej niż JPEG do 480 px
-(`partia`, edytor) potrzebuje Pillow (pip install pillow).
+(`partia`, edytor) i obróbka zdjęć tła (`tlo`) potrzebują Pillow (pip install pillow).
 """
 import argparse
 import base64
@@ -59,6 +65,22 @@ NAGLOWEK_BAZY = "# Wersja bazy ćwiczeń"  # w VERSION.md; pierwsza niepusta lin
 ENUMS = "app/src/main/java/pl/mysttic/trainings/domain/model/Enums.kt"
 PROGRAMY = "app/src/main/java/pl/mysttic/trainings/domain/plan/preset/PresetDefinitions.kt"
 # Układ sprzed D-47: z takim REF-em (np. master przed scaleniem) też da się porównać bazę.
+TLA_PLIK = os.path.join(BAZA, "tla.json")  # zdjęcia tła (D-51), opcjonalne
+TLA = os.path.join(BAZA, "tla")
+TLA_KT = "app/src/main/java/pl/mysttic/trainings/domain/background/BackgroundPhotos.kt"
+TLO_SZEROKOSC, TLO_WYSOKOSC = 360, 780  # kadr telefonu; rozmyte zdjęcie nie potrzebuje więcej
+TLO_JAKOSC = 80
+TLO_ROZMYCIE = 4  # promień Gaussa przy 360 px: sylwetka czytelna, szczegóły (i potknięcia generatora) znikają
+TLO_MAX_BAJTOW = 60_000
+TLO_NAZWY = {"CORE": "brzuch", "LEGS": "nogi", "UPPER": "gora", "FULL_BODY": "calosc", "CARDIO": "kardio", "YOGA": "joga"}
+TLO_PLEC = {"FEMALE": "k", "MALE": "m"}
+TLO_KOLEJNOSC = ["CORE", "LEGS", "UPPER", "FULL_BODY", "CARDIO", "YOGA"]  # jak `PhotoTopic`, też kolejność w edytorze
+TLO_ETYKIETY = {"CORE": "Brzuch", "LEGS": "Nogi", "UPPER": "Góra ciała", "FULL_BODY": "Całe ciało", "CARDIO": "Kardio",
+                "YOGA": "Joga", "FEMALE": "kobieta", "MALE": "mężczyzna"}
+MOTYWY_KT = "app/src/main/java/pl/mysttic/trainings/ui/theme/Themes.kt"
+TLA_PROMPTY = os.path.join(ROOT, "tools", "tla_prompty.json")  # prompty do zdjęć tła (issue #8); nie jadą do aplikacji
+TLA_ORYGINALY = os.path.join(ROOT, "build", "zdjecia-tla")  # oryginały z generatora, poza repozytorium
+TLA_REF = "origin/develop"  # względem tego edytor oznacza zdjęcia tła jako nowe
 STARY_PLIK = "app/src/main/assets/seed/exercises.json"
 STARE_OBRAZY = "app/src/main/assets/seed/images"
 
@@ -375,13 +397,108 @@ def sprawdz_katalog():
         return ["brak katalogu baza/"]
     bledy = []
     zawartosc = set(os.listdir(BAZA))
-    if zawartosc != {"exercises.json", "images"}:
-        bledy.append(f"baza/: oczekiwane tylko exercises.json i images/, jest {sorted(zawartosc)}")
-    if os.path.isdir(OBRAZY):
-        for nazwa in sorted(os.listdir(OBRAZY)):
-            if not nazwa.endswith(".jpg") or not os.path.isfile(os.path.join(OBRAZY, nazwa)):
-                bledy.append(f"baza/images/{nazwa}: w images/ leżą tylko pliki <id>.jpg")
+    if zawartosc not in ({"exercises.json", "images"}, {"exercises.json", "images", "tla.json", "tla"}):
+        bledy.append(f"baza/: oczekiwane exercises.json i images/ (zdjęcia tła: tla.json i tla/ razem), jest {sorted(zawartosc)}")
+    for katalog, nazwa_katalogu in ((OBRAZY, "images"), (TLA, "tla")):
+        if os.path.isdir(katalog):
+            for nazwa in sorted(os.listdir(katalog)):
+                if not nazwa.endswith(".jpg") or not os.path.isfile(os.path.join(katalog, nazwa)):
+                    bledy.append(f"baza/{nazwa_katalogu}/{nazwa}: w {nazwa_katalogu}/ leżą tylko pliki <id>.jpg")
     return bledy
+
+
+# --- zdjęcia tła (D-51) --------------------------------------------------------------------------------------
+
+def wczytaj_tla():
+    """Zawartość baza/tla.json albo None, gdy baza nie ma zdjęć tła."""
+    if not os.path.isfile(TLA_PLIK):
+        return None
+    with open(TLA_PLIK, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def znane_tematy():
+    """(tematy, płcie) z BackgroundPhotos.kt: to, co aplikacja z tego repo umie wczytać."""
+    try:
+        with open(os.path.join(ROOT, TLA_KT), encoding="utf-8") as f:
+            e = enumy(f.read())
+    except OSError:
+        return set(), set()
+    return e.get("PhotoTopic", set()), e.get("PhotoSex", set())
+
+
+def sprawdz_tla(tla):
+    """Reguły zdjęć tła: (błędy, uwagi). Każdy temat ma zdjęcie dla obu płci, bo tło obiecuje zdjęcie pod trening
+    i pod wybór z Ustawień (zastępstwo w aplikacji jest tylko na wypadek pobranej bazy, nie zamiast zdjęć)."""
+    if tla is None:
+        return [], []
+    if not isinstance(tla, dict) or set(tla.keys()) != {"photos"} or not isinstance(tla["photos"], list):
+        return ["tla.json: oczekiwany obiekt z samą listą photos"], []
+    tematy, plcie = znane_tematy()
+    bledy, uwagi, widziane, pokrycie = [], [], set(), set()
+    for n, z in enumerate(tla["photos"]):
+        gdzie = f"tla.json photos[{n}]"
+        if not isinstance(z, dict):
+            bledy.append(f"{gdzie}: oczekiwany obiekt")
+            continue
+        if set(z.keys()) != {"id", "topic", "sex"}:
+            bledy.append(f"{gdzie}: oczekiwane pola id, topic i sex, są {sorted(z.keys())}")
+            continue
+        zid = z["id"]
+        if not isinstance(zid, str) or not ID.fullmatch(zid) or len(zid) > ID_MAX:
+            bledy.append(f"{gdzie}: id poza formatem kebab-case (do {ID_MAX} znaków)")
+            continue
+        if zid in widziane:
+            bledy.append(f"zdjęcie {zid}: id powtórzone")
+        widziane.add(zid)
+        if z["topic"] not in tematy:
+            bledy.append(f"zdjęcie {zid}: temat {z['topic']!r} spoza PhotoTopic {sorted(tematy)}")
+        if z["sex"] not in plcie:
+            bledy.append(f"zdjęcie {zid}: płeć {z['sex']!r} spoza PhotoSex {sorted(plcie)}")
+        pokrycie.add((z["topic"], z["sex"]))
+        dane = obraz_z_dysku(zid, TLA)
+        if dane is None:
+            bledy.append(f"zdjęcie {zid}: brak pliku baza/tla/{zid}.jpg")
+            continue
+        if len(dane) > TLO_MAX_BAJTOW:
+            bledy.append(f"zdjęcie {zid}: {len(dane)} B, limit {TLO_MAX_BAJTOW} B")
+        if jpeg_wymiary(dane) != (TLO_SZEROKOSC, TLO_WYSOKOSC):
+            bledy.append(f"zdjęcie {zid}: oczekiwany JPEG {TLO_SZEROKOSC}×{TLO_WYSOKOSC} (python tools/baza.py tlo)")
+    if os.path.isdir(TLA):
+        for nazwa in sorted(os.listdir(TLA)):
+            if nazwa.endswith(".jpg") and nazwa[:-4] not in widziane:
+                bledy.append(f"baza/tla/{nazwa}: zdjęcie bez wpisu w tla.json")
+    for temat in sorted(tematy):
+        for plec in sorted(plcie):
+            if (temat, plec) not in pokrycie:
+                bledy.append(f"zdjęcia tła: brak zdjęcia {temat}/{plec} (python tools/baza.py tlo … --temat {temat} --plec {plec})")
+    return bledy, uwagi
+
+
+def tla_z_dysku():
+    """(tekst tla.json albo None, {plik: skrót}) z dysku, do porównania z REF-em."""
+    tekst = None
+    if os.path.isfile(TLA_PLIK):
+        with open(TLA_PLIK, "rb") as f:
+            tekst = f.read()
+    skroty = {}
+    if os.path.isdir(TLA):
+        for nazwa in os.listdir(TLA):
+            with open(os.path.join(TLA, nazwa), "rb") as f:
+                skroty[nazwa] = blob(f.read())
+    return tekst, skroty
+
+
+def tla_z_refu(ref):
+    """To samo z REF-u; baza sprzed zdjęć daje (None, {})."""
+    tekst = git("show", f"{ref}:baza/tla.json")
+    drzewo = git("ls-tree", "-r", ref, "--", "baza/tla") or b""
+    skroty = {}
+    for linia in drzewo.decode("utf-8").splitlines():
+        meta, _, sciezka = linia.partition("\t")
+        if sciezka.startswith("baza/tla/"):
+            skroty[sciezka[len("baza/tla/"):]] = meta.split()[2]
+    return tekst, skroty
 
 
 def osierocone(dane):
@@ -454,7 +571,9 @@ def sprawdz_wzgledem(dane, ref, z_refu=None):
     dodane, zmienione = roznice(stara, dane, stare_obrazy)
     # Treścią jest wszystko poza samym numerem: ćwiczenia, ilustracje, ale też format i minApp, bo idą do manifestu.
     bez_numeru = lambda baza: {k: v for k, v in baza.items() if k != "version"}
-    tresc_inna = bool(dodane or zmienione) or bez_numeru(stara) != bez_numeru(dane)
+    # Zdjęcia tła (D-51) też są treścią: telefon z tym numerem by ich nie dostał.
+    zdjecia_inne = ref is not None and tla_z_dysku() != tla_z_refu(ref)
+    tresc_inna = bool(dodane or zmienione) or bez_numeru(stara) != bez_numeru(dane) or zdjecia_inne
     if dane["version"] < stara["version"]:
         bledy.append(f"version {dane['version']} niższe niż v{stara['version']} w {ref}")
     elif tresc_inna and dane["version"] == stara["version"]:
@@ -494,13 +613,19 @@ def sprawdz_ostatnie_wydanie(dane):
     if nowe_wartosci and krotka(dane["minApp"]) <= krotka(ostatnie):
         return [f"wartości spoza wydanego v{ostatnie}: {', '.join(sorted(nowe_wartosci))}; "
                 f"ustaw minApp wyżej niż {ostatnie} (python tools/baza.py podbij --min-app …)"], []
+    # Zdjęcia tła (D-51): aplikacja sprzed nich odrzuca paczkę z tla/ jako obcy plik, więc musi dostać „zaktualizuj”.
+    if wczytaj_tla() is not None and git("cat-file", "-e", f"v{ostatnie}:{TLA_KT}") is None \
+            and krotka(dane["minApp"]) <= krotka(ostatnie):
+        return [f"zdjęcia tła: wydane v{ostatnie} ich nie zna i odrzuci paczkę; ustaw minApp wyżej niż {ostatnie} "
+                "(python tools/baza.py podbij --min-app …)"], []
     return [], []
 
 
 def stan(dane, ref=None, z_refu=None):
     """Wszystkie reguły naraz: (błędy, uwagi). To samo liczy `sprawdz` i pasek stanu w edytorze."""
     bledy = sprawdz_katalog() + sprawdz_dane(dane, znane_enumy(), obraz_z_dysku) + osierocone(dane) + sprawdz_version_md(dane)
-    uwagi = []
+    bledy_tla, uwagi = sprawdz_tla(wczytaj_tla())
+    bledy += bledy_tla
     if not bledy:
         b, u = sprawdz_ostatnie_wydanie(dane)
         bledy += b
@@ -723,6 +848,98 @@ def cmd_partia(args):
         print("Czekają na definicję w tools/szkice/ (bez niej nie wejdą do bazy): " + ", ".join(do_szkicow))
 
 
+def przygotuj_tlo(dane_obrazu):
+    """Zdjęcie z generatora → JPEG do baza/tla/: kadr ze środka pod telefon, skala szarości (kolory daje filtr motywu
+    w aplikacji), pełny zakres jasności, rozmycie. Rozmywamy tu, a nie w telefonie: `Modifier.blur` działa od Androida 12."""
+    try:
+        from PIL import Image, ImageFilter, ImageOps
+    except ImportError:
+        raise ValueError("obróbka zdjęcia potrzebuje Pillow: pip install pillow")
+    obraz = Image.open(io.BytesIO(dane_obrazu)).convert("RGB")
+    szerokosc = min(obraz.width, round(obraz.height * TLO_SZEROKOSC / TLO_WYSOKOSC))
+    wysokosc = min(obraz.height, round(szerokosc * TLO_WYSOKOSC / TLO_SZEROKOSC))
+    lewa, gora = (obraz.width - szerokosc) // 2, (obraz.height - wysokosc) // 2
+    obraz = obraz.crop((lewa, gora, lewa + szerokosc, gora + wysokosc)).resize((TLO_SZEROKOSC, TLO_WYSOKOSC), Image.LANCZOS)
+    szary = ImageOps.autocontrast(ImageOps.grayscale(obraz), cutoff=1).filter(ImageFilter.GaussianBlur(radius=TLO_ROZMYCIE))
+    wyjscie = io.BytesIO()
+    szary.save(wyjscie, "JPEG", quality=TLO_JAKOSC, optimize=True)
+    return wyjscie.getvalue()
+
+
+def dodaj_tlo(dane_obrazu, temat, plec, tlo_id=None):
+    """Zdjęcie do baza/tla/ i wpis w baza/tla.json; bez id bierze następny wolny `<temat>-<k|m>-<n>`."""
+    tematy, plcie = znane_tematy()
+    if temat not in tematy:
+        raise ValueError(f"temat {temat}: oczekiwany jeden z {sorted(tematy)}")
+    if plec not in plcie:
+        raise ValueError(f"płeć {plec}: oczekiwana jedna z {sorted(plcie)}")
+    tla = wczytaj_tla() or {"photos": []}
+    zajete = {z["id"] for z in tla["photos"]}
+    if tlo_id is None:
+        rdzen = f"{TLO_NAZWY.get(temat, temat.lower())}-{TLO_PLEC.get(plec, plec.lower())}"
+        n = 1
+        while f"{rdzen}-{n}" in zajete:
+            n += 1
+        tlo_id = f"{rdzen}-{n}"
+    if not ID.fullmatch(tlo_id) or len(tlo_id) > ID_MAX:
+        raise ValueError(f"id {tlo_id}: oczekiwany kebab-case do {ID_MAX} znaków")
+    jpeg = przygotuj_tlo(dane_obrazu)
+    os.makedirs(TLA, exist_ok=True)
+    zapisz_plik(os.path.join(TLA, f"{tlo_id}.jpg"), jpeg)
+    tla["photos"] = sorted([z for z in tla["photos"] if z["id"] != tlo_id] + [{"id": tlo_id, "topic": temat, "sex": plec}],
+                           key=lambda z: z["id"])
+    zapisz_plik(TLA_PLIK, json_tekst(tla))
+    return tlo_id, len(jpeg)
+
+
+def cmd_tlo(args):
+    try:
+        with open(args.zdjecie, "rb") as f:
+            tlo_id, rozmiar = dodaj_tlo(f.read(), args.temat, args.plec, args.id)
+    except (OSError, ValueError) as e:
+        sys.exit(f"{args.zdjecie}: {e}")
+    print(f"baza/tla/{tlo_id}.jpg ({rozmiar // 1024} kB) i wpis w baza/tla.json")
+    print("Zmieniła się treść bazy, więc przed wydaniem: python tools/baza.py podbij")
+
+
+def usun_tlo_z_bazy(tlo_id):
+    """Usunięcie zdjęcia tła. Ostatniego zdjęcia tematu i płci nie ruszamy: baza przestałaby przechodzić reguły,
+    a aplikacja straciłaby zdjęcie dla tego dnia i wyboru z Ustawień. Takie zdjęcie się podmienia."""
+    tla = wczytaj_tla() or {"photos": []}
+    po_id = {z["id"]: z for z in tla["photos"]}
+    if tlo_id not in po_id:
+        raise ValueError(f"nie ma zdjęcia {tlo_id}")
+    z = po_id[tlo_id]
+    if not any(x["id"] != tlo_id and x["topic"] == z["topic"] and x["sex"] == z["sex"] for x in tla["photos"]):
+        etykieta = f"{TLO_ETYKIETY.get(z['topic'], z['topic'])} / {TLO_ETYKIETY.get(z['sex'], z['sex'])}"
+        raise ValueError(f"{tlo_id} to ostatnie zdjęcie: {etykieta}; podmień je albo najpierw dodaj inne")
+    tla["photos"] = [x for x in tla["photos"] if x["id"] != tlo_id]
+    zapisz_plik(TLA_PLIK, json_tekst(tla))
+    sciezka = os.path.join(TLA, f"{tlo_id}.jpg")
+    if os.path.isfile(sciezka):
+        os.remove(sciezka)
+
+
+def pasma_motywow():
+    """Pasma zdjęcia dnia z Backgrounds.kt z nazwami motywów, do podglądu w edytorze: [{id, nazwa, low, high}].
+    Te same wartości, które bierze `PhotoBand` w aplikacji, więc podgląd pokazuje zdjęcie tak, jak zobaczy je telefon."""
+    try:
+        import check_contrast  # tools/ jest na ścieżce, tak jak przy przeglad.py
+        tekst_palety = "\n".join(f.read_text(encoding="utf-8") for f in check_contrast.PALETTE_FILES if f.exists())
+        paleta = check_contrast.parse_palette(tekst_palety)
+        tekst_tel = check_contrast.BACKGROUNDS.read_text(encoding="utf-8")
+        # Od D-55 każdy wariant tła niesie pasmo swojego motywu (jedno na motyw), więc wystarczy pierwszy wariant motywu.
+        pasma = check_contrast.parse_bands(tekst_tel, paleta)
+        motywy = {}
+        for motyw, _, _, pasmo in check_contrast.parse_backgrounds(tekst_tel, paleta):
+            motywy.setdefault(motyw, pasma[pasmo])
+        with open(os.path.join(ROOT, MOTYWY_KT), encoding="utf-8") as f:
+            nazwy = dict(re.findall(r'(\w+)\("[a-z]+",\s*"([^"]+)"', f.read()))
+    except (OSError, ImportError, KeyError, AttributeError):
+        return []
+    return [dict(id=motyw.lower(), nazwa=nazwy.get(motyw, motyw), low=low, high=high) for motyw, (low, high, _) in motywy.items()]
+
+
 # --- wydanie bazy --------------------------------------------------------------------------------------------
 
 PROJEKT = "mysttic-trainings"
@@ -757,6 +974,13 @@ def zip_bazy(sciezka):
             # JPEG jest już skompresowany: STORED oszczędza czas i nie zmienia rozmiaru.
             with open(os.path.join(OBRAZY, nazwa), "rb") as f:
                 dodaj(z, f"images/{nazwa}", f.read(), zipfile.ZIP_STORED)
+        # Zdjęcia tła (D-51): ten sam układ, który rozpakowuje `DatabaseArchive`.
+        if os.path.isfile(TLA_PLIK):
+            with open(TLA_PLIK, "rb") as f:
+                dodaj(z, "tla.json", f.read(), zipfile.ZIP_DEFLATED)
+            for nazwa in sorted(os.listdir(TLA)):
+                with open(os.path.join(TLA, nazwa), "rb") as f:
+                    dodaj(z, f"tla/{nazwa}", f.read(), zipfile.ZIP_STORED)
 
 
 def paczka(katalog, ref=None):
@@ -792,6 +1016,7 @@ def paczka(katalog, ref=None):
         "added": len(dodane) if dodane is not None else None,
         "changed": len(zmienione) if zmienione is not None else None,
         "retired": len(wycofane) if wycofane is not None else None,
+        "photos": len((wczytaj_tla() or {}).get("photos", [])),
         "file": os.path.basename(sciezka_zip),
         "size": len(zawartosc),
         "sha256": hashlib.sha256(zawartosc).hexdigest(),
@@ -807,6 +1032,8 @@ def paczka(katalog, ref=None):
             f"{len(wycofane)} {odmiana(len(wycofane), 'wycofane', 'wycofane', 'wycofanych')}",
         ]
         zmiany = ", ".join(czesci) + f" (razem {len(dane['exercises'])})."
+    if manifest["photos"]:
+        zmiany += f" Zdjęcia tła: {manifest['photos']}."
     opis = (f"Baza ćwiczeń {numer}\n\n{opis_zmian}\n\n{zmiany}\n"
             f"Wymaga aplikacji {dane['minApp']} albo nowszej.\n\n{STRONA}\n")
     zapisz_plik(os.path.join(katalog, "opis.md"), opis)
@@ -869,8 +1096,128 @@ def dane_strony():
         szkice=szkice,
         pillow=pillow,
         dzis=dzis(),
+        tla=dane_tla(adres),
     )
     return strona
+
+
+def wczytaj_prompty_tla():
+    """Miejsca na zdjęcia tła z tools/tla_prompty.json: {id: {temat, plec, prompt}}, pełny prompt to opis i wspólny styl.
+    Pusto, gdy pliku nie ma: edytor działa wtedy jak przed issue #8."""
+    try:
+        with open(TLA_PROMPTY, encoding="utf-8") as f:
+            dane = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    styl = str(dane.get("styl", "")).strip()
+    miejsca = {}
+    for m in dane.get("zdjecia", []):
+        if isinstance(m, dict) and isinstance(m.get("id"), str) and ID.fullmatch(m["id"]):
+            miejsca[m["id"]] = dict(temat=m.get("topic"), plec=m.get("sex"), prompt=f"{str(m.get('opis', '')).strip()} {styl}".strip())
+    return miejsca
+
+
+def wczytaj_instrukcje_tla():
+    """Pierwsza wiadomość do agenta generującego zdjęcia tła (tools/tla_prompty.json); pusty tekst, gdy jej nie ma."""
+    try:
+        with open(TLA_PROMPTY, encoding="utf-8") as f:
+            return str(json.load(f).get("instrukcja", "")).strip()
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
+
+
+def tla_z_refu(ref=TLA_REF):
+    """Skróty plików baza/tla/*.jpg w REF-ie ({id: blob}), żeby edytor wiedział, które zdjęcia już podmieniono."""
+    try:
+        wynik = subprocess.run(["git", "ls-tree", "-r", ref, "--", "baza/tla"], cwd=ROOT, capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    skroty = {}
+    for linia in wynik.stdout.splitlines():
+        meta, _, sciezka = linia.partition("\t")
+        nazwa = os.path.basename(sciezka)
+        if nazwa.endswith(".jpg") and len(meta.split()) == 3:
+            skroty[nazwa[:-4]] = meta.split()[2]
+    return skroty
+
+
+def stan_zdjecia_tla(tlo_id, z_refu):
+    """Adres podglądu i to, czy plik różni się od REF-u; (None, False), gdy pliku nie ma."""
+    sciezka = os.path.join(TLA, f"{tlo_id}.jpg")
+    if not os.path.isfile(sciezka):
+        return None, False
+    with open(sciezka, "rb") as f:
+        skrot = blob(f.read())
+    return f"/tla/{tlo_id}.jpg?v={skrot[:10]}", bool(z_refu) and z_refu.get(tlo_id) != skrot
+
+
+def zachowaj_oryginal_tla(tlo_id, dane):
+    """Oryginał z generatora w build/zdjecia-tla/ (poza gitem), żeby obróbkę dało się powtórzyć bez generowania od nowa."""
+    rozszerzenie = ("png" if dane.startswith(b"\x89PNG") else "jpg" if dane.startswith(b"\xff\xd8")
+                    else "webp" if dane[8:12] == b"WEBP" else "bin")
+    os.makedirs(TLA_ORYGINALY, exist_ok=True)
+    for stary in os.listdir(TLA_ORYGINALY):
+        if stary.rsplit(".", 1)[0] == tlo_id:
+            os.remove(os.path.join(TLA_ORYGINALY, stary))
+    with open(os.path.join(TLA_ORYGINALY, f"{tlo_id}.{rozszerzenie}"), "wb") as f:
+        f.write(dane)
+
+
+def dane_tla(adres):
+    """Sekcja „Zdjęcia tła” (D-51): zdjęcia z tla.json z adresami podglądu, tematy w kolejności z aplikacji i pasma motywów.
+    Od issue #8 także miejsca z tools/tla_prompty.json: prompt przy każdym zdjęciu, puste miejsca do wklejenia i znacznik
+    zdjęć zmienionych względem TLA_REF."""
+    tla = wczytaj_tla() or {"photos": []}
+    tematy, plcie = znane_tematy()
+    miejsca = wczytaj_prompty_tla()
+    z_refu = tla_z_refu() if miejsca else {}
+    zdjecia = []
+    for z in tla.get("photos", []):
+        if not isinstance(z, dict) or not isinstance(z.get("id"), str):
+            continue
+        sciezka = os.path.join(TLA, f"{z['id']}.jpg")
+        _, nowe = stan_zdjecia_tla(z["id"], z_refu)
+        zdjecia.append(dict(id=z["id"], temat=z.get("topic"), plec=z.get("sex"),
+                            obraz=adres(f"tla/{z['id']}.jpg", sciezka) if os.path.isfile(sciezka) else None,
+                            prompt=miejsca.get(z["id"], {}).get("prompt"), nowe=nowe))
+    znane = {z["id"] for z in zdjecia}
+    for tlo_id, m in sorted(miejsca.items()):
+        if tlo_id not in znane and m["temat"] in tematy and m["plec"] in plcie:
+            zdjecia.append(dict(id=tlo_id, temat=m["temat"], plec=m["plec"], obraz=None, prompt=m["prompt"], nowe=False, puste=True))
+    zdjecia.sort(key=lambda z: z["id"])
+    return dict(
+        zdjecia=zdjecia,
+        porownanie=TLA_REF if z_refu else None,
+        instrukcja=wczytaj_instrukcje_tla() if miejsca else "",
+        tematy=[t for t in TLO_KOLEJNOSC if t in tematy] + sorted(tematy - set(TLO_KOLEJNOSC)),
+        plcie=[p for p in ("FEMALE", "MALE") if p in plcie] + sorted(plcie - {"FEMALE", "MALE"}),
+        etykiety=TLO_ETYKIETY,
+        pasma=pasma_motywow(),
+    )
+
+
+def zapisz_tlo(cialo):
+    """Zdjęcie tła z edytora: nowe (temat i płeć z formularza) albo podmiana istniejącego, która zostawia jego id,
+    temat i płeć, bo id mówi, co jest na zdjęciu. Obróbka ta sama co w `tools/baza.py tlo`."""
+    obraz = dekoduj_obraz(cialo.get("obraz"))
+    if obraz is None:
+        raise Odmowa("brak zdjęcia")
+    tlo_id = cialo.get("id") or None
+    temat, plec = cialo.get("temat"), cialo.get("plec")
+    if tlo_id is not None:
+        istniejace = {z["id"]: z for z in (wczytaj_tla() or {"photos": []})["photos"]}
+        miejsca = wczytaj_prompty_tla()
+        if tlo_id in istniejace:
+            temat, plec = istniejace[tlo_id]["topic"], istniejace[tlo_id]["sex"]
+        elif tlo_id in miejsca:
+            # Puste miejsce z tools/tla_prompty.json (issue #8): temat i płeć bierze z pliku promptów.
+            temat, plec = miejsca[tlo_id]["temat"], miejsca[tlo_id]["plec"]
+        else:
+            raise Odmowa(f"nie ma zdjęcia {tlo_id}")
+    tlo_id, rozmiar = dodaj_tlo(obraz, temat, plec, tlo_id)
+    zachowaj_oryginal_tla(tlo_id, obraz)
+    podglad, nowe = stan_zdjecia_tla(tlo_id, tla_z_refu())
+    return {"id": tlo_id, "rozmiar": rozmiar, "obraz": podglad, "nowe": nowe}
 
 
 class Odmowa(Exception):
@@ -1016,9 +1363,9 @@ class Edytor(http.server.BaseHTTPRequestHandler):
             return self._wyslij(200, "text/html; charset=utf-8", html.encode("utf-8"))
         if sciezka == "/api/dane":
             return self._json(200, dane_strony())
-        m = re.fullmatch(r"/(images|szkice)/([a-z0-9]+(?:-[a-z0-9]+)*)\.jpg", sciezka)
+        m = re.fullmatch(r"/(images|szkice|tla)/([a-z0-9]+(?:-[a-z0-9]+)*)\.jpg", sciezka)
         if m:
-            dane = obraz_z_dysku(m.group(2), OBRAZY if m.group(1) == "images" else SZKICE)
+            dane = obraz_z_dysku(m.group(2), {"images": OBRAZY, "szkice": SZKICE, "tla": TLA}[m.group(1)])
             if dane is not None:
                 return self._wyslij(200, "image/jpeg", dane, cache=True)
         self._json(404, {"bledy": ["nie ma takiej strony"]})
@@ -1041,6 +1388,8 @@ class Edytor(http.server.BaseHTTPRequestHandler):
             "/api/szkic": zapisz_szkic,
             "/api/szkic/usun": lambda c: (usun_szkic(str(c.get("id"))), {"id": c.get("id")})[1],
             "/api/wycofaj": wycofaj,
+            "/api/tlo": zapisz_tlo,
+            "/api/tlo/usun": lambda c: (usun_tlo_z_bazy(str(c.get("id"))), {"id": c.get("id")})[1],
             "/api/podbij": lambda c: {"version": podbij((c.get("minApp") or "").strip() or None)[1]["version"]},
             "/api/partia": lambda c: dict(zip(("podmienione", "doSzkicow", "pominiete"),
                                               wczytaj_partie(dekoduj_obraz(c.get("zip")) or b""))),
@@ -1061,7 +1410,7 @@ class Edytor(http.server.BaseHTTPRequestHandler):
 def cmd_edytor(args):
     serwer = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), Edytor)
     adres = f"http://127.0.0.1:{serwer.server_port}/"
-    print(f"Edytor bazy: {adres} (Ctrl+C kończy). Zmiany lądują w baza/ i tools/szkice/, commit robisz sam.")
+    print(f"Edytor bazy: {adres} (Ctrl+C kończy). Zmiany lądują w baza/ i tools/szkice/, commit robisz sam.")  # baza/ to też tla/
     if not args.bez_otwierania:
         webbrowser.open(adres)
     try:
@@ -1089,6 +1438,12 @@ def main():
     p = sub.add_parser("partia", help="paczka ZIP z generatora zdjęć")
     p.add_argument("paczka", metavar="ZIP")
     p.set_defaults(cmd=cmd_partia)
+    p = sub.add_parser("tlo", help="zdjęcie tła (D-51): obróbka do baza/tla/ i wpis w tla.json")
+    p.add_argument("zdjecie", metavar="ZDJECIE")
+    p.add_argument("--temat", required=True, help="PhotoTopic: CORE, LEGS, UPPER, FULL_BODY, CARDIO, YOGA")
+    p.add_argument("--plec", required=True, help="PhotoSex: FEMALE albo MALE")
+    p.add_argument("--id", help="id zdjęcia; domyślnie następne wolne <temat>-<k|m>-<n>")
+    p.set_defaults(cmd=cmd_tlo)
     p = sub.add_parser("paczka", help="pliki wydania bazy: ZIP, manifest i opis")
     p.add_argument("katalog", metavar="KATALOG")
     p.add_argument("--wzgledem", metavar="REF", help="poprzednie wydanie bazy albo aplikacji, do liczby zmian")
