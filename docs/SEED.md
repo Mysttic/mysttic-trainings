@@ -15,7 +15,7 @@ i `images/<id>.jpg` w korzeniu assetów. W `baza/` leżą wyłącznie te dane, b
 (pilnuje tego `SeedIntegrityTest`). Szkice, czyli ilustracje i definicje, które jeszcze nie weszły do bazy, czekają
 w `tools/szkice/`.
 
-Stan: baza v11, 283 ćwiczenia (w tym 20 na ergometry, D-44), każde z ilustracją generowaną (D-36), i 35 zdjęć tła do „Zdjęcia dnia” (D-51); baza 11 wymaga aplikacji 1.2.0. Szablonów treningów
+Stan: baza v11, 283 ćwiczenia (w tym 20 na ergometry, D-44), każde z ilustracją generowaną (D-36), i 36 zdjęć tła do „Zdjęcia dnia” (D-51); baza 11 wymaga aplikacji 1.2.0. Szablonów treningów
 baza nie wozi od v7 (D-43): kolejkę układa kreator, gotowy program albo plan własny (D-42). Cztery ćwiczenia oddechowe
 (kategoria `BREATHING`, bez partii mięśniowych) żyją tylko w gotowych programach (D-37): kreator, zamienniki
 i wyszukiwarka edytora treningu ich nie biorą.

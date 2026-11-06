@@ -1071,6 +1071,15 @@ dostał sekcję „Zdjęcia tła”: dodawanie z tematem i płcią, podmiana w t
 usuwanie bez zostawiania tematu i płci bez zdjęcia oraz podgląd w kolorach motywów tym samym pasmem co aplikacja.
 Nowe zdjęcia wejdą do bazy 11, dopóki ta nie wyjdzie, a po wydaniu do kolejnego numeru.
 
+Uzupełnienie (2026-11-06, issue #8): zdjęcia SD-Turbo zastąpił własny komplet właściciela z generatora, 36 zdjęć
+(góra ciała kobiety dostała trzecie). Prompty leżą w `tools/tla_prompty.json`: instrukcja dla agenta generującego
+(pierwsza wiadomość rozmowy), opis każdego miejsca i wspólny styl. Kadr jest pionowy (9:16, najwyżej 2:3), bo telefon
+bierze środkowy pasek 360×780; postać mieści się w środkowej połowie szerokości, na ciemnym tle ze światłem
+konturowym. Liczy się sylwetka, nie twarz: w każdym temacie jedno ujęcie od przodu (twarz w cieniu, wzrok w dół),
+jedno z boku i jedno od tyłu. Pierwsze próby wypadły źle w poziomie (kadr ucinał głowę) i z twarzą w obiektywie.
+Edytor bazy pokazuje przy każdym miejscu kartę z promptem, przyjmuje obraz ze schowka i liczy zdjęcia nowe
+względem `origin/develop`; oryginały z generatora zostają lokalnie w `build/zdjecia-tla/` i nie jadą do repozytorium.
+
 Uzupełnienie (2026-11-05, reguła wyboru): w ciągu dnia można trenować z kilku planów i z kilku partii naraz, a tło
 ma tylko nawiązywać do dnia, nie ogłaszać „dziś trenujesz nogi”. Zamiast następnego treningu aktywnego planu skład
 dnia (`PhotoPicker.todaysWorkoutIds`) to: z planu, z którego dziś był trening, to, co z niego dziś zrobione; z planu

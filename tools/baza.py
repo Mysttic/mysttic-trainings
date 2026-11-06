@@ -78,6 +78,9 @@ TLO_KOLEJNOSC = ["CORE", "LEGS", "UPPER", "FULL_BODY", "CARDIO", "YOGA"]  # jak 
 TLO_ETYKIETY = {"CORE": "Brzuch", "LEGS": "Nogi", "UPPER": "Góra ciała", "FULL_BODY": "Całe ciało", "CARDIO": "Kardio",
                 "YOGA": "Joga", "FEMALE": "kobieta", "MALE": "mężczyzna"}
 MOTYWY_KT = "app/src/main/java/pl/mysttic/trainings/ui/theme/Themes.kt"
+TLA_PROMPTY = os.path.join(ROOT, "tools", "tla_prompty.json")  # prompty do zdjęć tła (issue #8); nie jadą do aplikacji
+TLA_ORYGINALY = os.path.join(ROOT, "build", "zdjecia-tla")  # oryginały z generatora, poza repozytorium
+TLA_REF = "origin/develop"  # względem tego edytor oznacza zdjęcia tła jako nowe
 STARY_PLIK = "app/src/main/assets/seed/exercises.json"
 STARE_OBRAZY = "app/src/main/assets/seed/images"
 
@@ -1098,19 +1101,94 @@ def dane_strony():
     return strona
 
 
+def wczytaj_prompty_tla():
+    """Miejsca na zdjęcia tła z tools/tla_prompty.json: {id: {temat, plec, prompt}}, pełny prompt to opis i wspólny styl.
+    Pusto, gdy pliku nie ma: edytor działa wtedy jak przed issue #8."""
+    try:
+        with open(TLA_PROMPTY, encoding="utf-8") as f:
+            dane = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    styl = str(dane.get("styl", "")).strip()
+    miejsca = {}
+    for m in dane.get("zdjecia", []):
+        if isinstance(m, dict) and isinstance(m.get("id"), str) and ID.fullmatch(m["id"]):
+            miejsca[m["id"]] = dict(temat=m.get("topic"), plec=m.get("sex"), prompt=f"{str(m.get('opis', '')).strip()} {styl}".strip())
+    return miejsca
+
+
+def wczytaj_instrukcje_tla():
+    """Pierwsza wiadomość do agenta generującego zdjęcia tła (tools/tla_prompty.json); pusty tekst, gdy jej nie ma."""
+    try:
+        with open(TLA_PROMPTY, encoding="utf-8") as f:
+            return str(json.load(f).get("instrukcja", "")).strip()
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
+
+
+def tla_z_refu(ref=TLA_REF):
+    """Skróty plików baza/tla/*.jpg w REF-ie ({id: blob}), żeby edytor wiedział, które zdjęcia już podmieniono."""
+    try:
+        wynik = subprocess.run(["git", "ls-tree", "-r", ref, "--", "baza/tla"], cwd=ROOT, capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    skroty = {}
+    for linia in wynik.stdout.splitlines():
+        meta, _, sciezka = linia.partition("\t")
+        nazwa = os.path.basename(sciezka)
+        if nazwa.endswith(".jpg") and len(meta.split()) == 3:
+            skroty[nazwa[:-4]] = meta.split()[2]
+    return skroty
+
+
+def stan_zdjecia_tla(tlo_id, z_refu):
+    """Adres podglądu i to, czy plik różni się od REF-u; (None, False), gdy pliku nie ma."""
+    sciezka = os.path.join(TLA, f"{tlo_id}.jpg")
+    if not os.path.isfile(sciezka):
+        return None, False
+    with open(sciezka, "rb") as f:
+        skrot = blob(f.read())
+    return f"/tla/{tlo_id}.jpg?v={skrot[:10]}", bool(z_refu) and z_refu.get(tlo_id) != skrot
+
+
+def zachowaj_oryginal_tla(tlo_id, dane):
+    """Oryginał z generatora w build/zdjecia-tla/ (poza gitem), żeby obróbkę dało się powtórzyć bez generowania od nowa."""
+    rozszerzenie = ("png" if dane.startswith(b"\x89PNG") else "jpg" if dane.startswith(b"\xff\xd8")
+                    else "webp" if dane[8:12] == b"WEBP" else "bin")
+    os.makedirs(TLA_ORYGINALY, exist_ok=True)
+    for stary in os.listdir(TLA_ORYGINALY):
+        if stary.rsplit(".", 1)[0] == tlo_id:
+            os.remove(os.path.join(TLA_ORYGINALY, stary))
+    with open(os.path.join(TLA_ORYGINALY, f"{tlo_id}.{rozszerzenie}"), "wb") as f:
+        f.write(dane)
+
+
 def dane_tla(adres):
-    """Sekcja „Zdjęcia tła” (D-51): zdjęcia z tla.json z adresami podglądu, tematy w kolejności z aplikacji i pasma motywów."""
+    """Sekcja „Zdjęcia tła” (D-51): zdjęcia z tla.json z adresami podglądu, tematy w kolejności z aplikacji i pasma motywów.
+    Od issue #8 także miejsca z tools/tla_prompty.json: prompt przy każdym zdjęciu, puste miejsca do wklejenia i znacznik
+    zdjęć zmienionych względem TLA_REF."""
     tla = wczytaj_tla() or {"photos": []}
     tematy, plcie = znane_tematy()
+    miejsca = wczytaj_prompty_tla()
+    z_refu = tla_z_refu() if miejsca else {}
     zdjecia = []
     for z in tla.get("photos", []):
         if not isinstance(z, dict) or not isinstance(z.get("id"), str):
             continue
         sciezka = os.path.join(TLA, f"{z['id']}.jpg")
+        _, nowe = stan_zdjecia_tla(z["id"], z_refu)
         zdjecia.append(dict(id=z["id"], temat=z.get("topic"), plec=z.get("sex"),
-                            obraz=adres(f"tla/{z['id']}.jpg", sciezka) if os.path.isfile(sciezka) else None))
+                            obraz=adres(f"tla/{z['id']}.jpg", sciezka) if os.path.isfile(sciezka) else None,
+                            prompt=miejsca.get(z["id"], {}).get("prompt"), nowe=nowe))
+    znane = {z["id"] for z in zdjecia}
+    for tlo_id, m in sorted(miejsca.items()):
+        if tlo_id not in znane and m["temat"] in tematy and m["plec"] in plcie:
+            zdjecia.append(dict(id=tlo_id, temat=m["temat"], plec=m["plec"], obraz=None, prompt=m["prompt"], nowe=False, puste=True))
+    zdjecia.sort(key=lambda z: z["id"])
     return dict(
         zdjecia=zdjecia,
+        porownanie=TLA_REF if z_refu else None,
+        instrukcja=wczytaj_instrukcje_tla() if miejsca else "",
         tematy=[t for t in TLO_KOLEJNOSC if t in tematy] + sorted(tematy - set(TLO_KOLEJNOSC)),
         plcie=[p for p in ("FEMALE", "MALE") if p in plcie] + sorted(plcie - {"FEMALE", "MALE"}),
         etykiety=TLO_ETYKIETY,
@@ -1128,11 +1206,18 @@ def zapisz_tlo(cialo):
     temat, plec = cialo.get("temat"), cialo.get("plec")
     if tlo_id is not None:
         istniejace = {z["id"]: z for z in (wczytaj_tla() or {"photos": []})["photos"]}
-        if tlo_id not in istniejace:
+        miejsca = wczytaj_prompty_tla()
+        if tlo_id in istniejace:
+            temat, plec = istniejace[tlo_id]["topic"], istniejace[tlo_id]["sex"]
+        elif tlo_id in miejsca:
+            # Puste miejsce z tools/tla_prompty.json (issue #8): temat i płeć bierze z pliku promptów.
+            temat, plec = miejsca[tlo_id]["temat"], miejsca[tlo_id]["plec"]
+        else:
             raise Odmowa(f"nie ma zdjęcia {tlo_id}")
-        temat, plec = istniejace[tlo_id]["topic"], istniejace[tlo_id]["sex"]
     tlo_id, rozmiar = dodaj_tlo(obraz, temat, plec, tlo_id)
-    return {"id": tlo_id, "rozmiar": rozmiar}
+    zachowaj_oryginal_tla(tlo_id, obraz)
+    podglad, nowe = stan_zdjecia_tla(tlo_id, tla_z_refu())
+    return {"id": tlo_id, "rozmiar": rozmiar, "obraz": podglad, "nowe": nowe}
 
 
 class Odmowa(Exception):

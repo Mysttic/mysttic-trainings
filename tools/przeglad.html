@@ -358,6 +358,14 @@
   .tlo .actions { margin-top: 6px; gap: 6px; }
   .tlo .actions > * { padding: 4px 8px; font-size: 12px; }
   .tlo-add { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  /* Miejsca z promptami (issue #8): miniatura obok promptu; wybrana karta przyjmuje Ctrl+V. */
+  .tla.sloty { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .tlo.slot { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; cursor: pointer; outline: none; }
+  .tlo.slot img, .tlo.slot .ph { width: 96px; }
+  .tlo.slot.sel { border-color: var(--fire); box-shadow: inset 0 0 0 1px var(--fire); }
+  .tlo .prompt { margin: 6px 0 0; font-size: 12px; line-height: 1.35; color: var(--ink); max-height: 10.8em; overflow: auto; white-space: pre-wrap; }
+  .tlo .nowe { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 8px; background: var(--fire); color: var(--bg); font-size: 10.5px; font-weight: 700; }
+  .tlo .actions { flex-wrap: wrap; }
   .tlo-add .drop { grid-column: 1 / -1; aspect-ratio: auto; min-height: 96px; margin-top: 0; }
 
   @media (max-width: 720px) {
@@ -817,18 +825,56 @@
   }
 
   let bandPreview = "";
+  let tloWybrane = null;  // id karty zdjęcia tła, do której trafi Ctrl+V (issue #8)
+  let wklejDo = null;
+
+  // Ctrl+V w otwartym panelu zdjęć tła wkleja obraz ze schowka do wybranej karty.
+  document.addEventListener("paste", ev => {
+    if (!wklejDo || !document.querySelector("#panel .tla")) return;
+    const item = [...((ev.clipboardData && ev.clipboardData.items) || [])].find(i => i.type.startsWith("image/"));
+    if (!item) return;
+    ev.preventDefault();
+    wklejDo(item.getAsFile());
+  });
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const area = el("textarea", { value: text });
+      document.body.append(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+  }
 
   function openBackgrounds() {
     const T = EDIT.tla;
     const label = key => T.etykiety[key] || key;
     const panel = shell("Zdjęcia tła", "baza/tla/ · Zdjęcie dnia w aplikacji (D-51)", true);
     bandFilters();
+    const prompts = T.zdjecia.some(z => z.prompt);
     panel.append(el("p", { className: "note", style: "margin-top:12px", textContent:
-      "Zdjęcie dnia losuje się raz dziennie z trzech tematów, których najwięcej w dzisiejszych treningach, i z osobami " +
-      "z „Na zdjęciach” w Ustawieniach. Wrzuć zdjęcie " +
-      "z generatora: edytor wykadruje je ze środka pod telefon (360×780), zamieni na skalę szarości, rozciągnie jasność " +
-      "i rozmyje, a kolor nada motyw w aplikacji. Najlepiej wychodzi zbliżenie albo postać od pasa w górę na ciemnym tle. " +
-      "Podmiana zostawia id, temat i płeć zdjęcia. Każdy temat potrzebuje zdjęcia z kobietą i z mężczyzną." }));
+      "Zdjęcie dnia losuje się raz dziennie z trzech tematów, których najwięcej w dzisiejszych treningach, z osobami płci " +
+      "z „O mnie” w aplikacji. Edytor wykadruje każde zdjęcie ze środka pod telefon (360×780), zamieni na skalę szarości, " +
+      "rozciągnie jasność i rozmyje, a kolor nada motyw w aplikacji. Najlepiej wychodzi pionowa postać w środkowej połowie " +
+      "kadru, na ciemnym tle, z twarzą w cieniu. Podmiana zostawia id, temat i płeć zdjęcia. Każdy temat potrzebuje zdjęcia z kobietą i z mężczyzną." }));
+    if (prompts) panel.append(el("p", { className: "note", textContent:
+      "Przy każdym miejscu jest prompt z tools/tla_prompty.json. Skopiuj go, wygeneruj obraz, kliknij kartę i wklej obraz " +
+      "(Ctrl+V), użyj „Wklej” albo przeciągnij plik na kartę. Oryginał z generatora zostaje w build/zdjecia-tla/." }));
+    if (T.instrukcja) {
+      // Pierwsza wiadomość do agenta generującego: kontekst serii i zasady; karty mają potem już tylko opisy zdjęć.
+      const label0 = "Kopiuj instrukcję dla agenta";
+      const brief = el("button", { type: "button", className: "ghost", textContent: label0,
+        title: "Wklej ją agentowi raz, na początku rozmowy; potem wklejaj prompty z kart." });
+      brief.onclick = async () => {
+        await copyText(T.instrukcja);
+        brief.textContent = "Skopiowano";
+        setTimeout(() => { brief.textContent = label0; }, 1500);
+      };
+      panel.append(el("div", { className: "actions" }, [brief]));
+    }
     if (!EDIT.pillow) panel.append(el("p", { className: "note", textContent: "Obróbka zdjęć potrzebuje Pillow: pip install pillow." }));
 
     const send = async (body, done) => {
@@ -841,6 +887,11 @@
     look.append(el("option", { value: "", textContent: "Podgląd: zdjęcie z bazy (szare, rozmyte)" }));
     T.pasma.forEach(b => look.append(el("option", { value: b.id, textContent: `Podgląd: ${b.nazwa}, jak w aplikacji` })));
     look.value = bandPreview;
+    const counter = el("span", { className: "pid" });
+    const count = () => {
+      const fresh = T.zdjecia.filter(z => z.nowe).length;
+      counter.textContent = T.porownanie ? `Nowe względem ${T.porownanie}: ${fresh} z ${T.zdjecia.length}` : `${T.zdjecia.length} zdjęć`;
+    };
 
     // nowe zdjęcie: temat, płeć, plik
     const topic = el("select");
@@ -861,18 +912,20 @@
     drop.ondragover = ev => { ev.preventDefault(); drop.classList.add("over"); };
     drop.ondragleave = () => drop.classList.remove("over");
     drop.ondrop = ev => { ev.preventDefault(); drop.classList.remove("over"); addFile(ev.dataTransfer.files[0]); };
-    panel.append(el("section", { className: "sect" }, [
-      el("h3", { textContent: "Dodaj zdjęcie" }),
-      el("div", { className: "tlo-add" }, [
-        el("label", {}, [el("span", { className: "glabel", textContent: "Temat" }), topic]),
-        el("label", {}, [el("span", { className: "glabel", textContent: "Na zdjęciu" }), sex]),
-        drop,
-      ]),
-    ]));
+    if (!prompts) {
+      panel.append(el("section", { className: "sect" }, [
+        el("h3", { textContent: "Dodaj zdjęcie" }),
+        el("div", { className: "tlo-add" }, [
+          el("label", {}, [el("span", { className: "glabel", textContent: "Temat" }), topic]),
+          el("label", {}, [el("span", { className: "glabel", textContent: "Na zdjęciu" }), sex]),
+          drop,
+        ]),
+      ]));
+    }
 
     const gaps = [];
     for (const t of T.tematy) for (const x of T.plcie) {
-      if (!T.zdjecia.some(z => z.temat === t && z.plec === x)) gaps.push(`${label(t)} / ${label(x)}`);
+      if (!T.zdjecia.some(z => z.temat === t && z.plec === x && z.obraz)) gaps.push(`${label(t)} / ${label(x)}`);
     }
     if (gaps.length) panel.append(el("ul", { className: "errors" }, gaps.map(g => el("li", { textContent: `Brak zdjęcia: ${g}` }))));
 
@@ -882,42 +935,106 @@
       thumbs.forEach(img => { img.style.filter = bandPreview ? `url(#pasmo-${bandPreview})` : ""; });
     };
     look.onchange = applyLook;
-    panel.append(el("div", { className: "actions" }, [look]));
+    panel.append(el("div", { className: "actions" }, [look, counter]));
 
-    for (const t of T.tematy) {
-      const list = T.zdjecia.filter(z => z.temat === t);
-      const grid = el("div", { className: "tla" });
-      for (const z of list) {
-        const img = z.obraz ? el("img", { src: z.obraz, alt: `${label(z.temat)}, ${label(z.plec)}` }) : el("span", { className: "ph", textContent: "brak pliku" });
-        if (z.obraz) thumbs.push(img);
-        const swapIn = el("input", { type: "file", accept: "image/*", hidden: true });
-        const swap = el("label", { className: "ghost", title: "Nowy plik w miejsce tego zdjęcia: to samo id, temat i płeć" }, [document.createTextNode("Podmień"), swapIn]);
-        const replace = async file => {
-          if (!file || !file.type.startsWith("image/")) return;
-          card.classList.add("over");
-          send({ id: z.id, obraz: await readAsDataUrl(file) }, () => card.classList.remove("over"));
+    const cards = [];
+    const select = (z, card) => {
+      tloWybrane = z.id;
+      cards.forEach(c => c.classList.toggle("sel", c === card));
+      wklejDo = file => upload(z, card, file);
+    };
+    // Wgranie do karty bez przeładowania strony: przy 36 miejscach przewijanie po każdym zdjęciu by męczyło.
+    const upload = async (z, card, file) => {
+      if (!file || !file.type.startsWith("image/")) return;
+      card.classList.add("over");
+      try {
+        const out = await api("/api/tlo", { id: z.id, obraz: await readAsDataUrl(file) });
+        Object.assign(z, { obraz: out.obraz, nowe: out.nowe, puste: false });
+        card.replaceWith(slotCard(z));
+        count();
+      } catch (err) {
+        alert(problems(err).join("\n"));
+      } finally {
+        card.classList.remove("over");
+      }
+    };
+
+    function slotCard(z) {
+      const img = z.obraz ? el("img", { src: z.obraz, alt: `${label(z.temat)}, ${label(z.plec)}` })
+        : el("span", { className: "ph", textContent: prompts ? "Brak zdjęcia. Kliknij i wklej obraz." : "brak pliku" });
+      if (z.obraz) {
+        thumbs.push(img);
+        img.style.filter = bandPreview ? `url(#pasmo-${bandPreview})` : "";
+      }
+      const swapIn = el("input", { type: "file", accept: "image/*", hidden: true });
+      const swap = el("label", { className: "ghost", title: "Plik w to miejsce: to samo id, temat i płeć" },
+        [document.createTextNode(z.obraz ? "Podmień" : "Plik"), swapIn]);
+      swapIn.onchange = () => upload(z, card, swapIn.files[0]);
+      const buttons = [];
+      if (z.prompt) {
+        const copy = el("button", { type: "button", className: "ghost", textContent: "Kopiuj prompt" });
+        copy.onclick = async ev => {
+          ev.stopPropagation();
+          select(z, card);
+          await copyText(z.prompt);
+          copy.textContent = "Skopiowano";
+          setTimeout(() => { copy.textContent = "Kopiuj prompt"; }, 1500);
         };
-        swapIn.onchange = () => replace(swapIn.files[0]);
+        buttons.push(copy);
+      }
+      const paste = el("button", { type: "button", className: "ghost", textContent: "Wklej" });
+      paste.onclick = async ev => {
+        ev.stopPropagation();
+        select(z, card);
+        try {
+          for (const item of await navigator.clipboard.read()) {
+            const type = item.types.find(t => t.startsWith("image/"));
+            if (type) return upload(z, card, new File([await item.getType(type)], "schowek", { type }));
+          }
+          alert("W schowku nie ma obrazu.");
+        } catch (err) {
+          alert("Przeglądarka nie dała dostępu do schowka. Kliknij kartę i wciśnij Ctrl+V.");
+        }
+      };
+      buttons.push(paste, swap);
+      if (!z.puste) {
         const del = el("button", { type: "button", className: "ghost", textContent: "Usuń" });
-        del.onclick = async () => {
+        del.onclick = async ev => {
+          ev.stopPropagation();
           if (!confirm(`Usunąć zdjęcie ${z.id}?`)) return;
           try { await api("/api/tlo/usun", { id: z.id }); reloadAt("tla"); } catch (err) { alert(problems(err).join("\n")); }
         };
-        const card = el("div", { className: "tlo" }, [
-          img,
-          el("p", { className: "pid", textContent: `${z.id} · ${label(z.plec)}` }),
-          el("div", { className: "actions" }, [swap, del]),
-        ]);
-        card.ondragover = ev => { ev.preventDefault(); card.classList.add("over"); };
-        card.ondragleave = () => card.classList.remove("over");
-        card.ondrop = ev => { ev.preventDefault(); card.classList.remove("over"); replace(ev.dataTransfer.files[0]); };
-        grid.append(card);
+        buttons.push(del);
       }
+      const head = el("p", { className: "pid", textContent: `${z.id} · ${label(z.plec)}` });
+      if (z.nowe) head.append(el("span", { className: "nowe", textContent: "nowe" }));
+      const text = [head];
+      if (z.prompt) text.push(el("p", { className: "prompt", textContent: z.prompt }));
+      text.push(el("div", { className: "actions" }, buttons));
+      const card = prompts
+        ? el("div", { className: "tlo slot", tabIndex: 0 }, [img, el("div", {}, text)])
+        : el("div", { className: "tlo" }, [img, ...text]);
+      card.dataset.id = z.id;
+      card.onclick = () => select(z, card);
+      card.ondragover = ev => { ev.preventDefault(); card.classList.add("over"); };
+      card.ondragleave = () => card.classList.remove("over");
+      card.ondrop = ev => { ev.preventDefault(); card.classList.remove("over"); select(z, card); upload(z, card, ev.dataTransfer.files[0]); };
+      const i = cards.findIndex(c => c.dataset.id === z.id);
+      if (i >= 0) cards[i] = card; else cards.push(card);
+      if (tloWybrane === z.id) { card.classList.add("sel"); wklejDo = file => upload(z, card, file); }
+      return card;
+    }
+
+    for (const t of T.tematy) {
+      const list = T.zdjecia.filter(z => z.temat === t);
+      const grid = el("div", { className: prompts ? "tla sloty" : "tla" });
+      list.forEach(z => grid.append(slotCard(z)));
       if (!list.length) grid.append(el("p", { className: "hint", textContent: "Brak zdjęć." }));
-      panel.append(el("section", { className: "sect" }, [el("h3", { textContent: `${label(t)} (${list.length})` }), grid]));
+      panel.append(el("section", { className: "sect" }, [el("h3", { textContent: `${label(t)} (${list.filter(z => z.obraz).length})` }), grid]));
     }
     panel.append(el("p", { className: "hint", textContent:
-      "Przeciągnięcie pliku na zdjęcie też je podmienia. Z terminala to samo robi: python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE" }));
+      "Przeciągnięcie pliku na kartę też podmienia zdjęcie. Z terminala to samo robi: python tools/baza.py tlo ZDJECIE --temat CORE --plec FEMALE --id brzuch-k-1" }));
+    count();
     applyLook();
   }
 

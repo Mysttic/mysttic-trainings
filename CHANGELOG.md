@@ -17,19 +17,20 @@ zostają tu opisane, ale bez odnośników: ich tagi i historia nie przeszły do 
 
 ## [Niewydane]
 
-## [Baza 11]
+## [Baza 11] - 2026-11-06
 
 Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która jako pierwsza je pokazuje.
 
 ### Dodane
-- **35 zdjęć tła**: brzuch, nogi, góra ciała, całe ciało, kardio i joga, każdy temat z kobietą i z mężczyzną.
+- **36 zdjęć tła**: brzuch, nogi, góra ciała, całe ciało, kardio i joga, w każdym temacie trzy z kobietą i trzy
+  z mężczyzną. Pionowe kadry pod ekran telefonu: sylwetka w ruchu na ciemnym tle, od przodu, z boku i od tyłu.
   Zdjęcia są rozmyte i w skali szarości, a kolor nadaje im motyw aplikacji. Ćwiczenia bez zmian.
 
 ### Zmienione
 - **Baza wymaga aplikacji 1.2.0.** Wersja 1.1.0 nie zna zdjęć tła, więc zamiast pobierać bazę pokaże
   „najpierw zaktualizuj aplikację”.
 
-## [1.2.0]
+## [1.2.0] - 2026-11-06
 
 ### Dodane
 - **Zakładka Plany.** Lista planów jest w dolnym pasku, obok „Dziś”: aktywny plan, czekające i zakończone, a w nagłówku
@@ -54,7 +55,9 @@ Zdjęcia tła do „Zdjęcia dnia” (D-51), razem z aplikacją 1.2.0, która ja
   wersja 1.1.0 odeśle do aktualizacji (D-58).
 - **Zdjęcia tła w edytorze bazy (dla właściciela).** `python tools/baza.py` ma sekcję „Zdjęcia tła”: dodawanie
   zdjęcia z tematem i płcią, podmiana w to samo miejsce, usuwanie i podgląd w kolorach każdego motywu, takich jak
-  w aplikacji. Edytor sam kadruje zdjęcie pod telefon, odbarwia je i rozmywa.
+  w aplikacji. Edytor sam kadruje zdjęcie pod telefon, odbarwia je i rozmywa. Każde miejsce ma kartę z promptem
+  do generatora, obraz ze schowka (Ctrl+V) trafia do wybranej karty, a „Kopiuj instrukcję dla agenta” daje
+  pierwszą wiadomość z zasadami serii (`tools/tla_prompty.json`).
 - **Kopia treningu w edytorze planu.** „×2” przy treningu planu dokłada jego kopię, więc drugi trening układasz
   z pierwszego, podmieniając ćwiczenia, zamiast od zera. Kopia ma w nazwie „(kopia)”, a przy kolejnych
   „(kopia 2)”, „(kopia 3)”. Tak samo nazywa się trening skopiowany z innego planu, gdy plan ma już trening

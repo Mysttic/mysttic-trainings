@@ -17,7 +17,7 @@ Od 2026-11-05 to repozytorium jest publiczne i zaczyna od stanu 1.1.0 jednym com
 nie przeszły do tego repozytorium; przeszły wydanie 1.1.0 z APK i otwarte issue (#1 do #3).
 
 Liczby: baza ćwiczeń v11 w `baza/` (283 ćwiczenia, każde z jedną ilustracją generowaną, bez szablonów treningów,
-i 35 zdjęć tła, D-51), 509 testów jednostkowych w 55 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
+i 36 zdjęć tła, D-51), 509 testów jednostkowych w 55 klasach, Room v6, kopia zapasowa v5, jedenaście gotowych programów.
 
 Weryfikacja stoi na emulatorze Pixel_9_Pro (API 37), dla dużych ekranów na AVD Pixel_Tablet_API_37 (D-42), i na skryptach
 `tools/przebieg*.py`. Decyzja właściciela z 2026-09-18: **telefon nie jest bramką wydania**, emulator wystarcza.
@@ -47,8 +47,9 @@ zawsze leży zdjęcie dnia (D-51, D-55), rozmyte zdjęcie z bazy ćwiczeń 11 (`
 dziennie z trzech tematów, których najwięcej w dzisiejszych treningach wszystkich planów, z osobami płci z „O mnie”;
 nic w aplikacji nie nazywa partii dnia, a karty są szklane (`cardColor()`). Na zdjęciu leży do wyboru jeden z trzech
 gradientów motywu (D-50) z kryciem 0,4 albo nic („Samo zdjęcie”, domyślne); wybór osobno dla każdego motywu
-(`ui/theme/Backgrounds.kt`), kopia zapasowa v5 go niesie; baza 11 wymaga aplikacji 1.2.0. Obecne zdjęcia są tymczasowe
-(SD-Turbo): właściciel podmieni je na własne w sekcji „Zdjęcia tła” edytora bazy. Czwarty motyw „Brzoza i Mech”
+(`ui/theme/Backgrounds.kt`), kopia zapasowa v5 go niesie; baza 11 wymaga aplikacji 1.2.0. Zdjęcia to własny komplet
+właściciela z generatora (issue #8): prompty i instrukcja dla agenta generującego leżą w `tools/tla_prompty.json`, a karty
+z nimi pokazuje sekcja „Zdjęcia tła” edytora bazy. Czwarty motyw „Brzoza i Mech”
 (D-56) jest jasny, leśny. „O mnie” (D-57) zbiera imię, płeć, wzrost i wagę, a kreator zaczyna od sprzętu. Plik planu
 (D-58) jest podpisany kluczem telefonu z Android Keystore i imieniem z „O mnie”, na życzenie zamknięty hasłem.
 Także w 1.2.0 nowy interfejs z issue #5 (D-52): projekt w designerze (canvas „mysttic-trainings: nowy interfejs”),

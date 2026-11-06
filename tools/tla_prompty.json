@@ -1,0 +1,223 @@
+{
+  "opis": "Prompty do zdjęć tła (issue #8). Edytor bazy (python tools/baza.py) pokazuje je przy każdym miejscu w sekcji „Zdjęcia tła”: pełny prompt to opis miejsca i wspólny styl, a instrukcja to pierwsza wiadomość do agenta generującego. Plik nie jedzie do aplikacji.",
+  "instrukcja": "Będziesz generować zdjęcia tła do aplikacji treningowej na telefon (ćwiczenia w domu). Każde zdjęcie leży pod całym ekranem aplikacji jak tapeta, dlatego aplikacja przytnie je ze środka do wąskiego, pionowego paska (360 × 780 px, czyli z formatu 2:3 zostaje środkowe 70% szerokości), zamieni na skalę szarości, mocno rozmyje i zabarwi kolorem motywu. Ze zdjęcia zostaje głównie sylwetka ćwiczącej osoby i światło, szczegóły znikają.\n\nZasady dla każdego zdjęcia:\n1. Realistyczne zdjęcie, nie ilustracja ani grafika 3D.\n2. Pionowy kadr jak tapeta na telefon: najwyższy pionowy format, jaki masz (9:16, a jeśli go nie ma, 2:3). Nigdy poziomy ani kwadratowy.\n3. Dokładnie jedna osoba w trakcie ćwiczenia z opisu. Postać wypełnia większą część wysokości kadru i mieści się w środkowej połowie jego szerokości; przy lewej i prawej krawędzi jest tylko ciemne tło. Żadnych póz rozciągniętych w poziomie przez cały kadr.\n4. Liczy się sylwetka i ruch, nie twarz. Ujęcie od przodu, z boku albo od tyłu, tak jak w opisie; twarz zostaje w cieniu albo poza ostrością, wzrok skierowany w dół lub w bok. Nikt nie patrzy w obiektyw ani nie pozuje do aparatu.\n5. Niski klucz: ciemne, gładkie, spokojne tło bez szczegółów, bez mebli, okien i luster; światło konturowe z boku albo z tyłu rysuje jasny obrys sylwetki, a twarz zostaje w półcieniu.\n6. Sportowy strój w jednolitych kolorach, bez nadruków. Sprzęt tylko taki, jaki wymienia opis (mata, hantle, kettlebell, skakanka, drążek w futrynie).\n7. Bez tekstu, napisów, logo, znaków wodnych, ramek i innych osób.\n8. Wszystkie zdjęcia z tej serii wyglądają jak jedna sesja: to samo światło, podobna odległość od postaci, ten sam spokojny klimat.\n9. Poprawna anatomia: dwie ręce, dwie nogi, naturalna poza zgodna z ćwiczeniem.\n\nW kolejnych wiadomościach dostaniesz opisy pojedynczych zdjęć: osobę, ćwiczenie i ujęcie. Opisy powtarzają część tych zasad, to celowe. Na każdą wiadomość wygeneruj jedno zdjęcie według zasad, bez komentarza.",
+  "styl": "Realistyczne zdjęcie w pionie, jak tapeta na telefon: najwyższy pionowy format, jaki daje generator (9:16, a jeśli go nie ma, 2:3). Postać wypełnia większą część wysokości kadru i mieści się w środkowej połowie jego szerokości; po bokach jest tylko ciemne tło. Kadr skupia się na sylwetce i ruchu, nie na twarzy: twarz w cieniu albo poza ostrością, wzrok w dół lub w bok, nikt nie patrzy w obiektyw. Ciemne, gładkie tło bez szczegółów; światło konturowe z boku albo z tyłu rysuje jasny obrys sylwetki. Sportowy strój w jednolitych kolorach. Bez tekstu, logo i znaków wodnych, bez innych osób.",
+  "zdjecia": [
+    {
+      "id": "brzuch-k-1",
+      "topic": "CORE",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat wisi na drążku zamocowanym w futrynie drzwi i unosi ugięte kolana do klatki piersiowej, widziana od tyłu."
+    },
+    {
+      "id": "brzuch-k-2",
+      "topic": "CORE",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat stoi w lekkim rozkroku w skręcie tułowia i trzyma oburącz hantel wysoko nad barkiem, jak przy rąbaniu drewna, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "brzuch-k-3",
+      "topic": "CORE",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat stoi na jednej nodze i przyciąga uniesione kolano do przeciwległego łokcia w skręcie tułowia, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "brzuch-m-1",
+      "topic": "CORE",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat wisi na drążku zamocowanym w futrynie drzwi i unosi ugięte kolana do klatki piersiowej, widziany od tyłu."
+    },
+    {
+      "id": "brzuch-m-2",
+      "topic": "CORE",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat stoi w lekkim rozkroku w skręcie tułowia i trzyma oburącz hantel wysoko nad barkiem, jak przy rąbaniu drewna, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "brzuch-m-3",
+      "topic": "CORE",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat stoi na jednej nodze i przyciąga uniesione kolano do przeciwległego łokcia w skręcie tułowia, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "nogi-k-1",
+      "topic": "LEGS",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat robi głęboki przysiad z ciężarem ciała: uda równolegle do podłogi, ramiona wyciągnięte przed siebie, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "nogi-k-2",
+      "topic": "LEGS",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat robi wykrok w przód: przednie kolano nad stopą, tylne kolano tuż nad podłogą, dłonie na biodrach, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "nogi-k-3",
+      "topic": "LEGS",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat robi przysiad z hantlem trzymanym oburącz przy klatce piersiowej, widziana od tyłu."
+    },
+    {
+      "id": "nogi-m-1",
+      "topic": "LEGS",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat robi głęboki przysiad z ciężarem ciała: uda równolegle do podłogi, ramiona wyciągnięte przed siebie, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "nogi-m-2",
+      "topic": "LEGS",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat robi wykrok w przód: przednie kolano nad stopą, tylne kolano tuż nad podłogą, dłonie na biodrach, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "nogi-m-3",
+      "topic": "LEGS",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat robi przysiad z hantlem trzymanym oburącz przy klatce piersiowej, widziany od tyłu."
+    },
+    {
+      "id": "gora-k-1",
+      "topic": "UPPER",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat stoi i wyciska dwa hantle nad głowę, ramiona prawie wyprostowane, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "gora-k-2",
+      "topic": "UPPER",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat podciąga się na drążku zamocowanym w futrynie drzwi, broda nad drążkiem, widziana od tyłu."
+    },
+    {
+      "id": "gora-k-3",
+      "topic": "UPPER",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat stoi i ugina ramiona z hantlami, łokcie przy tułowiu, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "gora-m-1",
+      "topic": "UPPER",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat stoi i wyciska dwa hantle nad głowę, ramiona prawie wyprostowane, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "gora-m-2",
+      "topic": "UPPER",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat podciąga się na drążku zamocowanym w futrynie drzwi, broda nad drążkiem, widziany od tyłu."
+    },
+    {
+      "id": "gora-m-3",
+      "topic": "UPPER",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat stoi i ugina ramiona z hantlami, łokcie przy tułowiu, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "calosc-k-1",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat w wyskoku z burpee, w powietrzu, ramiona wyciągnięte nad głowę, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "calosc-k-2",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat robi przysiad z wyciskaniem: prostuje się z przysiadu i wypycha dwa hantle nad głowę, widziana od tyłu."
+    },
+    {
+      "id": "calosc-k-3",
+      "topic": "FULL_BODY",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat robi wymach kettlebellem oburącz, kettlebell na wysokości barków, biodra wypchnięte w przód, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "calosc-m-1",
+      "topic": "FULL_BODY",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat w wyskoku z burpee, w powietrzu, ramiona wyciągnięte nad głowę, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "calosc-m-2",
+      "topic": "FULL_BODY",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat robi przysiad z wyciskaniem: prostuje się z przysiadu i wypycha dwa hantle nad głowę, widziany od tyłu."
+    },
+    {
+      "id": "calosc-m-3",
+      "topic": "FULL_BODY",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat robi wymach kettlebellem oburącz, kettlebell na wysokości barków, biodra wypchnięte w przód, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "kardio-k-1",
+      "topic": "CARDIO",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat skacze na skakance, stopy nad podłogą, skakanka zatacza łuk wokół postaci, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "kardio-k-2",
+      "topic": "CARDIO",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat biegnie w miejscu z wysokim unoszeniem kolan, jedno kolano na wysokości bioder, ramiona pracują jak w biegu, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "kardio-k-3",
+      "topic": "CARDIO",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat boksuje z cieniem: garda przy twarzy i prosty cios jedną ręką, widziana od tyłu."
+    },
+    {
+      "id": "kardio-m-1",
+      "topic": "CARDIO",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat skacze na skakance, stopy nad podłogą, skakanka zatacza łuk wokół postaci, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "kardio-m-2",
+      "topic": "CARDIO",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat biegnie w miejscu z wysokim unoszeniem kolan, jedno kolano na wysokości bioder, ramiona pracują jak w biegu, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "kardio-m-3",
+      "topic": "CARDIO",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat boksuje z cieniem: garda przy twarzy i prosty cios jedną ręką, widziany od tyłu."
+    },
+    {
+      "id": "joga-k-1",
+      "topic": "YOGA",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 30 lat stoi w pozycji drzewa na macie: stopa oparta o wewnętrzną stronę uda, dłonie złożone wysoko nad głową, widziana od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "joga-k-2",
+      "topic": "YOGA",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 45 lat w pozycji wojownika I na macie: wykrok, ramiona wyprostowane w górę, widziana z boku, twarz w cieniu."
+    },
+    {
+      "id": "joga-k-3",
+      "topic": "YOGA",
+      "sex": "FEMALE",
+      "opis": "Kobieta około 25 lat siedzi po turecku na macie z prostymi plecami, dłonie na kolanach, widziana od tyłu."
+    },
+    {
+      "id": "joga-m-1",
+      "topic": "YOGA",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 30 lat stoi w pozycji drzewa na macie: stopa oparta o wewnętrzną stronę uda, dłonie złożone wysoko nad głową, widziany od przodu, twarz w cieniu, wzrok skierowany w dół."
+    },
+    {
+      "id": "joga-m-2",
+      "topic": "YOGA",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 45 lat w pozycji wojownika I na macie: wykrok, ramiona wyprostowane w górę, widziany z boku, twarz w cieniu."
+    },
+    {
+      "id": "joga-m-3",
+      "topic": "YOGA",
+      "sex": "MALE",
+      "opis": "Mężczyzna około 25 lat siedzi po turecku na macie z prostymi plecami, dłonie na kolanach, widziany od tyłu."
+    }
+  ]
+}
